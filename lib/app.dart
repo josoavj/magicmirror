@@ -4,6 +4,9 @@ import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'config/app_config.dart';
 import 'routes/app_routes.dart';
+import 'features/mirror/presentation/screens/mirror_screen.dart';
+import 'features/agenda/presentation/screens/agenda_screen.dart';
+import 'features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -17,7 +20,12 @@ class MyApp extends StatelessWidget {
       themeMode: AppConfig.enableDarkMode ? ThemeMode.dark : ThemeMode.light,
       locale: AppConfig.defaultLocale,
       debugShowCheckedModeBanner: AppConfig.isDevelopment,
-      routes: AppRoutes.getRoutes(),
+      routes: {
+        '/': (context) => const _HomeScreen(),
+        '/mirror': (context) => const MirrorScreen(),
+        //'/agenda': (context) => const AgendaScreen(),
+        '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
+      },
       home: const _HomeScreen(),
     );
   }
