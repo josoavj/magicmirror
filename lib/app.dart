@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const _HomeScreen(),
         '/mirror': (context) => const MirrorScreen(),
-        '/agenda': (context) => const AgendaScreen(),
+        //'/agenda': (context) => const AgendaScreen(),
         '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
       },
       home: const _HomeScreen(),
