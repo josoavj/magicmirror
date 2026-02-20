@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:camera/camera.dart';
 
 import '../providers/camera_provider.dart';
+import '../providers/permission_provider.dart';
 import '../widgets/camera_view.dart';
 import '../widgets/mirror_overlay.dart';
+import '../widgets/permission_request_widget.dart';
 import '../../../../core/constants/colors.dart';
 
 class MirrorScreen extends ConsumerStatefulWidget {
@@ -20,14 +21,36 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if all required permissions are granted
+    final allPermissionsGranted = ref.watch(allPermissionsGrantedProvider);
+
+    return allPermissionsGranted.when(
+      data: (granted) {
+        if (!granted) {
+          return PermissionRequestWidget(
+            title: 'Permission Caméra Requise',
+            message:
+                'L\'application a besoin d\'accéder à votre caméra pour fonctionner correctement.',
+            permissionType: 'camera',
+            child: const SizedBox(),
+          );
+        }
+
+        return _buildMirrorContent();
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stack) =>
+          Scaffold(body: Center(child: Text('Erreur: $error'))),
+    );
+  }
+
+  Widget _buildMirrorContent() {
     final frontCamera = ref.watch(frontCameraProvider);
     final isRecording = ref.watch(isRecordingProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Miroir Intelligent'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Miroir Intelligent'), elevation: 0),
       body: frontCamera.when(
         data: (camera) {
           if (camera == null) {
@@ -36,8 +59,7 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
             );
           }
 
-          final cameraController =
-              ref.watch(cameraControllerProvider(camera));
+          final cameraController = ref.watch(cameraControllerProvider(camera));
 
           return cameraController.when(
             data: (controller) {
@@ -64,11 +86,9 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
                           ),
                         );
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erreur: $e'),
-                          ),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
                       }
                     },
                   ),
@@ -97,9 +117,8 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
                                 ? AppColors.error
                                 : AppColors.secondary,
                             onPressed: () {
-                              ref
-                                  .read(isRecordingProvider.notifier)
-                                  .state = !isRecording;
+                              ref.read(isRecordingProvider.notifier).state =
+                                  !isRecording;
 
                               if (isRecording) {
                                 controller.stopVideoRecording();
@@ -129,23 +148,15 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
                       ),
                     ),
                   ),
-                ]
+                ],
               );
             },
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, stackTrace) => Center(
-              child: Text('Erreur: $error'),
-            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stackTrace) => Center(child: Text('Erreur: $error')),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, stackTrace) => Center(
-          child: Text('Erreur: $error'),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Center(child: Text('Erreur: $error')),
       ),
     );
   }
