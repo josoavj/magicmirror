@@ -45,5 +45,23 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Camera Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Magic Mirror utilise votre caméra pour afficher le miroir intelligent et détecter votre morphologie.</string>
+	
+	<!-- Microphone Permissions -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required to record audio during mirror sessions.</string>
+	
+	<!-- Photos Library Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is required to save captured images.</string>
+	
+	<!-- Location Permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location access is required to provide weather data based on your location.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location access is required to provide weather data based on your location.</string>
 </dict>
 </plist>
