@@ -10,7 +10,7 @@ class MorphologyService {
     _poseDetector = PoseDetector(
       options: PoseDetectorOptions(
         mode: PoseDetectionMode.stream,
-        modelConfig: PoseDetectionModel.base,
+        model: PoseDetectionModel.base,
       ),
     );
     _isInitialized = true;
