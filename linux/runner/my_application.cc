@@ -52,7 +52,9 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "magicmirror");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // Activer le mode plein écran pour le Magic Mirror
+  gtk_window_fullscreen(window);
+  gtk_window_set_keep_above(window, TRUE);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
