@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/constants/colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/utils/responsive_helper.dart';
 import 'config/app_config.dart';
 import 'routes/app_routes.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const _HomeScreen(),
         '/mirror': (context) => const MirrorScreen(),
-        //'/agenda': (context) => const AgendaScreen(),
+        '/agenda': (context) => const AgendaScreen(),
         '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
       },
       home: const _HomeScreen(),
@@ -36,6 +37,13 @@ class _HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isMirror = ResponsiveHelper.isMirror(context);
+
+    // Si c'est un miroir, on saute l'accueil et on va directement au miroir plein écran
+    if (isMirror) {
+      return const MirrorScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Magic Mirror'), elevation: 0),
       body: Center(
@@ -44,7 +52,13 @@ class _HomeScreen extends StatelessWidget {
           children: [
             Text(
               'Bienvenue sur Magic Mirror',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: ResponsiveHelper.resp(
+                  context,
+                  mobile: 24,
+                  mirror: 48,
+                ),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
