@@ -10,7 +10,6 @@ abstract class CameraLocalDataSource {
 }
 
 class CameraLocalDataSourceImpl implements CameraLocalDataSource {
-  late CameraController? _currentController;
 
   @override
   Future<List<CameraDescription>> getAvailableCameras() async {
@@ -32,7 +31,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
       );
 
       await controller.initialize();
-      _currentController = controller;
 
       return controller;
     } catch (e) {
@@ -44,7 +42,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
   Future<void> disposeCamera(CameraController controller) async {
     try {
       await controller.dispose();
-      _currentController = null;
     } catch (e) {
       throw Exception('Erreur lors de la libération de la caméra: $e');
     }
