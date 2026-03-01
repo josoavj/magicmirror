@@ -9,7 +9,6 @@ import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/weather/presentation/widgets/weather_widget.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
-import 'package:magicmirror/features/ai_ml/data/models/morphology_model.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml;
 import 'package:camera/camera.dart';
 import '../widgets/camera_view.dart';
