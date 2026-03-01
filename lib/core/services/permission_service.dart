@@ -1,5 +1,6 @@
-import 'package:magicmirror/core/services/permission_service.dart' as permission;
-import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:permission_handler/permission_handler.dart' as ph;
 
 class PermissionStatus {
   final bool isGranted;
@@ -15,13 +16,22 @@ class PermissionStatus {
   });
 
   factory PermissionStatus.fromPermissionStatus(
-    permission.PermissionStatus status,
+    ph.PermissionStatus status,
     PermissionType type,
   ) {
     return PermissionStatus(
       isGranted: status.isGranted,
       isDenied: status.isDenied,
       isPermanentlyDenied: status.isPermanentlyDenied,
+      type: type,
+    );
+  }
+
+  factory PermissionStatus.granted(PermissionType type) {
+    return PermissionStatus(
+      isGranted: true,
+      isDenied: false,
+      isPermanentlyDenied: false,
       type: type,
     );
   }
@@ -40,53 +50,70 @@ abstract class PermissionService {
 }
 
 class PermissionServiceImpl implements PermissionService {
+  bool get _isLinux => !kIsWeb && Platform.isLinux;
+  bool get _isWindows => !kIsWeb && Platform.isWindows;
+  bool get _isDesktopOrWeb => kIsWeb || _isLinux || _isWindows;
+
   @override
   Future<PermissionStatus> requestCameraPermission() async {
-    final status = await Permission.camera.request();
-    return PermissionStatus.fromPermissionStatus(status as PermissionStatus, PermissionType.camera);
+    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.camera);
+    final status = await ph.Permission.camera.request();
+    return PermissionStatus.fromPermissionStatus(status, PermissionType.camera);
   }
 
   @override
   Future<PermissionStatus> requestMicrophonePermission() async {
-    final status = await Permission.microphone.request();
+    if (_isDesktopOrWeb) {
+      return PermissionStatus.granted(PermissionType.microphone);
+    }
+    final status = await ph.Permission.microphone.request();
     return PermissionStatus.fromPermissionStatus(
-      status as PermissionStatus,
+      status,
       PermissionType.microphone,
     );
   }
 
   @override
   Future<PermissionStatus> requestPhotosPermission() async {
-    final status = await Permission.photos.request();
-    return PermissionStatus.fromPermissionStatus(status as PermissionStatus, PermissionType.photos);
+    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.photos);
+    final status = await ph.Permission.photos.request();
+    return PermissionStatus.fromPermissionStatus(status, PermissionType.photos);
   }
 
   @override
   Future<PermissionStatus> requestLocationPermission() async {
-    final status = await Permission.location.request();
+    if (_isDesktopOrWeb) {
+      return PermissionStatus.granted(PermissionType.location);
+    }
+    final status = await ph.Permission.location.request();
     return PermissionStatus.fromPermissionStatus(
-      status as PermissionStatus,
+      status,
       PermissionType.location,
     );
   }
 
   @override
   Future<PermissionStatus> checkCameraPermission() async {
-    final status = await Permission.camera.status;
-    return PermissionStatus.fromPermissionStatus(status as PermissionStatus, PermissionType.camera);
+    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.camera);
+    final status = await ph.Permission.camera.status;
+    return PermissionStatus.fromPermissionStatus(status, PermissionType.camera);
   }
 
   @override
   Future<PermissionStatus> checkMicrophonePermission() async {
-    final status = await Permission.microphone.status;
+    if (_isDesktopOrWeb) {
+      return PermissionStatus.granted(PermissionType.microphone);
+    }
+    final status = await ph.Permission.microphone.status;
     return PermissionStatus.fromPermissionStatus(
-      status as PermissionStatus,
+      status,
       PermissionType.microphone,
     );
   }
 
   @override
   Future<void> openAppSettings() async {
-    await openAppSettings();
+    if (_isDesktopOrWeb) return;
+    await ph.openAppSettings();
   }
 }

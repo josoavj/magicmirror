@@ -101,8 +101,7 @@ class PermissionRequestWidget extends ConsumerWidget {
         : ref.watch(microphonePermissionProvider);
 
     return permissionFuture.when(
-      data: (permission) {
-        final status = permission as PermissionStatus;
+      data: (status) {
         if (status.isGranted) {
           return child;
         } else if (status.isPermanentlyDenied) {
