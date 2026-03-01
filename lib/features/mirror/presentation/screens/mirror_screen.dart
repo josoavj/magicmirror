@@ -8,6 +8,10 @@ import 'package:magicmirror/features/agenda/presentation/providers/agenda_provid
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/weather/presentation/widgets/weather_widget.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
+import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
+import 'package:magicmirror/features/ai_ml/data/models/morphology_model.dart';
+import 'package:google_ml_kit/google_ml_kit.dart' as ml;
+import 'package:camera/camera.dart';
 import '../widgets/camera_view.dart';
 import '../widgets/mirror_overlay.dart';
 import '../widgets/permission_request_widget.dart';
@@ -56,6 +60,7 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
     final isRecording = ref.watch(isRecordingProvider);
     final eventsAsync = ref.watch(agendaEventsProvider);
     final isMirror = ResponsiveHelper.isMirror(context);
+    final morphology = ref.watch(currentMorphologyProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -87,20 +92,24 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
                       child: CameraView(
                         controller: controller,
                         onCapturePressed: () async {
-                          setState(() {
-                            _detectedMorphology = 'Sablier';
-                            _confidence = 0.92;
-                          });
+                          _processImageForML(controller);
                         },
                       ),
                     ),
                   ),
 
                   // Overlay Miroir (Informations ML)
-                  MirrorOverlay(
-                    morphologyType: _detectedMorphology,
-                    confidence: _confidence,
-                  ),
+                  if (morphology != null)
+                    MirrorOverlay(
+                      morphologyType: morphology.bodyType,
+                      confidence: morphology.confidence,
+                      measurements: morphology.measurements,
+                    )
+                  else
+                    MirrorOverlay(
+                      morphologyType: _detectedMorphology,
+                      confidence: _confidence,
+                    ),
 
                   // Widget Heure & Date (Haut Droite)
                   Positioned(
@@ -172,6 +181,37 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
         error: (error, stackTrace) => Center(child: Text('Erreur: $error')),
       ),
     );
+  }
+
+  Future<void> _processImageForML(CameraController controller) async {
+    if (ref.read(isMlProcessingProvider)) return;
+
+    try {
+      ref.read(isMlProcessingProvider.notifier).state = true;
+
+      // Capture d'image pour l'analyse Pose Detection
+      final image = await controller.takePicture();
+      final inputImage = ml.InputImage.fromFilePath(image.path);
+
+      final morphologyService = ref.read(morphologyServiceProvider);
+      final result = await morphologyService.analyzePose(inputImage);
+
+      if (mounted && result != null) {
+        ref.read(currentMorphologyProvider.notifier).state = result;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Morphologie détectée : ${result.bodyType}'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.blueAccent.withOpacity(0.8),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur ML Mirror: $e');
+    } finally {
+      ref.read(isMlProcessingProvider.notifier).state = false;
+    }
   }
 }
 
