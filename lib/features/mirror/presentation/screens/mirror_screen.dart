@@ -9,6 +9,7 @@ import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/weather/presentation/widgets/weather_widget.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/widgets/outfit_recommendation_widget.dart';
 import 'package:google_ml_kit/google_ml_kit.dart' as ml;
 import 'package:camera/camera.dart';
 import '../widgets/camera_view.dart';
@@ -115,6 +116,14 @@ class _MirrorScreenState extends ConsumerState<MirrorScreen> {
                     top: 40,
                     right: 40,
                     child: GlassContainer(child: _MirrorClock()),
+                  ),
+
+                  // Widget Suggestions de Tenues (Bas)
+                  const Positioned(
+                    bottom: 40,
+                    left: 20,
+                    right: 20,
+                    child: OutfitRecommendationWidget(),
                   ),
 
                   // Widget Météo (Sous l'horloge)
