@@ -26,6 +26,7 @@ class WeatherWidget extends ConsumerWidget {
 
     return GlassContainer(
       padding: const EdgeInsets.all(20),
+      width: 250,
       child: weatherAsync.when(
         data: (data) => Column(
           children: [
