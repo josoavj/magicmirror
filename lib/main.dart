@@ -1,113 +1,161 @@
 import 'package:flutter/material.dart';
-import 'core/constants/colors.dart';
-import 'core/theme/app_theme.dart';
-import 'core/constants/app_constants.dart';
-import 'core/utils/responsive_helper.dart';
-import 'config/app_config.dart';
-import 'routes/app_routes.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:ui';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
-import 'features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+void main() {
+  runApp(
+    const ProviderScope(
+      child: MagicMirrorApp(),
+    ),
+  );
+}
+
+class MagicMirrorApp extends StatelessWidget {
+  const MagicMirrorApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: AppConstants.appName,
-      theme: AppTheme.lightTheme(),
-      darkTheme: AppTheme.darkTheme(),
-      themeMode: AppConfig.enableDarkMode ? ThemeMode.dark : ThemeMode.light,
-      locale: AppConfig.defaultLocale,
-      debugShowCheckedModeBanner: AppConfig.isDevelopment,
+      title: 'Magic Mirror iOS 26',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        fontFamily: 'SF Pro Display', // Simulation police iOS
+        useMaterial3: true,
+      ),
+      home: const HomeScreen(),
       routes: {
-        '/': (context) => const _HomeScreen(),
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
-        '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
       },
-      home: const _HomeScreen(),
     );
   }
 }
 
-class _HomeScreen extends StatelessWidget {
-  const _HomeScreen();
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    bool isMirror = ResponsiveHelper.isMirror(context);
-
-    // Si c'est un miroir, on saute l'accueil et on va directement au miroir plein écran
-    if (isMirror) {
-      return const MirrorScreen();
-    }
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Magic Mirror'), elevation: 0),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Bienvenue sur Magic Mirror',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontSize: ResponsiveHelper.resp(
-                  context,
-                  mobile: 24,
-                  mirror: 48,
-                ),
+      body: Stack(
+        children: [
+          // Arrière-plan Mesh Gradient (Simulé par dégradé complexe)
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0F172A),
+                  Color(0xFF1E293B),
+                  Color(0xFF334155),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
-            _buildMenuButton(
-              context,
-              'Miroir',
-              Icons.camera,
-              AppColors.primary,
-              () => Navigator.pushNamed(context, '/mirror'),
+          ),
+          // HUD Home
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Magic Mirror',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -2,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                // Grille de contrôle iOS Style
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 24,
+                  children: [
+                    _HomeTile(
+                      icon: Icons.auto_awesome_mosaic,
+                      label: 'Miroir',
+                      color: Colors.blueAccent,
+                      onTap: () => Navigator.pushNamed(context, '/mirror'),
+                    ),
+                    _HomeTile(
+                      icon: Icons.calendar_today_rounded,
+                      label: 'Agenda',
+                      color: Colors.orangeAccent,
+                      onTap: () => Navigator.pushNamed(context, '/agenda'),
+                    ),
+                    _HomeTile(
+                      icon: Icons.checkroom_rounded,
+                      label: 'Garde-robe',
+                      color: Colors.purpleAccent,
+                      onTap: () {},
+                    ),
+                    _HomeTile(
+                      icon: Icons.settings_rounded,
+                      label: 'Réglages',
+                      color: Colors.grey,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            _buildMenuButton(
-              context,
-              'Agenda',
-              Icons.calendar_today,
-              AppColors.secondary,
-              () => Navigator.pushNamed(context, '/agenda'),
-            ),
-            const SizedBox(height: 16),
-            _buildMenuButton(
-              context,
-              'Suggestions de Tenue',
-              Icons.checkroom,
-              AppColors.accent,
-              () => Navigator.pushNamed(context, '/outfit-suggestion'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildMenuButton(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onPressed,
-  ) {
-    return SizedBox(
-      width: 200,
-      height: 60,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+class _HomeTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _HomeTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
