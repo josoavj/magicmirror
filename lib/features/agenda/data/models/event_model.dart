@@ -5,6 +5,8 @@ class AgendaEvent {
   final DateTime startTime;
   final DateTime endTime;
   final String? location;
+  final String eventType; // e.g., 'Work', 'Personal', 'Other'
+  final bool isCompleted;
 
   AgendaEvent({
     required this.id,
@@ -13,11 +15,7 @@ class AgendaEvent {
     required this.startTime,
     required this.endTime,
     this.location,
+    this.eventType = 'Other',
+    this.isCompleted = false,
   });
-
-  bool get isOngoing {
-    final now = DateTime.now();
-    return now.isAfter(startTime) && now.isBefore(endTime);
-  }
 }
-
