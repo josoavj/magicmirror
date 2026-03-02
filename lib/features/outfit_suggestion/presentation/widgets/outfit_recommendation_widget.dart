@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import '../providers/outfit_provider.dart';
-import '../../../presentation/widgets/glass_container.dart';
 
 class OutfitRecommendationWidget extends ConsumerWidget {
   const OutfitRecommendationWidget({super.key});
