@@ -62,7 +62,7 @@ class MirrorOverlay extends StatelessWidget {
             height: AppDimensions.cameraFrameHeight,
             decoration: BoxDecoration(
               border: Border.all(
-                color: AppColors.cameraFrame.withOpacity(0.3),
+                color: AppColors.cameraFrame.withValues(alpha: 0.3),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(8),

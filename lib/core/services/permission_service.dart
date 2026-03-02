@@ -1,119 +1,42 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:permission_handler/permission_handler.dart' as ph;
+import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class PermissionStatus {
-  final bool isGranted;
-  final bool isDenied;
-  final bool isPermanentlyDenied;
-  final PermissionType type;
+class PermissionService {
+  /// Demande les permissions nécessaires en fonction de la plateforme
+  static Future<bool> requestCameraPermission() async {
+    if (kIsWeb) return true;
 
-  PermissionStatus({
-    required this.isGranted,
-    required this.isDenied,
-    required this.isPermanentlyDenied,
-    required this.type,
-  });
-
-  factory PermissionStatus.fromPermissionStatus(
-    ph.PermissionStatus status,
-    PermissionType type,
-  ) {
-    return PermissionStatus(
-      isGranted: status.isGranted,
-      isDenied: status.isDenied,
-      isPermanentlyDenied: status.isPermanentlyDenied,
-      type: type,
-    );
-  }
-
-  factory PermissionStatus.granted(PermissionType type) {
-    return PermissionStatus(
-      isGranted: true,
-      isDenied: false,
-      isPermanentlyDenied: false,
-      type: type,
-    );
-  }
-}
-
-enum PermissionType { camera, microphone, photos, location, contacts, calendar }
-
-abstract class PermissionService {
-  Future<PermissionStatus> requestCameraPermission();
-  Future<PermissionStatus> requestMicrophonePermission();
-  Future<PermissionStatus> requestPhotosPermission();
-  Future<PermissionStatus> requestLocationPermission();
-  Future<PermissionStatus> checkCameraPermission();
-  Future<PermissionStatus> checkMicrophonePermission();
-  Future<void> openAppSettings();
-}
-
-class PermissionServiceImpl implements PermissionService {
-  bool get _isLinux => !kIsWeb && Platform.isLinux;
-  bool get _isWindows => !kIsWeb && Platform.isWindows;
-  bool get _isDesktopOrWeb => kIsWeb || _isLinux || _isWindows;
-
-  @override
-  Future<PermissionStatus> requestCameraPermission() async {
-    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.camera);
-    final status = await ph.Permission.camera.request();
-    return PermissionStatus.fromPermissionStatus(status, PermissionType.camera);
-  }
-
-  @override
-  Future<PermissionStatus> requestMicrophonePermission() async {
-    if (_isDesktopOrWeb) {
-      return PermissionStatus.granted(PermissionType.microphone);
+    if (Platform.isLinux || Platform.isWindows) {
+      return true;
     }
-    final status = await ph.Permission.microphone.request();
-    return PermissionStatus.fromPermissionStatus(
-      status,
-      PermissionType.microphone,
-    );
-  }
 
-  @override
-  Future<PermissionStatus> requestPhotosPermission() async {
-    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.photos);
-    final status = await ph.Permission.photos.request();
-    return PermissionStatus.fromPermissionStatus(status, PermissionType.photos);
-  }
-
-  @override
-  Future<PermissionStatus> requestLocationPermission() async {
-    if (_isDesktopOrWeb) {
-      return PermissionStatus.granted(PermissionType.location);
+    if (Platform.isAndroid || Platform.isIOS) {
+      final status = await Permission.camera.request();
+      return status.isGranted;
     }
-    final status = await ph.Permission.location.request();
-    return PermissionStatus.fromPermissionStatus(
-      status,
-      PermissionType.location,
-    );
+
+    return true;
   }
 
-  @override
-  Future<PermissionStatus> checkCameraPermission() async {
-    if (_isDesktopOrWeb) return PermissionStatus.granted(PermissionType.camera);
-    final status = await ph.Permission.camera.status;
-    return PermissionStatus.fromPermissionStatus(status, PermissionType.camera);
-  }
-
-  @override
-  Future<PermissionStatus> checkMicrophonePermission() async {
-    if (_isDesktopOrWeb) {
-      return PermissionStatus.granted(PermissionType.microphone);
+  /// Vérifie si la permission est déjà accordée
+  static Future<bool> isCameraPermissionGranted() async {
+    if (kIsWeb || Platform.isLinux || Platform.isWindows) {
+      return true;
     }
-    final status = await ph.Permission.microphone.status;
-    return PermissionStatus.fromPermissionStatus(
-      status,
-      PermissionType.microphone,
-    );
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      return await Permission.camera.isGranted;
+    }
+
+    return true;
   }
 
-  @override
+  /// Ouvre les paramètres de l'application
   Future<void> openAppSettings() async {
-    if (_isDesktopOrWeb) return;
-    await ph.openAppSettings();
+    if (kIsWeb || Platform.isLinux || Platform.isWindows) {
+      return;
+    }
+    await openAppSettings();
   }
 }

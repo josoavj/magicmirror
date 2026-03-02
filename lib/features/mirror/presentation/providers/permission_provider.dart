@@ -1,60 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:magicmirror/core/services/permission_service.dart';
-// Permission Service Provider
-final permissionServiceProvider = Provider<PermissionService>((ref) {
-  return PermissionServiceImpl();
-});
+import '../../../../core/services/permission_service.dart';
 
-// Camera Permission Provider
-final cameraPermissionProvider = FutureProvider<PermissionStatus>((ref) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.checkCameraPermission();
-});
-
-// Request Camera Permission Provider
-final requestCameraPermissionProvider = FutureProvider<PermissionStatus>((
-  ref,
-) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.requestCameraPermission();
-});
-
-// Microphone Permission Provider
-final microphonePermissionProvider = FutureProvider<PermissionStatus>((
-  ref,
-) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.checkMicrophonePermission();
-});
-
-// Request Microphone Permission Provider
-final requestMicrophonePermissionProvider = FutureProvider<PermissionStatus>((
-  ref,
-) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.requestMicrophonePermission();
-});
-
-// Location Permission Provider
-final requestLocationPermissionProvider = FutureProvider<PermissionStatus>((
-  ref,
-) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.requestLocationPermission();
-});
-
-// Photos Permission Provider
-final requestPhotosPermissionProvider = FutureProvider<PermissionStatus>((
-  ref,
-) async {
-  final permissionService = ref.watch(permissionServiceProvider);
-  return await permissionService.requestPhotosPermission();
-});
-
-// All Permissions Granted Provider
+/// Provider qui vérifie si toutes les permissions nécessaires sont accordées
 final allPermissionsGrantedProvider = FutureProvider<bool>((ref) async {
-  final cameraPermission = await ref.watch(cameraPermissionProvider.future);
-  final micPermission = await ref.watch(microphonePermissionProvider.future);
-
-  return cameraPermission.isGranted && micPermission.isGranted;
+  final cameraGranted = await PermissionService.requestCameraPermission();
+  return cameraGranted;
 });
+
+/// Provider pour demander manuellement les permissions
+final requestCameraPermissionProvider = FutureProvider<bool>((ref) async {
+  return await PermissionService.requestCameraPermission();
+});
+
+/// Provider pour vérifier l'état actuel de la caméra
+final cameraPermissionProvider = FutureProvider<bool>((ref) async {
+  return await PermissionService.isCameraPermissionGranted();
+});
+
+/// Provider factice pour le micro (non utilisé mais requis par le widget actuel)
+final microphonePermissionProvider = Provider<AsyncValue<bool>>((ref) => const AsyncValue.data(true));
+final requestMicrophonePermissionProvider = FutureProvider<bool>((ref) async => true);
+final requestLocationPermissionProvider = FutureProvider<bool>((ref) async => true);
+final requestPhotosPermissionProvider = FutureProvider<bool>((ref) async => true);
+
+/// Provider pour le service
+final permissionServiceProvider = Provider((ref) => PermissionService());
