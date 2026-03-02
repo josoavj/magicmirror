@@ -1,28 +1,20 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
   final double blur;
-  final Alignment begin;
-  final Alignment end;
-  final EdgeInsetsGeometry padding;
   final double opacity;
-  final double? width;
-  final double? height;
+  final EdgeInsetsGeometry? padding;
 
   const GlassContainer({
     super.key,
     required this.child,
-    this.borderRadius = 20.0,
-    this.blur = 15.0,
-    this.begin = Alignment.topLeft,
-    this.end = Alignment.bottomRight,
-    this.padding = const EdgeInsets.all(16.0),
-    this.opacity = 0.1,
-    this.width,
-    this.height,
+    this.borderRadius = 24.0,
+    this.blur = 30.0,
+    this.opacity = 0.08,
+    this.padding, required int width,
   });
 
   @override
@@ -32,24 +24,21 @@ class GlassContainer extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
-          width: width,
-          height: height,
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(opacity),
+            color: Colors.white.withValues(alpha: opacity),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1.5,
+              color: Colors.white.withValues(alpha: opacity + 0.02),
+              width: 1.0,
             ),
-            gradient: LinearGradient(
-              begin: begin,
-              end: end,
-              colors: [
-                Colors.white.withOpacity(opacity * 2),
-                Colors.white.withOpacity(opacity / 2),
-              ],
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: child,
         ),
