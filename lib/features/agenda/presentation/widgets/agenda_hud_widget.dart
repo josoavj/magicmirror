@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import '../providers/agenda_provider.dart';
-import '../data/models/event_model.dart';
 
 class AgendaHUDWidget extends ConsumerWidget {
   const AgendaHUDWidget({super.key});
