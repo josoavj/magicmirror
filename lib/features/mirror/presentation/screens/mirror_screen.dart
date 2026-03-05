@@ -6,7 +6,6 @@ import '../providers/camera_provider.dart';
 import '../providers/permission_provider.dart';
 import '../widgets/camera_view.dart';
 import '../widgets/mirror_overlay.dart';
-import '../widgets/permission_request_widget.dart';
 import '../../../weather/presentation/widgets/weather_widget.dart';
 import '../../../outfit_suggestion/presentation/widgets/outfit_recommendation_widget.dart';
 import '../../../ai_ml/presentation/providers/ml_provider.dart';
@@ -21,7 +20,10 @@ class MirrorScreen extends ConsumerWidget {
 
     return permissionsAsync.when(
       data: (granted) => const _MirrorBody(),
-      loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      ),
       error: (_, __) => const _MirrorBody(),
     );
   }
@@ -39,11 +41,13 @@ class _MirrorBody extends ConsumerWidget {
       backgroundColor: Colors.black,
       body: frontCameraAsync.when(
         data: (camera) {
-          if (camera == null) return _buildMirrorLayout(context, null, morphology);
-          
+          if (camera == null)
+            return _buildMirrorLayout(context, null, morphology);
+
           final controllerAsync = ref.watch(cameraControllerProvider(camera));
           return controllerAsync.when(
-            data: (controller) => _buildMirrorLayout(context, controller, morphology),
+            data: (controller) =>
+                _buildMirrorLayout(context, controller, morphology),
             loading: () => _buildMirrorLayout(context, null, morphology),
             error: (_, __) => _buildMirrorLayout(context, null, morphology),
           );
@@ -54,7 +58,11 @@ class _MirrorBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildMirrorLayout(BuildContext context, dynamic controller, dynamic morphology) {
+  Widget _buildMirrorLayout(
+    BuildContext context,
+    dynamic controller,
+    dynamic morphology,
+  ) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -63,10 +71,26 @@ class _MirrorBody extends ConsumerWidget {
           Center(
             child: ColorFiltered(
               colorFilter: const ColorFilter.matrix([
-                1.1, 0, 0, 0, 10,
-                0, 1.1, 0, 0, 10,
-                0, 0, 1.1, 0, 10,
-                0, 0, 0, 1.1, 0,
+                1.1,
+                0,
+                0,
+                0,
+                10,
+                0,
+                1.1,
+                0,
+                0,
+                10,
+                0,
+                0,
+                1.1,
+                0,
+                10,
+                0,
+                0,
+                0,
+                1.1,
+                0,
               ]),
               child: CameraView(controller: controller),
             ),
@@ -96,11 +120,19 @@ class _MirrorBody extends ConsumerWidget {
                 children: [
                   Text(
                     DateFormat('HH:mm').format(DateTime.now()),
-                    style: const TextStyle(fontSize: 80, fontWeight: FontWeight.w200, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 80,
+                      fontWeight: FontWeight.w200,
+                      color: Colors.white,
+                    ),
                   ),
                   Text(
                     DateFormat('EEEE d MMMM', 'fr_FR').format(DateTime.now()),
-                    style: TextStyle(fontSize: 20, color: Colors.white.withValues(alpha: 0.5), letterSpacing: 1.2),
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ],
               ),
