@@ -1,25 +1,25 @@
 /// Injection de Dépendances (Dependency Injection)
-///
-/// À implémenter avec GetIt ou un autre package DI
-///
-/// Exemple avec GetIt:
-/// final getIt = GetIt.instance;
-///
-/// getIt.registerSingleton<ConnectivityService>(ConnectivityServiceImpl());
-/// getIt.registerSingleton<StorageService>(StorageServiceImpl());
+import '../data/services/google_calendar_service.dart';
 
 class DISetup {
+  // Singleton instances
+  static late GoogleCalendarService _googleCalendarService;
+
+  /// Getter pour accéder au service Google Calendar
+  static GoogleCalendarService get googleCalendarService =>
+      _googleCalendarService;
+
   static Future<void> setupDependencies() async {
-    // TODO: Implémenter l'injection de dépendances
-    // 1. Services de base
-    // 2. Data sources
-    // 3. Repositories
-    // 4. Use cases
-    // 5. Providers (pour Riverpod ou Provider)
+    await _setupCoreServices();
+    _setupDataSources();
+    _setupRepositories();
+    _setupProviders();
   }
 
-  static void _setupCoreServices() {
-    // TODO: Setup des services de base
+  static Future<void> _setupCoreServices() async {
+    // Initialiser le service Google Calendar
+    _googleCalendarService = GoogleCalendarService();
+    await _googleCalendarService.initialize();
   }
 
   static void _setupDataSources() {
