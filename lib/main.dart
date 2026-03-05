@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
+import 'core/utils/app_logger.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
+import 'features/settings/presentation/screens/settings_screen.dart';
+import 'data/services/google_calendar_service.dart';
+import 'config/app_config.dart';
 
-void main() {
-  runApp(
-    const ProviderScope(
-      child: MagicMirrorApp(),
-    ),
-  );
+void main() async {
+  // Initialiser le logger
+  await logger.initialize();
+
+  // Afficher la configuration au démarrage
+  await AppConfig.printStartupInfo();
+
+  // Initialiser les services de base
+  final googleCalendarService = GoogleCalendarService();
+  await googleCalendarService.initialize();
+
+  runApp(const ProviderScope(child: MagicMirrorApp()));
 }
 
 class MagicMirrorApp extends StatelessWidget {
@@ -29,6 +39,7 @@ class MagicMirrorApp extends StatelessWidget {
       routes: {
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }
@@ -96,9 +107,9 @@ class HomeScreen extends StatelessWidget {
                     ),
                     _HomeTile(
                       icon: Icons.settings_rounded,
-                      label: 'Réglages',
+                      label: 'Reglages',
                       color: Colors.grey,
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
                   ],
                 ),
