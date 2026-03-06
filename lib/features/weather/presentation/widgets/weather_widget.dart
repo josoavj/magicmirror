@@ -64,15 +64,16 @@ class WeatherWidget extends ConsumerWidget {
 
     return GlassContainer(
       padding: const EdgeInsets.all(20),
-      width: 280,
-      child: weatherAsync.when(
-        data: (weather) {
-          if (weather == null) {
-            return const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Météo',
+      child: SizedBox(
+        width: 280,
+        child: weatherAsync.when(
+          data: (weather) {
+            if (weather == null) {
+              return const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Météo',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -208,6 +209,7 @@ class WeatherWidget extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
