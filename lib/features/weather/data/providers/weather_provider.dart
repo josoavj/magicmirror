@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/services/cache_service.dart';
+import 'package:magicmirror/core/utils/app_logger.dart';
 
 // Weather Response Model
 class WeatherResponse {
@@ -70,6 +73,37 @@ class WeatherService {
 final weatherServiceProvider = Provider((ref) => WeatherService());
 
 final currentWeatherProvider = FutureProvider<WeatherResponse>((ref) async {
+  const cacheKey = 'weather_current';
+
+  // Vérifier le cache d'abord
+  final cached = cacheService.get<WeatherResponse>(cacheKey);
+  if (cached != null) {
+    logger.debug('Météo depuis cache', tag: 'WeatherProvider');
+    return cached;
+  }
+
+  // Récupérer avec timeout
   final weatherService = ref.watch(weatherServiceProvider);
-  return weatherService.getCurrentWeather();
+  try {
+    final weather = await weatherService.getCurrentWeather().timeout(
+      const Duration(seconds: 10),
+    );
+
+    // Mettre en cache pour 5 minutes
+    cacheService.set(cacheKey, weather, ttl: const Duration(minutes: 5));
+    return weather;
+  } on TimeoutException catch (e) {
+    logger.error('Météo API timeout', tag: 'WeatherProvider', error: e);
+    // Retourner données par défaut
+    return WeatherResponse(
+      city: 'Antananarivo',
+      temperature: 25.0,
+      humidity: 70,
+      windSpeed: 5.0,
+      pressure: 1013.0,
+      visibility: 10.0,
+      icon: 'Unknown',
+      description: 'Données indisponibles',
+    );
+  }
 });
