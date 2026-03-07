@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'core/utils/app_logger.dart';
+import 'core/services/cache_service.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
@@ -9,6 +11,9 @@ import 'data/services/google_calendar_service.dart';
 import 'config/app_config.dart';
 
 void main() async {
+  // Initialiser Flutter binding
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Initialiser le logger
   await logger.initialize();
 
@@ -19,7 +24,31 @@ void main() async {
   final googleCalendarService = GoogleCalendarService();
   await googleCalendarService.initialize();
 
+  // BUG FIX #7: Exit hook pour cleanup ressources
+  SystemChannels.lifecycle.setMessageHandler((msg) async {
+    if (msg == 'AppLifecycleState.detached') {
+      await _cleanupOnExit();
+    }
+    return null;
+  });
+
   runApp(const ProviderScope(child: MagicMirrorApp()));
+}
+
+/// Nettoie les ressources avant exit
+Future<void> _cleanupOnExit() async {
+  try {
+    logger.info('🧹 Nettoyage ressources avant exit...', tag: 'Main');
+
+    // Vider le cache
+    cacheService.clear();
+    logger.info('✅ Cache vidé', tag: 'Main');
+
+    // Fermer les logs
+    await logger.dispose();
+  } catch (e) {
+    debugPrint('❌ Erreur cleanup: $e');
+  }
 }
 
 class MagicMirrorApp extends StatelessWidget {
