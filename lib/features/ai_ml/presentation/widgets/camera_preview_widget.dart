@@ -74,17 +74,28 @@ class _CameraPreviewWidgetState extends ConsumerState<CameraPreviewWidget> {
 
   @override
   void dispose() {
+    // BUG FIX #9: Arrêter le flux d'images avant dispose du controller
+    try {
+      _controller?.stopImageStream();
+      logger.debug('Image stream arrêté', tag: 'CameraPreviewWidget');
+    } catch (e) {
+      logger.error(
+        'Erreur arrêt image stream',
+        tag: 'CameraPreviewWidget',
+        error: e,
+      );
+    }
+
     _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (!_controller!.value.isInitialized) {
+    // BUG FIX #3: Double vérification inefficace - simplifier la logique
+    if (_controller == null ||
+        !_isInitialized ||
+        !_controller!.value.isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
 

@@ -1,4 +1,3 @@
-/// Injection de Dépendances (Dependency Injection)
 import '../data/services/google_calendar_service.dart';
 
 class DISetup {

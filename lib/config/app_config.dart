@@ -14,7 +14,7 @@ class AppConfig {
   static const bool enableOutfitSuggestions = true;
 
   // Mock Services (pour développement sans API configurées)
-  static const bool useMockCalendar = true; // Utiliser données mockées
+  static const bool useMockCalendar = true;
 
   // Google Sign-In Configuration
   static const String? googleClientId = null; // À configurer pour production
@@ -41,7 +41,8 @@ class AppConfig {
       tag: 'Config',
     );
     logger.info(
-      '${useMockCalendar ? "Donnees mockees" : "Google Calendar"}',
+      // BUG FIX #6: Unnecessary string interpolation - utiliser un ternaire direct
+      useMockCalendar ? 'Donnees mockees' : 'Google Calendar',
       tag: 'Calendrier',
     );
     logger.info('AI: ${enableAIFeatures ? "ON" : "OFF"}', tag: 'Features');

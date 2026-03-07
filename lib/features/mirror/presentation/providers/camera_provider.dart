@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
@@ -68,7 +70,7 @@ final isCameraSupportedProvider = Provider<bool>((ref) {
   return _isCameraSupported(platform);
 });
 
-/// Available Cameras Provider
+/// Available Cameras Provider avec timeout par plateforme
 final availableCamerasProvider = FutureProvider<List<CameraDescription>>((
   ref,
 ) async {
@@ -97,7 +99,8 @@ final availableCamerasProvider = FutureProvider<List<CameraDescription>>((
       'Fetching available cameras on ${platform.toString()}...',
       tag: 'CameraProvider',
     );
-    final cameras = await availableCameras();
+    final timeout = _getTimeoutForPlatform(platform);
+    final cameras = await availableCameras().timeout(timeout);
     logger.info('Found ${cameras.length} camera(s)', tag: 'CameraProvider');
 
     for (var i = 0; i < cameras.length; i++) {
@@ -108,9 +111,16 @@ final availableCamerasProvider = FutureProvider<List<CameraDescription>>((
     }
 
     return cameras;
+  } on TimeoutException catch (e) {
+    logger.error(
+      'Timeout récupération caméras',
+      tag: 'CameraProvider',
+      error: e,
+    );
+    return [];
   } catch (e) {
     logger.error('Erreur availableCameras', tag: 'CameraProvider', error: e);
-    return []; // Retourne une liste vide au lieu de bloquer en erreur
+    return [];
   }
 });
 
@@ -199,6 +209,13 @@ final cameraControllerProvider =
           'Camera controller initialized successfully',
           tag: 'CameraProvider',
         );
+
+        // BUG FIX #6: Dispose controller quand le provider est nettoyé
+        ref.onDispose(() {
+          logger.debug('Disposing camera controller', tag: 'CameraProvider');
+          controller.dispose();
+        });
+
         return controller;
       } catch (e) {
         logger.error(
@@ -228,6 +245,16 @@ final cameraControllerProvider =
               'Camera controller initialized with fallback resolution',
               tag: 'CameraProvider',
             );
+
+            // BUG FIX #6: Dispose controller quand le provider est nettoyé
+            ref.onDispose(() {
+              logger.debug(
+                'Disposing fallback camera controller',
+                tag: 'CameraProvider',
+              );
+              fallbackController.dispose();
+            });
+
             return fallbackController;
           } catch (fallbackError) {
             logger.error(

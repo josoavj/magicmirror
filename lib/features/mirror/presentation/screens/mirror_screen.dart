@@ -24,7 +24,8 @@ class MirrorScreen extends ConsumerWidget {
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const _MirrorBody(),
+      // BUG FIX #8: Double underscore inutile - usar error et errorStackTrace normaux
+      error: (error, stackTrace) => const _MirrorBody(),
     );
   }
 }
@@ -41,19 +42,24 @@ class _MirrorBody extends ConsumerWidget {
       backgroundColor: Colors.black,
       body: frontCameraAsync.when(
         data: (camera) {
-          if (camera == null)
+          if (camera == null) {
             return _buildMirrorLayout(context, null, morphology);
+          }
 
           final controllerAsync = ref.watch(cameraControllerProvider(camera));
           return controllerAsync.when(
             data: (controller) =>
                 _buildMirrorLayout(context, controller, morphology),
             loading: () => _buildMirrorLayout(context, null, morphology),
-            error: (_, __) => _buildMirrorLayout(context, null, morphology),
+            // BUG FIX #8: Double underscore inutile
+            error: (error, stackTrace) =>
+                _buildMirrorLayout(context, null, morphology),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildMirrorLayout(context, null, morphology),
+        // BUG FIX #8: Double underscore inutile
+        error: (error, stackTrace) =>
+            _buildMirrorLayout(context, null, morphology),
       ),
     );
   }

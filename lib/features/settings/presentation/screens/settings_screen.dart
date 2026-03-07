@@ -4,7 +4,8 @@ import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  // BUG FIX #10: Super parameter - simplifier avec super keyword
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

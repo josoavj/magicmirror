@@ -1,4 +1,4 @@
-/// Extensions utiles pour les types Dart/Flutter
+// Extensions utiles pour les types Dart/Flutter
 
 extension StringExtension on String {
   bool get isValidEmail {
@@ -8,7 +8,7 @@ extension StringExtension on String {
     return emailRegex.hasMatch(this);
   }
 
-  bool get isNotEmpty => isNotEmpty;
+  // BUG FIX #12: Supprimer la propriété récursive - super.isEmpty existe déjà
 
   String get capitalize {
     if (isEmpty) return this;

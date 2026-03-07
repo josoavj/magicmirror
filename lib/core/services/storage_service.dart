@@ -1,5 +1,3 @@
-/// Service pour gérer le stockage local (SharedPreferences, Hive, etc.)
-
 abstract class StorageService {
   Future<void> saveString(String key, String value);
   Future<String?> getString(String key);
