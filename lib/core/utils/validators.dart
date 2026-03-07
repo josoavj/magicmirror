@@ -1,5 +1,4 @@
 /// Validateurs réutilisables
-
 class AppValidators {
   static String? validateEmail(String? value) {
     if (value?.isEmpty ?? true) {
