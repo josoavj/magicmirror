@@ -290,6 +290,18 @@ class AppLogger {
       return null;
     }
   }
+
+  /// Ferme les ressources du logger (fichiers, etc.)
+  Future<void> dispose() async {
+    try {
+      if (_currentLogFile.existsSync()) {
+        debugPrint('[AppLogger] Closing log file');
+      }
+      _isInitialized = false;
+    } catch (e) {
+      debugPrint('[AppLogger] Erreur dispose: $e');
+    }
+  }
 }
 
 /// Instance globale du logger
