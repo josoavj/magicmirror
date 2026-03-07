@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:ui';
 import '../../../../presentation/widgets/glass_container.dart';
 
 class OutfitSuggestionScreen extends ConsumerWidget {
