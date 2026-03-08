@@ -1,8 +1,8 @@
-# 📋 Configuration Production - LevelMind
+# 📋 Configuration Production - Magic Mirror
 
 ## 🔧 Configuration complète pour la production
 
-Ce guide couvre toutes les étapes nécessaires pour configurer LevelMind en environnement production.
+Ce guide couvre toutes les étapes nécessaires pour configurer Magic Mirror en environnement production.
 
 ### Table des matières
 1. [Prérequis](#prérequis)
