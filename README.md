@@ -1,4 +1,22 @@
-# 🪞 Magic Mirror - App Flutter Complète
+<p align="center">
+  <img src="https://github.com/josoavj/magicmirror/assets/76913187/5dda5a6a-5e5d-41e6-a818-17b853a7957f" alt="Magic Mirror Logo" width="150"/>
+</p>
+
+<h1 align="center">Magic Mirror</h1>
+
+<p align="center">
+  <strong>Miroir intelligent avec caméra, météo et suggestions de tenues</strong>
+</p>
+
+<p align="center">
+  <!-- Badges -->
+  <img src="https://img.shields.io/badge/Flutter-%3E%3D3.1.0-blue?style=flat-square" alt="Flutter Version">
+  <img src="https://img.shields.io/badge/Dart-%3E%3D3.1.0-blue?style=flat-square" alt="Dart Version">
+  <img src="https://img.shields.io/badge/Version-1.0.0--beta.1-orange?style=flat-square" alt="Current Version">
+  <img src="https://img.shields.io/badge/Status-Beta-yellow?style=flat-square" alt="Beta Status">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/last-commit/josoavj/magicmirror?style=flat-square" alt="Last Commit">
+</p>
 
 ---
 
@@ -72,8 +90,10 @@ OPENWEATHERMAP_API_KEY=votre_cle_ici
 
 **⚠️ Important**: Le fichier `.env` est automatiquement dans `.gitignore` - votre clé ne sera jamais exposée sur GitHub! ✅
 
+Voir: [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) pour guide complet
+
 #### 2️⃣ **Google Calendar (optionnel, pour prod)**
-Suivre : [SETUP.md](SETUP.md)
+Suivre : [SETUP.md](docs/SETUP.md)
 - Configuration OAuth2 Google
 - OU utiliser les données mockées (développement)
 
@@ -191,17 +211,17 @@ lib/
 | 🐧 **Linux** | ⚠️ | ⚠️ | ✅ | ✅ | Caméra partielle |
 | 🌐 **Web** | ❌ | ❌ | ✅ | ✅ | Pas de caméra |
 
-*Voir [CAMERA_SUPPORT.md](CAMERA_SUPPORT.md) pour détails platform-spécifiques*
+*Voir [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) pour détails platform-spécifiques*
 
 ---
 
 ## 📚 Documentation
 
-- [SETUP.md](SETUP.md) - Configuration complète production
-- [WEATHER_SETUP.md](WEATHER_SETUP.md) - Configuration météo OpenWeatherMap
-- [GETTING_STARTED.md](GETTING_STARTED.md) - Quick start guide
-- [CAMERA_SUPPORT.md](CAMERA_SUPPORT.md) - Support caméra par plateforme
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture de l'application
+- [SETUP.md](docs/SETUP.md) - Configuration complète production
+- [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) - Configuration météo OpenWeatherMap
+- [GETTING_STARTED.md](docs/GETTING_STARTED.md) - Quick start guide
+- [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) - Support caméra par plateforme
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture de l'application
 - [CHANGELOG.md](CHANGELOG.md) - Historique des changements
 
 ---
@@ -270,11 +290,11 @@ flutter run
 **Solution** :
 - Vérifier la clé API dans `weather_service.dart`
 - Vérifier la connexion internet
-- Voir [WEATHER_SETUP.md](WEATHER_SETUP.md) troubleshooting
+- Voir [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) troubleshooting
 
 ### "Google Sign-In not available"
 **Solution** :
-- Configure les dépendances OAuth2 (voir [SETUP.md](SETUP.md))
+- Configure les dépendances OAuth2 (voir [SETUP.md](docs/SETUP.md))
 - Ou utiliser `useMockCalendar = true` pour développement
 
 ---
