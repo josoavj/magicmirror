@@ -1,7 +1,5 @@
 # 🪞 Magic Mirror - App Flutter Complète
 
-**Status : ✅ 100% FONCTIONNELLE | 0 Erreurs de compilation**
-
 ---
 
 ## 📊 Vue d'ensemble des fonctionnalités
@@ -54,10 +52,25 @@ flutter build macos        # macOS
 
 ### AVANT de lancer l'app
 
-#### 1️⃣ **Configurer la météo (3 min)**
-Suivre : [WEATHER_SETUP.md](WEATHER_SETUP.md)
-- Obtenir clé API OpenWeatherMap (gratuit)
-- Remplacer clé dans `weather_service.dart`
+#### 1️⃣ **Configurer la météo (2 min)** ⚡
+**NOUVEAU: Configuration sécurisée avec `.env`**
+
+1. Copier le template d'environnement:
+```bash
+cp .env.example .env
+```
+
+2. Obtenir une clé API gratuite:
+- Aller sur: https://openweathermap.org/api
+- S'inscrire gratuitement
+- Copier votre clé API
+
+3. Remplacer la clé dans `.env`:
+```env
+OPENWEATHERMAP_API_KEY=votre_cle_ici
+```
+
+**⚠️ Important**: Le fichier `.env` est automatiquement dans `.gitignore` - votre clé ne sera jamais exposée sur GitHub! ✅
 
 #### 2️⃣ **Google Calendar (optionnel, pour prod)**
 Suivre : [SETUP.md](SETUP.md)
@@ -141,6 +154,9 @@ lib/
 
 ### State Management
 - `flutter_riverpod: ^3.2.1` - Gestion d'état réactive
+
+### Configuration & Secrets
+- `flutter_dotenv: ^5.1.0` - Gestion variables d'environnement sécurisée
 
 ### Services & API
 - `googleapis: ^16.0.0` - Google Calendar API

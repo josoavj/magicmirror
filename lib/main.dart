@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:ui';
 import 'core/utils/app_logger.dart';
 import 'core/services/cache_service.dart';
@@ -13,6 +14,9 @@ import 'config/app_config.dart';
 void main() async {
   // Initialiser Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Charger les variables d'environnement depuis .env
+  await dotenv.load(fileName: ".env");
 
   // Initialiser le logger
   await logger.initialize();
