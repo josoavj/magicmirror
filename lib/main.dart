@@ -28,7 +28,6 @@ void main() async {
   final googleCalendarService = GoogleCalendarService();
   await googleCalendarService.initialize();
 
-  // BUG FIX #7: Exit hook pour cleanup ressources
   SystemChannels.lifecycle.setMessageHandler((msg) async {
     if (msg == 'AppLifecycleState.detached') {
       await _cleanupOnExit();
