@@ -45,10 +45,10 @@ L'app demande automatiquement les permissions au lancement.
 Ajouter dans `ios/Runner/Info.plist`:
 ```xml
 <key>NSCameraUsageDescription</key>
-<string>LevelMind utilise la caméra pour le dashboard personnalisé</string>
+<string>Magic Mirror utilise la caméra pour l'affichage du miroir</string>
 
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>LevelMind utilise votre localisation pour la météo</string>
+<string>Magic Mirror utilise votre localisation pour la météo</string>
 ```
 
 ### Podfile
@@ -85,7 +85,7 @@ Pour meilleure expérience, utiliser sur:
 adb shell pm list permissions | grep android.permission.CAMERA
 
 # iOS
-# Settings > Privacy > Camera > LevelMind
+# Settings > Privacy > Camera > Magic Mirror
 ```
 
 ### Debug caméra
