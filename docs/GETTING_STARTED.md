@@ -1,8 +1,8 @@
-# 🚀 Getting Started - LevelMind
+# 🚀 Getting Started - Magic Mirror
 
 ## Guide de démarrage rapide (5 min)
 
-Bienvenue sur LevelMind! Ce guide te permettra de lancer l'app en quelques minutes.
+Bienvenue sur Magic Mirror! Ce guide te permettra de lancer l'app en quelques minutes.
 
 ---
 
@@ -18,8 +18,8 @@ flutter --version
 ### Ensuite
 ```bash
 # Cloner le projet
-git clone https://github.com/josoavj/lvlmindapp.git
-cd lvlmindapp
+git clone https://github.com/josoavj/magicmirror.git
+cd magicmirror
 
 # Installer les dépendances
 flutter pub get
@@ -73,7 +73,7 @@ flutter devices
 
 ## ✅ Succès!
 
-Tu as LevelMind en local! 🎉
+Tu as Magic Mirror en local! 🎉
 
 ### Prochaines étapes:
 - Voir [SETUP.md](SETUP.md) pour configuration production
