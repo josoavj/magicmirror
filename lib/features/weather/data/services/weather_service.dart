@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/weather_model.dart';
 
 class WeatherService {
   static const String _baseUrl = 'https://api.openweathermap.org/data/2.5';
-  static const String _apiKey =
-      'demo'; // ⚠️ À remplacer par vous clé OpenWeatherMap gratuite
+
+  // Charger la clé API depuis .env
+  static String get _apiKey => dotenv.env['OPENWEATHERMAP_API_KEY'] ?? 'demo';
 
   final Dio _dio = Dio();
 
