@@ -47,7 +47,7 @@ Après connexion, aller à: **https://home.openweathermap.org/api_keys**
 
 Tu verras une clé par défaut nommée **"Default"**:
 ```
-your_actual_api_key_here_1234567890ab
+abc123def456ghi789jkl0mnopqrst
 ```
 
 **Cliquer sur la clé pour la copier** → Tu l'as en presse-papiers!
