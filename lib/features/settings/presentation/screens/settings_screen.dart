@@ -199,6 +199,12 @@ class SettingsScreen extends ConsumerWidget {
                       value: settings.appVersion,
                     ),
                     const SizedBox(height: 8),
+                    SettingsButton(
+                      icon: Icons.help_outline,
+                      label: 'À propos',
+                      color: Colors.blueAccent,
+                      onPressed: () => Navigator.pushNamed(context, '/about'),
+                    ),
                   ],
                 ),
 
@@ -245,25 +251,7 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.help,
                       label: 'A propos',
                       color: Colors.blueAccent,
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Magic Mirror'),
-                            content: const Text(
-                              'Magic Mirror v1.0.0\n\n'
-                              'Une application miroir intelligente avec reconnaissance de morphologie, synchronisation calendrier et suggestions de tenue.\n\n'
-                              'Localisation: Antananarivo, Madagascar',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Fermer'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onPressed: () => Navigator.pushNamed(context, '/about'),
                     ),
                   ],
                 ),
