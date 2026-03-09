@@ -8,6 +8,7 @@ import 'core/services/cache_service.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
+import 'presentation/screens/about_screen.dart';
 import 'data/services/google_calendar_service.dart';
 import 'config/app_config.dart';
 
@@ -72,6 +73,7 @@ class MagicMirrorApp extends StatelessWidget {
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/about': (context) => const AboutScreen(),
       },
     );
   }

@@ -1,0 +1,482 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import '../widgets/glass_container.dart';
+
+class AboutScreen extends ConsumerWidget {
+  const AboutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('À propos'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
+
+                  // Logo & Titre
+                  _buildHeader(),
+
+                  const SizedBox(height: 32),
+
+                  // Description Générale
+                  _buildAboutCard(),
+
+                  const SizedBox(height: 24),
+
+                  // Fonctionnalités
+                  _buildFeaturesSection(),
+
+                  const SizedBox(height: 24),
+
+                  // Informations Techniques
+                  _buildTechnicalInfo(),
+
+                  const SizedBox(height: 24),
+
+                  // Développeur
+                  _buildDeveloperSection(),
+
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blueAccent.withValues(alpha: 0.8),
+                Colors.purpleAccent.withValues(alpha: 0.6),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blueAccent.withValues(alpha: 0.3),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Text('🪞', style: TextStyle(fontSize: 60)),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Magic Mirror',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 42,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'v1.0.0 - Beta',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAboutCard() {
+    return GlassContainer(
+      borderRadius: 24,
+      blur: 30,
+      opacity: 0.08,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'À propos de l\'application',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec capacités d\'intelligence artificielle avancées.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 16,
+              height: 1.5,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Combinant technologie de pointe, design épuré et fonctionnalités pratiques pour une expérience utilisateur exceptionnelle.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 14,
+              height: 1.4,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturesSection() {
+    final features = [
+      {
+        'icon': '🪞',
+        'title': 'Miroir Intelligent',
+        'description': 'Caméra temps réel avec affichage full-screen',
+      },
+      {
+        'icon': '🤖',
+        'title': 'Morphologie AI',
+        'description': 'Détection pose et classification morphologie',
+      },
+      {
+        'icon': '👔',
+        'title': 'Suggestions Tenue',
+        'description': 'Recommandations personnalisées par morphologie',
+      },
+      {
+        'icon': '📅',
+        'title': 'Synchronisation Calendrier',
+        'description': 'Intégration Google Calendar complète',
+      },
+      {
+        'icon': '🌦️',
+        'title': 'Météo en Temps Réel',
+        'description': 'API OpenWeatherMap avec géolocalisation',
+      },
+      {
+        'icon': '🗣️',
+        'title': 'Synthèse Vocale',
+        'description': 'TTS français pour tous les contenus',
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fonctionnalités',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...features.map(
+          (feature) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GlassContainer(
+              borderRadius: 16,
+              blur: 20,
+              opacity: 0.06,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    feature['icon'] as String,
+                    style: const TextStyle(fontSize: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          feature['title'] as String,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          feature['description'] as String,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTechnicalInfo() {
+    final techStack = [
+      {'title': 'Framework', 'value': 'Flutter 3.1.0+'},
+      {'title': 'Langage', 'value': 'Dart 3.1.0+'},
+      {'title': 'État', 'value': 'Riverpod 3.2.1'},
+      {'title': 'ML', 'value': 'Google ML Kit 0.21.0'},
+      {'title': 'API', 'value': 'OpenWeatherMap + Google Calendar'},
+      {'title': 'Status', 'value': '✅ Stable'},
+    ];
+
+    return GlassContainer(
+      borderRadius: 24,
+      blur: 30,
+      opacity: 0.08,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Stack Technique',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...techStack.asMap().entries.map((entry) {
+            final isLast = entry.key == techStack.length - 1;
+            return Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      entry.value['title'] as String,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      entry.value['value'] as String,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                if (!isLast) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperSection() {
+    return GlassContainer(
+      borderRadius: 24,
+      blur: 30,
+      opacity: 0.08,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'À propos du développeur',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.blueAccent.withValues(alpha: 0.8),
+                      Colors.cyanAccent.withValues(alpha: 0.6),
+                    ],
+                  ),
+                ),
+                child: const Center(
+                  child: Text('👨‍💻', style: TextStyle(fontSize: 32)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Développé par',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '@josoavj',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Antananarivo, Madagascar',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+          const SizedBox(height: 16),
+          Text(
+            'Passionné par Flutter, et la création d\'expériences utilisateur innovantes.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildSocialButton(
+                'GitHub',
+                Icons.code,
+                Colors.grey,
+                'https://github.com/josoavj',
+              ),
+              _buildSocialButton(
+                'Portfolio',
+                Icons.language,
+                Colors.amber,
+                'https://josoavj-portfolio.vercel.app/',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialButton(
+    String label,
+    IconData icon,
+    Color color,
+    String url,
+  ) {
+    return GestureDetector(
+      onTap: () => _launchURL(url),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (await url_launcher.canLaunchUrl(url)) {
+      await url_launcher.launchUrl(
+        url,
+        mode: url_launcher.LaunchMode.externalApplication,
+      );
+    } else {
+      debugPrint('Could not launch $url');
+    }
+  }
+}
