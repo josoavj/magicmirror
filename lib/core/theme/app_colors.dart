@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 
 class AppColors {
   // Primary colors
@@ -48,4 +49,10 @@ class AppColors {
   static const double glassOpacity = 0.08;
   static const Color glassBorder = Color(0xFFFFFFFF);
   static const double glassBorderOpacity = 0.15;
+
+  /// Optimizes blur value for the current platform
+  /// Android uses 60% of the blur value for better performance on Impeller renderer
+  static double getOptimizedBlur(double blurValue) {
+    return Platform.isAndroid ? blurValue * 0.6 : blurValue;
+  }
 }
