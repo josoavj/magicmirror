@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:magicmirror/core/utils/responsive_helper.dart';
 import '../../../../presentation/widgets/glass_container.dart';
 import '../providers/camera_provider.dart';
 import '../providers/permission_provider.dart';
@@ -114,20 +115,23 @@ class _MirrorBody extends ConsumerWidget {
 
         // 1. Horloge & Date (Haut Centre)
         Positioned(
-          top: 50,
+          top: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
           left: 0,
           right: 0,
           child: Center(
             child: GlassContainer(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-              width: 250,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     DateFormat('HH:mm').format(DateTime.now()),
-                    style: const TextStyle(
-                      fontSize: 80,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.resp(
+                        context,
+                        mobile: 56,
+                        tablet: 80,
+                      ),
                       fontWeight: FontWeight.w200,
                       color: Colors.white,
                     ),
@@ -135,7 +139,11 @@ class _MirrorBody extends ConsumerWidget {
                   Text(
                     DateFormat('EEEE d MMMM', 'fr_FR').format(DateTime.now()),
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: ResponsiveHelper.resp(
+                        context,
+                        mobile: 14,
+                        tablet: 20,
+                      ),
                       color: Colors.white.withValues(alpha: 0.5),
                       letterSpacing: 1.2,
                     ),
@@ -147,22 +155,31 @@ class _MirrorBody extends ConsumerWidget {
         ),
 
         // 2. Météo (Haut Droite)
-        const Positioned(top: 50, right: 30, child: WeatherWidget()),
+        Positioned(
+          top: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
+          right: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
+          child: const WeatherWidget(),
+        ),
 
         // 3. AGENDA (Haut Gauche) - NOUVEAU
-        const Positioned(
-          top: 50,
-          left: 30,
-          width: 250,
-          child: AgendaHUDWidget(),
+        Positioned(
+          top: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
+          left: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
+          right: ResponsiveHelper.isMobile(context)
+              ? null
+              : ResponsiveHelper.resp(context, mobile: 0, tablet: 410),
+          width: ResponsiveHelper.isMobile(context)
+              ? (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 200.0)
+              : 250,
+          child: const AgendaHUDWidget(),
         ),
 
         // 4. Recommandations Tenues (Bas)
-        const Positioned(
-          bottom: 50,
-          left: 30,
-          right: 30,
-          child: OutfitRecommendationWidget(),
+        Positioned(
+          bottom: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
+          left: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
+          right: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
+          child: const OutfitRecommendationWidget(),
         ),
 
         // Overlay Morphologie

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'dart:ui';
 
 class GlassContainer extends StatelessWidget {
@@ -20,17 +21,23 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reduce blur on Android for better performance on Impeller renderer
+    final effectiveBlur = Platform.isAndroid ? blur * 0.6 : blur;
+    final effectiveOpacity = Platform.isAndroid
+        ? opacity + 0.02
+        : opacity; // Slightly more opaque on Android for better visibility
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: opacity),
+            color: Colors.white.withValues(alpha: effectiveOpacity),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: Colors.white.withValues(alpha: opacity + 0.02),
+              color: Colors.white.withValues(alpha: effectiveOpacity + 0.02),
               width: 1.0,
             ),
             boxShadow: [

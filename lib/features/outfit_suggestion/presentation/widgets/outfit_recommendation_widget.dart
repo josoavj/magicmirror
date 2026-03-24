@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/responsive_helper.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:magicmirror/core/services/tts_service.dart';
 import '../providers/outfit_provider.dart';
@@ -38,97 +39,119 @@ class OutfitRecommendationWidget extends ConsumerWidget {
       child: Row(
         children: suggestedOutfits
             .map(
-              (outfit) => Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: GlassContainer(
-                  width: 300,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            outfit.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.greenAccent,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        outfit.reason,
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(200),
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      const Divider(color: Colors.white24, height: 20),
-                      ...outfit.items.map(
-                        (item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2.0),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.label_outline,
-                                color: Colors.white70,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                item,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: outfit.occasions
-                            .map(
-                              (occ) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(40),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  occ,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              (outfit) => _OutfitCardWidget(outfit: outfit),
             )
             .toList(),
       ),
     );
   }
 }
+
+class _OutfitCardWidget extends StatelessWidget {
+  final OutfitSuggestion outfit;
+
+  const _OutfitCardWidget({required this.outfit});
+
+  @override
+  Widget build(BuildContext context) {
+    // Calcul responsive de la largeur
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = ResponsiveHelper.isMobile(context)
+        ? (screenWidth * 0.7).clamp(200.0, 290.0)
+        : 300.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 16.0),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: cardWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      outfit.title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: ResponsiveHelper.resp(context, mobile: 15, tablet: 18),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
+                    size: ResponsiveHelper.resp(context, mobile: 18, tablet: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                outfit.reason,
+                style: TextStyle(
+                  color: Colors.white.withAlpha(200),
+                  fontSize: ResponsiveHelper.resp(context, mobile: 11, tablet: 13),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const Divider(color: Colors.white24, height: 20),
+              ...outfit.items.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.label_outline,
+                        color: Colors.white70,
+                        size: ResponsiveHelper.resp(context, mobile: 12, tablet: 14),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: ResponsiveHelper.resp(context, mobile: 12, tablet: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: outfit.occasions
+                    .map(
+                      (occ) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(40),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          occ,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: ResponsiveHelper.resp(context, mobile: 9, tablet: 10),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }

@@ -1,4 +1,4 @@
-package com.example.magicmirror
+package com.apexnovalabs.magicmirror
 
 import io.flutter.embedding.android.FlutterActivity
 

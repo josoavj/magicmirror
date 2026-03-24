@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:magicmirror/core/theme/app_colors.dart';
 
 /// Widget pour une section de parametres
 class SettingsSection extends StatelessWidget {
@@ -60,7 +61,10 @@ class SettingsToggle extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
@@ -159,7 +163,10 @@ class _SettingsTextFieldState extends State<SettingsTextField> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
@@ -254,7 +261,10 @@ class SettingsSlider extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
@@ -352,7 +362,10 @@ class SettingsButton extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: ElevatedButton.icon(
             onPressed: onPressed,
             icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
@@ -399,7 +412,10 @@ class SettingsDropdown<T> extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
@@ -474,7 +490,10 @@ class SettingsInfo extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),

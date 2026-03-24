@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
+import 'package:magicmirror/core/theme/app_colors.dart';
 import '../providers/agenda_provider.dart';
 
 class AgendaScreen extends ConsumerWidget {
@@ -53,16 +54,23 @@ class AgendaScreen extends ConsumerWidget {
                     ),
                     _GlassIconButton(
                       icon: Icons.sync,
-                      onPressed: () => ref.read(agendaEventsProvider.notifier).syncWithGoogle(),
+                      onPressed: () => ref
+                          .read(agendaEventsProvider.notifier)
+                          .syncWithGoogle(),
                     ),
                   ],
                 ),
               ),
               Expanded(
                 child: agendaState.when(
-                  loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
                   error: (err, stack) => Center(
-                    child: Text('Erreur: $err', style: const TextStyle(color: Colors.white)),
+                    child: Text(
+                      'Erreur: $err',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                   data: (events) => ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -70,10 +78,13 @@ class AgendaScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final event = events[index];
                       final now = DateTime.now();
-                      final isNow = now.isAfter(event.startTime) && now.isBefore(event.endTime);
-                      
+                      final isNow =
+                          now.isAfter(event.startTime) &&
+                          now.isBefore(event.endTime);
+
                       return _AgendaGlassTile(
-                        time: '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+                        time:
+                            '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
                         title: event.title,
                         type: event.eventType,
                         isNow: isNow,
@@ -118,18 +129,21 @@ class _AgendaGlassTile extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(30),
+            sigmaY: AppColors.getOptimizedBlur(30),
+          ),
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isNow 
-                ? Colors.blue.withValues(alpha: 0.15) 
-                : Colors.white.withValues(alpha: 0.08),
+              color: isNow
+                  ? Colors.blue.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isNow 
-                  ? Colors.blue.withValues(alpha: 0.3) 
-                  : Colors.white.withValues(alpha: 0.1),
+                color: isNow
+                    ? Colors.blue.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -174,7 +188,11 @@ class _AgendaGlassTile extends StatelessWidget {
                       color: Colors.blue,
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(color: Colors.blue, blurRadius: 8, spreadRadius: 2),
+                        BoxShadow(
+                          color: Colors.blue,
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
                       ],
                     ),
                   ),
@@ -198,7 +216,10 @@ class _GlassIconButton extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(
+          sigmaX: AppColors.getOptimizedBlur(10),
+          sigmaY: AppColors.getOptimizedBlur(10),
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.1),
@@ -220,7 +241,11 @@ class _GlassButton extends StatelessWidget {
   final VoidCallback onPressed;
   final IconData icon;
 
-  const _GlassButton({required this.label, required this.onPressed, required this.icon});
+  const _GlassButton({
+    required this.label,
+    required this.onPressed,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +254,10 @@ class _GlassButton extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(20),
+            sigmaY: AppColors.getOptimizedBlur(20),
+          ),
           child: Container(
             height: 64,
             width: double.infinity,

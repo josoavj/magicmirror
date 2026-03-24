@@ -247,12 +247,6 @@ class SettingsScreen extends ConsumerWidget {
                         );
                       },
                     ),
-                    SettingsButton(
-                      icon: Icons.help,
-                      label: 'A propos',
-                      color: Colors.blueAccent,
-                      onPressed: () => Navigator.pushNamed(context, '/about'),
-                    ),
                   ],
                 ),
 
