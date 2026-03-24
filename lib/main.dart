@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'dart:ui';
 import 'core/utils/app_logger.dart';
 import 'core/services/cache_service.dart';
+import 'core/theme/app_colors.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
@@ -16,8 +18,12 @@ void main() async {
   // Initialiser Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialiser les données de locale pour la formatage des dates
+  // Cela résout l'erreur LocaleDataException sur Android
+  await initializeDateFormatting('fr_FR', null);
+
   // Charger les variables d'environnement depuis .env
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: "assets/.env");
 
   // Initialiser le logger
   await logger.initialize();
@@ -63,6 +69,8 @@ class MagicMirrorApp extends StatelessWidget {
     return MaterialApp(
       title: 'Magic Mirror iOS 26',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
       theme: ThemeData(
         brightness: Brightness.dark,
         fontFamily: 'SF Pro Display', // Simulation police iOS
@@ -176,7 +184,10 @@ class _HomeTile extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          filter: ImageFilter.blur(
+            sigmaX: AppColors.getOptimizedBlur(30),
+            sigmaY: AppColors.getOptimizedBlur(30),
+          ),
           child: Container(
             width: 160,
             height: 160,
