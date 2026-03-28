@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:ui';
-import 'package:magicmirror/core/theme/app_colors.dart';
+import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import '../providers/agenda_provider.dart';
 
 class AgendaScreen extends ConsumerWidget {
@@ -10,6 +9,7 @@ class AgendaScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final agendaState = ref.watch(agendaEventsProvider);
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -26,18 +26,18 @@ class AgendaScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isMobile ? 18 : 24),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Planning',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 34,
+                            fontSize: isMobile ? 30 : 34,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -1,
                           ),
@@ -45,8 +45,8 @@ class AgendaScreen extends ConsumerWidget {
                         Text(
                           'Aujourd\'hui',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 18,
+                            color: Colors.white.withValues(alpha: 0.58),
+                            fontSize: isMobile ? 16 : 18,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -73,7 +73,9 @@ class AgendaScreen extends ConsumerWidget {
                     ),
                   ),
                   data: (events) => ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16 : 24,
+                    ),
                     itemCount: events.length,
                     itemBuilder: (context, index) {
                       final event = events[index];
@@ -94,7 +96,7 @@ class AgendaScreen extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isMobile ? 16 : 24),
                 child: _GlassButton(
                   label: 'Retour au Miroir',
                   onPressed: () => Navigator.pop(context),
@@ -124,81 +126,66 @@ class _AgendaGlassTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(30),
-            sigmaY: AppColors.getOptimizedBlur(30),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isNow
-                  ? Colors.blue.withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isNow
-                    ? Colors.blue.withValues(alpha: 0.3)
-                    : Colors.white.withValues(alpha: 0.1),
-                width: 1,
+      child: GlassContainer(
+        borderRadius: 24,
+        blur: isNow ? 36 : 32,
+        opacity: isNow ? 0.13 : 0.1,
+        tintColor: isNow ? Colors.blue : Colors.white,
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  time,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isMobile ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  type,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: isMobile ? 16 : 24),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isMobile ? 16 : 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      type,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
+            if (isNow)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue,
+                      blurRadius: 8,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (isNow)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue,
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -213,24 +200,14 @@ class _GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: AppColors.getOptimizedBlur(10),
-          sigmaY: AppColors.getOptimizedBlur(10),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: IconButton(
-            icon: Icon(icon, color: Colors.white, size: 24),
-            onPressed: onPressed,
-          ),
-        ),
+    return GlassContainer(
+      borderRadius: 16,
+      blur: 16,
+      opacity: 0.12,
+      padding: EdgeInsets.zero,
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 24),
+        onPressed: onPressed,
       ),
     );
   }
@@ -249,38 +226,31 @@ class _GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
     return GestureDetector(
       onTap: onPressed,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
-          child: Container(
-            height: 64,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: Colors.white, size: 18),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+      child: GlassContainer(
+        borderRadius: 24,
+        blur: 28,
+        opacity: 0.11,
+        padding: EdgeInsets.symmetric(vertical: isMobile ? 18 : 20),
+        child: SizedBox(
+          width: double.infinity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isMobile ? 16 : 18,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
