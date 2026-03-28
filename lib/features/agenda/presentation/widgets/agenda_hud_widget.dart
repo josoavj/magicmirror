@@ -45,14 +45,6 @@ class AgendaHUDWidget extends ConsumerWidget {
     );
   }
 
-  static Color _getTypeColor(String type) {
-    return switch (type) {
-      'Travail' => Colors.blueAccent,
-      'Routine' => Colors.greenAccent,
-      'Google' => Colors.redAccent,
-      _ => Colors.white30,
-    };
-  }
 }
 
 class _EventItemWidget extends StatelessWidget {
@@ -76,7 +68,7 @@ class _EventItemWidget extends StatelessWidget {
             width: 4,
             height: 32,
             decoration: BoxDecoration(
-              color: _AgendaHUDWidgetState_getTypeColor(event.eventType),
+              color: _getTypeColor(event.eventType),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -118,7 +110,7 @@ class _EventItemWidget extends StatelessWidget {
   }
 }
 
-Color _AgendaHUDWidgetState_getTypeColor(String type) {
+Color _getTypeColor(String type) {
   return switch (type) {
     'Travail' => Colors.blueAccent,
     'Routine' => Colors.greenAccent,
