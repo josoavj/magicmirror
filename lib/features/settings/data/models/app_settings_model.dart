@@ -9,6 +9,8 @@ class AppSettings {
   final bool enableAudioFeedback;
   final bool cameraFlipped;
   final double cameraZoom;
+  final int mirrorHudDisplaySeconds;
+  final int mirrorHudCycleMinutes;
   final String appVersion;
 
   AppSettings({
@@ -21,6 +23,8 @@ class AppSettings {
     required this.enableAudioFeedback,
     required this.cameraFlipped,
     required this.cameraZoom,
+    required this.mirrorHudDisplaySeconds,
+    required this.mirrorHudCycleMinutes,
     required this.appVersion,
   });
 
@@ -36,6 +40,8 @@ class AppSettings {
       enableAudioFeedback: true,
       cameraFlipped: false,
       cameraZoom: 1.0,
+      mirrorHudDisplaySeconds: 30,
+      mirrorHudCycleMinutes: 5,
       appVersion: '1.0.0',
     );
   }
@@ -51,6 +57,8 @@ class AppSettings {
     bool? enableAudioFeedback,
     bool? cameraFlipped,
     double? cameraZoom,
+    int? mirrorHudDisplaySeconds,
+    int? mirrorHudCycleMinutes,
     String? appVersion,
   }) {
     return AppSettings(
@@ -65,6 +73,10 @@ class AppSettings {
       enableAudioFeedback: enableAudioFeedback ?? this.enableAudioFeedback,
       cameraFlipped: cameraFlipped ?? this.cameraFlipped,
       cameraZoom: cameraZoom ?? this.cameraZoom,
+      mirrorHudDisplaySeconds:
+          mirrorHudDisplaySeconds ?? this.mirrorHudDisplaySeconds,
+      mirrorHudCycleMinutes:
+          mirrorHudCycleMinutes ?? this.mirrorHudCycleMinutes,
       appVersion: appVersion ?? this.appVersion,
     );
   }

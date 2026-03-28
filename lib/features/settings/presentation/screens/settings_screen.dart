@@ -69,13 +69,6 @@ class SettingsScreen extends ConsumerWidget {
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
-                        const DropdownMenuItem(
-                          value: 'mg_MG',
-                          child: Text(
-                            'Malagasy',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -187,6 +180,104 @@ class SettingsScreen extends ConsumerWidget {
                             .setCameraZoom(value);
                       },
                     ),
+                    SettingsDropdown<int>(
+                      icon: Icons.timer,
+                      label: 'HUD miroir visible',
+                      value: settings.mirrorHudDisplaySeconds,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 15,
+                          child: Text(
+                            '15 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 20,
+                          child: Text(
+                            '20 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 30,
+                          child: Text(
+                            '30 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 45,
+                          child: Text(
+                            '45 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 60,
+                          child: Text(
+                            '60 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setMirrorHudDisplaySeconds(value);
+                        }
+                      },
+                    ),
+                    SettingsDropdown<int>(
+                      icon: Icons.schedule,
+                      label: 'HUD miroir toutes les',
+                      value: settings.mirrorHudCycleMinutes,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 1,
+                          child: Text(
+                            '1 minute',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 2,
+                          child: Text(
+                            '2 minutes',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text(
+                            '3 minutes',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 5,
+                          child: Text(
+                            '5 minutes',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 10,
+                          child: Text(
+                            '10 minutes',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setMirrorHudCycleMinutes(value);
+                        }
+                      },
+                    ),
                   ],
                 ),
 
@@ -197,25 +288,48 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.info,
                       label: 'Version',
                       value: settings.appVersion,
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Version de l\'application'),
+                            content: Text(
+                              'Magic Mirror ${settings.appVersion}\n\nVous pouvez consulter les détails dans la page À propos.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Fermer'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/about');
+                                },
+                                child: const Text('Voir À propos'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    SettingsButton(
+                    SettingsActionTile(
                       icon: Icons.help_outline,
                       label: 'À propos',
-                      color: Colors.blueAccent,
-                      onPressed: () => Navigator.pushNamed(context, '/about'),
+                      iconColor: Colors.blueAccent,
+                      onTap: () => Navigator.pushNamed(context, '/about'),
                     ),
                   ],
                 ),
 
                 SettingsSection(
-                  title: 'Parametres Avances',
+                  title: 'Parametres Avancés',
                   children: [
-                    SettingsButton(
+                    SettingsActionTile(
                       icon: Icons.restore,
                       label: 'Reinitialiser par defaut',
-                      color: Colors.orangeAccent,
-                      onPressed: () {
+                      iconColor: Colors.orangeAccent,
+                      onTap: () {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(

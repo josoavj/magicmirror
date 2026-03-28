@@ -14,6 +14,15 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     _loadSettings();
   }
 
+  static const Set<String> _supportedLocales = {'fr_FR', 'en_US'};
+
+  String _normalizeLocale(String? rawLocale) {
+    if (rawLocale != null && _supportedLocales.contains(rawLocale)) {
+      return rawLocale;
+    }
+    return 'fr_FR';
+  }
+
   /// Charger les parametres depuis shared_preferences
   Future<void> _loadSettings() async {
     try {
@@ -21,7 +30,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
       final settings = AppSettings(
         darkMode: prefs.getBool('darkMode') ?? true,
-        locale: prefs.getString('locale') ?? 'fr_FR',
+        locale: _normalizeLocale(prefs.getString('locale')),
         enableNotifications: prefs.getBool('enableNotifications') ?? true,
         enableLocationTracking: prefs.getBool('enableLocationTracking') ?? true,
         defaultCity: prefs.getString('defaultCity') ?? 'Antananarivo',
@@ -29,6 +38,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         enableAudioFeedback: prefs.getBool('enableAudioFeedback') ?? true,
         cameraFlipped: prefs.getBool('cameraFlipped') ?? false,
         cameraZoom: prefs.getDouble('cameraZoom') ?? 1.0,
+        mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
+        mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
         appVersion: prefs.getString('appVersion') ?? '1.0.0',
       );
 
@@ -59,6 +70,11 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       await prefs.setBool('enableAudioFeedback', state.enableAudioFeedback);
       await prefs.setBool('cameraFlipped', state.cameraFlipped);
       await prefs.setDouble('cameraZoom', state.cameraZoom);
+      await prefs.setInt(
+        'mirrorHudDisplaySeconds',
+        state.mirrorHudDisplaySeconds,
+      );
+      await prefs.setInt('mirrorHudCycleMinutes', state.mirrorHudCycleMinutes);
       await prefs.setString('appVersion', state.appVersion);
     } catch (e) {
       logger.error(
@@ -77,7 +93,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   /// Modifier la langue
   Future<void> setLocale(String locale) async {
-    state = state.copyWith(locale: locale);
+    state = state.copyWith(locale: _normalizeLocale(locale));
     await _saveSettings();
   }
 
@@ -120,6 +136,20 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Modifier le zoom camera
   Future<void> setCameraZoom(double zoom) async {
     state = state.copyWith(cameraZoom: zoom);
+    await _saveSettings();
+  }
+
+  /// Durée d'affichage du HUD mobile miroir (en secondes)
+  Future<void> setMirrorHudDisplaySeconds(int seconds) async {
+    final clamped = seconds.clamp(5, 180);
+    state = state.copyWith(mirrorHudDisplaySeconds: clamped);
+    await _saveSettings();
+  }
+
+  /// Fréquence d'apparition du HUD mobile miroir (en minutes)
+  Future<void> setMirrorHudCycleMinutes(int minutes) async {
+    final clamped = minutes.clamp(1, 60);
+    state = state.copyWith(mirrorHudCycleMinutes: clamped);
     await _saveSettings();
   }
 

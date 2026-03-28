@@ -46,13 +46,19 @@ class AppColors {
 
   // Glass effect colors
   static const Color glassBackground = Color(0xFFFFFFFF);
-  static const double glassOpacity = 0.08;
+  static const double glassOpacity = 0.1;
   static const Color glassBorder = Color(0xFFFFFFFF);
-  static const double glassBorderOpacity = 0.15;
+  static const double glassBorderOpacity = 0.24;
 
   /// Optimizes blur value for the current platform
-  /// Android uses 60% of the blur value for better performance on Impeller renderer
+  /// Android keeps reduced blur for performance; iOS keeps a soft but readable depth.
   static double getOptimizedBlur(double blurValue) {
-    return Platform.isAndroid ? blurValue * 0.6 : blurValue;
+    if (Platform.isAndroid) {
+      return blurValue * 0.58;
+    }
+    if (Platform.isIOS) {
+      return blurValue * 0.9;
+    }
+    return blurValue;
   }
 }

@@ -69,9 +69,18 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
   }
 
   Future<void> syncWithGoogle() async {
-    final success = await _service.signIn();
-    if (success) {
-      await refresh();
+    try {
+      final success = await _service.signIn();
+      if (success) {
+        await refresh();
+      }
+    } catch (e, st) {
+      logger.error(
+        'Erreur sync Google Agenda',
+        tag: 'AgendaNotifier',
+        error: e,
+      );
+      state = AsyncValue.error(e, st);
     }
   }
 }
