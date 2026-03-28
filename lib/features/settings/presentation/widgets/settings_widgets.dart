@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'package:magicmirror/core/theme/app_colors.dart';
+import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 /// Widget pour une section de parametres
 class SettingsSection extends StatelessWidget {
@@ -37,6 +36,26 @@ class SettingsSection extends StatelessWidget {
   }
 }
 
+class _SettingsGlassCard extends StatelessWidget {
+  final Widget child;
+
+  const _SettingsGlassCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: GlassContainer(
+        borderRadius: 16,
+        blur: 26,
+        opacity: 0.11,
+        padding: EdgeInsets.zero,
+        child: child,
+      ),
+    );
+  }
+}
+
 /// Widget pour un toggle switch setting
 class SettingsToggle extends StatelessWidget {
   final String label;
@@ -56,64 +75,34 @@ class SettingsToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
+    return _SettingsGlassCard(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: icon != null
+            ? Icon(icon, color: Colors.white, size: 24)
+            : null,
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.62),
+                  fontSize: 13,
                 ),
-              ],
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: icon != null
-                  ? Icon(icon, color: Colors.white, size: 24)
-                  : null,
-              title: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: subtitle != null
-                  ? Text(
-                      subtitle!,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 13,
-                      ),
-                    )
-                  : null,
-              trailing: Switch(
-                value: value,
-                onChanged: onChanged,
-                activeThumbColor: Colors.white,
-                activeTrackColor: Colors.blue.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
+              )
+            : null,
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: Colors.white,
+          activeTrackColor: Colors.blue.withValues(alpha: 0.6),
         ),
       ),
     );
@@ -158,77 +147,57 @@ class _SettingsTextFieldState extends State<SettingsTextField> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
+    return _SettingsGlassCard(
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: widget.icon != null
+            ? Icon(widget.icon, color: Colors.white, size: 24)
+            : null,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              onChanged: widget.onChanged,
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.42),
                 ),
-              ],
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: widget.icon != null
-                  ? Icon(widget.icon, color: Colors.white, size: 24)
-                  : null,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                    ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.28),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _controller,
-                    onChanged: widget.onChanged,
-                    decoration: InputDecoration(
-                      hintText: widget.hint,
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
-                    ),
-                    style: const TextStyle(color: Colors.white),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.28),
                   ),
-                ],
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.52),
+                    width: 1.2,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.08),
               ),
+              style: const TextStyle(color: Colors.white),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -256,84 +225,61 @@ class SettingsSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
+    return _SettingsGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (icon != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    value.toStringAsFixed(2),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (icon != null)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Icon(icon, color: Colors.white, size: 24),
-                        ),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          value.toStringAsFixed(2),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Slider(
-                    value: value,
-                    min: min,
-                    max: max,
-                    onChanged: onChanged,
-                    activeColor: Colors.blueAccent,
-                    inactiveColor: Colors.white.withValues(alpha: 0.2),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 16),
+            Slider(
+              value: value,
+              min: min,
+              max: max,
+              onChanged: onChanged,
+              activeColor: Colors.blueAccent,
+              inactiveColor: Colors.white.withValues(alpha: 0.2),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -357,30 +303,19 @@ class SettingsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
-          child: ElevatedButton.icon(
-            onPressed: onPressed,
-            icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
-            label: Text(label),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: (color ?? Colors.blueAccent).withValues(
-                alpha: 0.7,
-              ),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-              ),
-            ),
+    return _SettingsGlassCard(
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: (color ?? Colors.blueAccent).withValues(alpha: 0.55),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
           ),
         ),
       ),
@@ -407,63 +342,46 @@ class SettingsDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
+    return _SettingsGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (icon != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  if (icon != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Icon(icon, color: Colors.white, size: 24),
-                    ),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  DropdownButton<T>(
-                    value: value,
-                    items: items,
-                    onChanged: onChanged,
-                    underline: const SizedBox.shrink(),
-                    dropdownColor: Color(0xFF1A1A1A),
-                    iconEnabledColor: Colors.white,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
+            const SizedBox(height: 8),
+            DropdownButtonHideUnderline(
+              child: DropdownButton<T>(
+                value: value,
+                isExpanded: true,
+                items: items,
+                onChanged: onChanged,
+                dropdownColor: const Color(0xFF1A1A1A),
+                iconEnabledColor: Colors.white,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -475,69 +393,96 @@ class SettingsInfo extends StatelessWidget {
   final String label;
   final String value;
   final IconData? icon;
+  final VoidCallback? onTap;
 
   const SettingsInfo({
     required this.label,
     required this.value,
     this.icon,
+    this.onTap,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppColors.getOptimizedBlur(20),
-            sigmaY: AppColors.getOptimizedBlur(20),
-          ),
+    return _SettingsGlassCard(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: onTap,
+        leading: icon != null
+            ? Icon(icon, color: Colors.white, size: 24)
+            : null,
+        title: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
           child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                ),
-              ],
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: icon != null
-                  ? Icon(icon, color: Colors.white, size: 24)
-                  : null,
-              title: Text(label, style: const TextStyle(color: Colors.white)),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.84),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
+        ),
+        trailing: onTap != null
+            ? const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white70,
+                size: 24,
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+/// Widget pour une action au format standard (même gabarit que les autres lignes)
+class SettingsActionTile extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final Color? iconColor;
+
+  const SettingsActionTile({
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.iconColor,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsGlassCard(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: onTap,
+        leading: icon != null
+            ? Icon(icon, color: iconColor ?? Colors.white, size: 24)
+            : null,
+        title: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: Colors.white70,
+          size: 24,
         ),
       ),
     );
