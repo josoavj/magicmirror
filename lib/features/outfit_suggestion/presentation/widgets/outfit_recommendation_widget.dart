@@ -38,9 +38,7 @@ class OutfitRecommendationWidget extends ConsumerWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: suggestedOutfits
-            .map(
-              (outfit) => _OutfitCardWidget(outfit: outfit),
-            )
+            .map((outfit) => _OutfitCardWidget(outfit: outfit))
             .toList(),
       ),
     );
@@ -63,6 +61,10 @@ class _OutfitCardWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 16.0),
       child: GlassContainer(
+        borderRadius: 22,
+        blur: 32,
+        opacity: 0.11,
+        tintColor: Colors.tealAccent,
         padding: const EdgeInsets.all(16),
         child: SizedBox(
           width: cardWidth,
@@ -78,7 +80,11 @@ class _OutfitCardWidget extends StatelessWidget {
                       outfit.title,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: ResponsiveHelper.resp(context, mobile: 15, tablet: 18),
+                        fontSize: ResponsiveHelper.resp(
+                          context,
+                          mobile: 15,
+                          tablet: 18,
+                        ),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -86,7 +92,11 @@ class _OutfitCardWidget extends StatelessWidget {
                   Icon(
                     Icons.check_circle,
                     color: Colors.greenAccent,
-                    size: ResponsiveHelper.resp(context, mobile: 18, tablet: 20),
+                    size: ResponsiveHelper.resp(
+                      context,
+                      mobile: 18,
+                      tablet: 20,
+                    ),
                   ),
                 ],
               ),
@@ -94,8 +104,12 @@ class _OutfitCardWidget extends StatelessWidget {
               Text(
                 outfit.reason,
                 style: TextStyle(
-                  color: Colors.white.withAlpha(200),
-                  fontSize: ResponsiveHelper.resp(context, mobile: 11, tablet: 13),
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: ResponsiveHelper.resp(
+                    context,
+                    mobile: 11,
+                    tablet: 13,
+                  ),
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -108,7 +122,11 @@ class _OutfitCardWidget extends StatelessWidget {
                       Icon(
                         Icons.label_outline,
                         color: Colors.white70,
-                        size: ResponsiveHelper.resp(context, mobile: 12, tablet: 14),
+                        size: ResponsiveHelper.resp(
+                          context,
+                          mobile: 12,
+                          tablet: 14,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -116,7 +134,11 @@ class _OutfitCardWidget extends StatelessWidget {
                           item,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: ResponsiveHelper.resp(context, mobile: 12, tablet: 14),
+                            fontSize: ResponsiveHelper.resp(
+                              context,
+                              mobile: 12,
+                              tablet: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -135,14 +157,21 @@ class _OutfitCardWidget extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(40),
+                          color: Colors.white.withValues(alpha: 0.12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           occ,
                           style: TextStyle(
                             color: Colors.white70,
-                            fontSize: ResponsiveHelper.resp(context, mobile: 9, tablet: 10),
+                            fontSize: ResponsiveHelper.resp(
+                              context,
+                              mobile: 9,
+                              tablet: 10,
+                            ),
                           ),
                         ),
                       ),
@@ -155,3 +184,4 @@ class _OutfitCardWidget extends StatelessWidget {
       ),
     );
   }
+}
