@@ -73,8 +73,9 @@ class AboutScreen extends ConsumerWidget {
     return Column(
       children: [
         Container(
-          width: 120,
-          height: 120,
+          width: 124,
+          height: 124,
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
@@ -93,8 +94,21 @@ class AboutScreen extends ConsumerWidget {
               ),
             ],
           ),
-          child: const Center(
-            child: Text('🪞', style: TextStyle(fontSize: 60)),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.1),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 1,
+              ),
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/logo/magicmirrorlogo.png',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -416,10 +430,16 @@ class AboutScreen extends ConsumerWidget {
             runSpacing: 8,
             children: [
               _buildSocialButton(
-                'GitHub',
+                'GitHub Profil',
                 Icons.code,
                 Colors.grey,
                 'https://github.com/josoavj',
+              ),
+              _buildSocialButton(
+                'Repo MagicMirror',
+                Icons.source,
+                Colors.lightBlueAccent,
+                'https://github.com/josoavj/magicmirror',
               ),
               _buildSocialButton(
                 'Portfolio',
@@ -470,12 +490,23 @@ class AboutScreen extends ConsumerWidget {
 
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
-    if (await url_launcher.canLaunchUrl(url)) {
-      await url_launcher.launchUrl(
-        url,
-        mode: url_launcher.LaunchMode.externalApplication,
-      );
-    } else {
+    final openedExternal = await url_launcher.launchUrl(
+      url,
+      mode: url_launcher.LaunchMode.externalApplication,
+    );
+
+    if (openedExternal) {
+      return;
+    }
+
+    // Fallback utile sur certains appareils Android où la résolution
+    // d'app externe échoue mais le navigateur intégré fonctionne.
+    final openedInApp = await url_launcher.launchUrl(
+      url,
+      mode: url_launcher.LaunchMode.inAppBrowserView,
+    );
+
+    if (!openedInApp) {
       debugPrint('Could not launch $url');
     }
   }
