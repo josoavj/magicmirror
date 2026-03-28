@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/calendar/v3.dart' as calendar;
@@ -17,6 +18,7 @@ class GoogleCalendarService {
 
   // Variable pour tracker l'utilisateur actuel
   GoogleSignInAccount? _currentUser;
+  String? _serverClientId;
 
   /// Accès au singleton GoogleSignIn
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
@@ -27,11 +29,20 @@ class GoogleCalendarService {
   /// Initialiser le service Google SignIn
   Future<void> initialize({String? clientId, String? serverClientId}) async {
     try {
+      _serverClientId = serverClientId;
+
       await _googleSignIn.initialize(
         clientId: clientId,
         serverClientId: serverClientId,
       );
       _log('GoogleSignIn initialized');
+
+      if (Platform.isAndroid &&
+          (serverClientId == null || serverClientId.isEmpty)) {
+        _log(
+          '⚠️ serverClientId manquant sur Android: Google Agenda ne pourra pas se connecter tant que GOOGLE_SERVER_CLIENT_ID n\'est pas défini.',
+        );
+      }
 
       // Écouter les événements d'authentification
       _googleSignIn.authenticationEvents.listen((event) {
@@ -239,6 +250,14 @@ class GoogleCalendarService {
   /// GESTION DE LA CONNEXION
   Future<GoogleSignInAccount?> _ensureSignedIn() async {
     try {
+      if (Platform.isAndroid &&
+          (_serverClientId == null || _serverClientId!.isEmpty)) {
+        _log(
+          'Configuration Google incomplète: serverClientId requis sur Android.',
+        );
+        return null;
+      }
+
       var user = _currentUser;
 
       // Si l'utilisateur n'est pas connecté, tenter une authentification légère
