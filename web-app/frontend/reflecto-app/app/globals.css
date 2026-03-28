@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1A2332;
+  --color-navy-dark: #2C3E50;
+  --color-gold: #D4A574;
+  --color-gold-light: #C9A063;
+  --color-cyan-light: #A7E4D7;
+  --color-cyan-accent: #6ECFBD;
+  --color-cyan-electric: #00D4FF;
+  --color-cyan-ai: #1EC9E8;
+  --color-slate: #CBD5E1;
+  --color-slate-shadow: #94A3B8;
+  --color-beige: #FDF4E3;
+}
+
+:root {
+  --background: #1A2332;
+  --foreground: #FFFFFF;
+  --card-bg: rgba(44, 62, 80, 0.5);
+  --border-gold: #D4A574;
+}
+
+@layer base {
+  body {
+    @apply bg-navy text-beige min-h-screen overflow-x-hidden;
+    background-image: 
+      radial-gradient(circle at 50% 50%, rgba(44, 62, 80, 1) 0%, rgba(26, 35, 50, 1) 100%);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-lg border border-white/10 shadow-xl;
+    background-color: rgba(44, 62, 80, 0.4);
+  }
+  
+  .glass-gold {
+    @apply backdrop-blur-lg border border-gold/20 shadow-lg;
+    background-color: rgba(44, 62, 80, 0.4);
+  }
+  
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+}
