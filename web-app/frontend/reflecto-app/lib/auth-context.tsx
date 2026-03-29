@@ -3,17 +3,27 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
+interface UserProfile {
+  name: string;
+  email?: string;
+  phone?: string;
+  morphology?: string;
+  skinTone?: string;
+  subscription?: string;
+}
+
 interface AuthContextType {
-  user: { name: string } | null;
+  user: UserProfile | null;
   login: (name: string, pass: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (newData: Partial<UserProfile>) => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -39,12 +49,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (name: string, pass: string) => {
     // Mock authentication logic
     if (name && pass) {
-      const mockUser = { name };
+      const mockUser: UserProfile = { 
+        name,
+        email: "user@example.com",
+        phone: "+261 34 00 000 00",
+        morphology: "H-Shape",
+        skinTone: "Warm Tone",
+        subscription: "Premium Member"
+      };
       setUser(mockUser);
       localStorage.setItem("reflecto_user", JSON.stringify(mockUser));
       return true;
     }
     return false;
+  };
+
+  const updateUser = (newData: Partial<UserProfile>) => {
+    if (user) {
+      const updatedUser = { ...user, ...newData };
+      setUser(updatedUser);
+      localStorage.setItem("reflecto_user", JSON.stringify(updatedUser));
+    }
   };
 
   const logout = () => {
@@ -54,7 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

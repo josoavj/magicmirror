@@ -21,7 +21,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex bg-navy min-h-screen">
       {showSidebar && <Sidebar />}
-      <main className={`flex-1 ${showSidebar ? "ml-64" : ""} p-8 min-h-screen bg-transparent transition-all duration-300`}>
+      <main className={`flex-1 ${showSidebar ? "lg:ml-64" : ""} p-4 lg:p-8 ${showSidebar ? "pt-16 lg:pt-8" : ""} min-h-screen bg-transparent transition-all duration-300`}>
         <div className="max-w-7xl mx-auto h-full">
           {children}
         </div>

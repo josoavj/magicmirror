@@ -38,21 +38,21 @@ const mockHistory = [
 export default function HistoryPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700 max-w-5xl mx-auto">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-beige mb-2">Style History</h1>
-          <p className="text-slate text-lg">Revisiting your past reflections.</p>
+          <h1 className="text-2xl md:text-4xl font-bold text-beige mb-1 md:mb-2">Style History</h1>
+          <p className="text-slate text-sm md:text-lg">Revisiting your past reflections.</p>
         </div>
-        <div className="flex gap-3">
-           <div className="relative">
+        <div className="flex gap-3 w-full md:w-auto">
+           <div className="relative flex-1 md:flex-initial">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate/50" size={18} />
               <input 
                 type="text" 
                 placeholder="Search history..."
-                className="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-gold/50"
+                className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-gold/50"
               />
            </div>
-           <button className="p-2 bg-white/5 border border-white/10 rounded-full text-slate hover:text-gold transition-colors">
+           <button className="p-2 bg-white/5 border border-white/10 rounded-full text-slate hover:text-gold transition-colors flex-shrink-0">
               <Filter size={20} />
            </button>
         </div>

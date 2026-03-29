@@ -7,10 +7,10 @@ export default async function DashboardPage() {
   const agenda = await getMockAgenda();
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-700">
       <header>
-        <h1 className="text-4xl font-bold text-beige mb-2">Welcome back, User</h1>
-        <p className="text-slate text-lg">Here's your style overview for today.</p>
+        <h1 className="text-2xl md:text-4xl font-bold text-beige mb-1 md:mb-2">Welcome back, User</h1>
+        <p className="text-slate text-sm md:text-lg">Here's your style overview for today.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -63,12 +63,12 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main CTA */}
-      <GlassCard variant="gold" className="flex items-center justify-between p-8 group cursor-pointer hover:scale-[1.01] transition-transform">
-        <div>
-          <h2 className="text-2xl font-bold text-gold mb-2">Ready to shine?</h2>
-          <p className="text-white opacity-80">Let's find the perfect outfit for your day based on your agenda and weather.</p>
+      <GlassCard variant="gold" className="flex flex-col sm:flex-row items-center justify-between p-5 md:p-8 gap-4 group cursor-pointer hover:scale-[1.01] transition-transform">
+        <div className="text-center sm:text-left">
+          <h2 className="text-xl md:text-2xl font-bold text-gold mb-2">Ready to shine?</h2>
+          <p className="text-white opacity-80 text-sm md:text-base">Let's find the perfect outfit for your day based on your agenda and weather.</p>
         </div>
-        <div className="bg-navy p-4 rounded-full text-gold group-hover:translate-x-2 transition-transform">
+        <div className="bg-navy p-4 rounded-full text-gold group-hover:translate-x-2 transition-transform flex-shrink-0">
           <ArrowRight size={24} />
         </div>
       </GlassCard>

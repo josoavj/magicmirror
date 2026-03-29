@@ -39,18 +39,18 @@ export default function CameraPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 max-w-5xl mx-auto">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Smart Mirror</h1>
-          <p className="text-slate text-lg italic">"Mirror, mirror on the wall, what's my style after all?"</p>
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-1 md:mb-2">Smart Mirror</h1>
+          <p className="text-slate text-sm md:text-lg italic">"Mirror, mirror on the wall, what's my style after all?"</p>
         </div>
         <div className="p-3 bg-cyan-electric/10 rounded-full text-cyan-electric animate-pulse">
           <Scan size={24} />
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 relative aspect-[3/4] rounded-3xl overflow-hidden glass border-2 border-white/5 group shadow-2xl bg-black">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="lg:col-span-2 relative aspect-[3/4] max-h-[70vh] lg:max-h-none rounded-3xl overflow-hidden glass border-2 border-white/5 group shadow-2xl bg-black">
           <video 
             ref={videoRef}
             autoPlay 

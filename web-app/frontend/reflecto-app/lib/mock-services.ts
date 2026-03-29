@@ -8,8 +8,10 @@ export const getMockWeather = async () => {
       throw new Error("API Key missing");
     }
 
+    console.log("Get Weather data...");
     const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`
+      `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`,
+      { cache: "no-store" }
     );
     const data = await response.json();
 
@@ -17,6 +19,8 @@ export const getMockWeather = async () => {
 
     const temp = Math.round(data.main.temp);
     const condition = data.weather[0].main;
+    
+    console.log(`Weather Data : OK (${temp}°C, ${condition})`);
     
     // Logic for outfit advice based on temperature
     let advice = "Perfect weather for a light blazer.";

@@ -63,14 +63,14 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col animate-in fade-in duration-700 max-w-4xl mx-auto">
+    <div className="h-[calc(100vh-6rem)] lg:h-[calc(100vh-8rem)] flex flex-col animate-in fade-in duration-700 max-w-4xl mx-auto">
       <header className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-cyan-electric to-cyan-ai rounded-2xl shadow-lg shadow-cyan-electric/20 text-navy">
              <Wand2 size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-beige">Style Assistant</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-beige">Style Assistant</h1>
             <div className="flex items-center gap-2">
                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                <span className="text-xs text-slate uppercase tracking-widest font-bold">Online</span>
@@ -96,7 +96,7 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`flex gap-3 max-w-[80%] ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                <div className={`flex gap-3 max-w-[85%] md:max-w-[80%] ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
                   <div className={`p-2 rounded-xl h-10 w-10 flex-shrink-0 flex items-center justify-center shadow-lg ${
                     msg.sender === "user" ? "bg-gold text-navy" : "bg-cyan-ai/20 text-cyan-electric border border-cyan-electric/20"
                   }`}>
@@ -166,7 +166,7 @@ export default function ChatPage() {
         </div>
       </GlassCard>
       
-      <div className="mt-4 flex gap-2 justify-center">
+      <div className="mt-4 flex gap-2 justify-center flex-wrap">
          {["Suggest a tie?", "Is it raining?", "Change profile"].map(suggestion => (
            <button 
              key={suggestion}

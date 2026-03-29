@@ -1,0 +1,4 @@
+- Améliorer la responisivité pour la version mobile (fait)
+- Ajouter un modèle LLM pour la partie "Assistant"
+- Date et température dans /recommendations (fait)
+- (Intégration Supabase)

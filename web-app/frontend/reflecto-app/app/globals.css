@@ -43,4 +43,12 @@
   .text-glow-cyan {
     text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
