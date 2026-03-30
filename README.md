@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/josoavj/magicmirror/assets/76913187/5dda5a6a-5e5d-41e6-a818-17b853a7957f" alt="Magic Mirror Logo" width="150"/>
+  <img src="https://github.com/josoavj/magicmirror/blob/master/assets/logo/magicmirrorlogo.png" alt="Magic Mirror Logo" width="150"/>
 </p>
 
 <h1 align="center">Magic Mirror</h1>
