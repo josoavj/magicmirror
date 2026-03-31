@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,6 +23,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _isSavingProfile = false;
 
+  void _applyProfileToControllers(UserProfile profile) {
+    _displayNameController.text = profile.displayName;
+    _avatarUrlController.text = profile.avatarUrl;
+  }
+
+  Future<void> _refreshProfileFromCloud() async {
+    await ref.read(userProfileProvider.notifier).pullFromCloud();
+    if (!mounted) {
+      return;
+    }
+    _applyProfileToControllers(ref.read(userProfileProvider));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,13 +44,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       if (currentUser != null) {
         await ref.read(userProfileProvider.notifier).setUserId(currentUser.id);
       }
-      await ref.read(userProfileProvider.notifier).pullFromCloud();
+      await _refreshProfileFromCloud();
       if (!mounted) {
         return;
       }
-      final profile = ref.read(userProfileProvider);
-      _displayNameController.text = profile.displayName;
-      _avatarUrlController.text = profile.avatarUrl;
+      _applyProfileToControllers(ref.read(userProfileProvider));
     });
   }
 
@@ -304,6 +316,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     final activeUser = Supabase.instance.client.auth.currentUser;
     final syncStatus = ref.watch(profileSyncStatusProvider);
     final syncMessage = ref.watch(profileSyncMessageProvider);
+    final lastSyncAt = ref.watch(profileLastSyncAtProvider);
     final hasNetworkAvatar =
         profile.avatarUrl.startsWith('http://') ||
         profile.avatarUrl.startsWith('https://');
@@ -329,35 +342,38 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GlassContainer(
-                  borderRadius: 18,
-                  blur: 24,
-                  opacity: 0.1,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Compte actif',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                SizedBox(
+                  width: double.infinity,
+                  child: GlassContainer(
+                    borderRadius: 18,
+                    blur: 24,
+                    opacity: 0.1,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Compte actif',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Email: ${activeUser?.email ?? 'Non connecte'}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'ID: ${activeUser?.id ?? profile.userId}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.75),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Email: ${activeUser?.email ?? 'Non connecte'}',
+                          style: const TextStyle(color: Colors.white),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          'ID: ${activeUser?.id ?? profile.userId}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -513,6 +529,28 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (syncStatus == ProfileSyncStatus.syncing) ...[
+                        Row(
+                          children: [
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Chargement des donnees cloud...',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       const Text(
                         'Synchronisation cloud',
                         style: TextStyle(
@@ -532,19 +570,17 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                     .syncToCloud();
                               },
                               icon: const Icon(Icons.cloud_upload),
-                              label: const Text('Envoyer'),
+                              label: const Text('Sauvegarder'),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () {
-                                ref
-                                    .read(userProfileProvider.notifier)
-                                    .pullFromCloud();
+                              onPressed: () async {
+                                await _refreshProfileFromCloud();
                               },
                               icon: const Icon(Icons.cloud_download),
-                              label: const Text('Recuperer'),
+                              label: const Text('Synchroniser'),
                             ),
                           ),
                         ],
@@ -555,6 +591,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         style: TextStyle(
                           color: _syncStatusColor(syncStatus),
                           fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Derniere synchronisation: ${_formatLastSync(lastSyncAt)}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -580,6 +624,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       case ProfileSyncStatus.idle:
         return Colors.white70;
     }
+  }
+
+  String _formatLastSync(DateTime? dateTime) {
+    if (dateTime == null) {
+      return 'Jamais';
+    }
+    final local = dateTime.toLocal();
+    final dd = local.day.toString().padLeft(2, '0');
+    final mm = local.month.toString().padLeft(2, '0');
+    final yyyy = local.year.toString();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    return '$dd/$mm/$yyyy a $hh:$min';
   }
 
   InputDecoration _inputDecoration(String label) {
