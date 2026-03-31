@@ -1,13 +1,4 @@
-import '../data/services/google_calendar_service.dart';
-
 class DISetup {
-  // Singleton instances
-  static late GoogleCalendarService _googleCalendarService;
-
-  /// Getter pour accéder au service Google Calendar
-  static GoogleCalendarService get googleCalendarService =>
-      _googleCalendarService;
-
   static Future<void> setupDependencies() async {
     await _setupCoreServices();
     _setupDataSources();
@@ -16,9 +7,7 @@ class DISetup {
   }
 
   static Future<void> _setupCoreServices() async {
-    // Initialiser le service Google Calendar
-    _googleCalendarService = GoogleCalendarService();
-    await _googleCalendarService.initialize();
+    // Point d'extension pour l'initialisation des services coeur.
   }
 
   static void _setupDataSources() {
