@@ -64,10 +64,15 @@ flutter devices
 ## 4️⃣ Premier lancement
 
 1. Accepter les permissions (caméra, localisation)
-2. L'app s'ouvre avec 3 écrans:
-   - 🎓 **Dashboard** - Contenu pédagogique
-   - 📚 **Cours** - Catalogue de cours
-   - ⚙️ **Paramètres** - Configuration
+2. Configurer `.env` avec Supabase + météo (voir docs dédiées)
+3. L'app ouvre le flux d'authentification:
+   - Connexion / Inscription
+   - Vérification email (si non confirmée)
+4. Après connexion, l'écran d'accueil donne accès aux modules:
+   - 🪞 Miroir
+   - 📅 Agenda
+   - 👤 Profil
+   - ⚙️ Paramètres
 
 ---
 
