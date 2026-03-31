@@ -72,7 +72,6 @@ lib/
 │   │   └── morphology_repository.dart
 │   └── services/
 │       ├── weather_service.dart
-│       ├── google_calendar_service.dart
 │       ├── mock_calendar_service.dart
 │       ├── morphology_service.dart
 │       └── frame_processor.dart
