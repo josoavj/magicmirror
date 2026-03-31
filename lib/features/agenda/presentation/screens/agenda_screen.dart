@@ -365,20 +365,35 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               ),
               Padding(
                 padding: EdgeInsets.all(isMobile ? 16 : 24),
-                child: _GlassButton(
-                  label: 'Retour au Miroir',
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icons.arrow_back_ios_new,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _GlassButton(
+                        label: 'Retour',
+                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/home',
+                          (route) => false,
+                        ),
+                        icon: Icons.arrow_back_ios_new,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+                    
+                    Expanded(
+                      child: _GlassButton(
+                        label: 'Ajouter',
+                        onPressed: _showEventDialog,
+                        icon: Icons.add,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showEventDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Ajouter'),
       ),
     );
   }
