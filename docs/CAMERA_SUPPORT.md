@@ -108,11 +108,10 @@ cameraController = CameraController(
 );
 ```
 
-### Timeout caméra
-Modifier dans [`lib/core/utils/app_config.dart`](../lib/core/utils/app_config.dart):
-```dart
-static const Duration cameraTimeout = Duration(seconds: 10);
-```
+### Timeout et reprise caméra
+Le comportement de reprise/reinitialisation camera est gere dans:
+- [`lib/features/mirror/presentation/providers/camera_provider.dart`](../lib/features/mirror/presentation/providers/camera_provider.dart)
+- [`lib/core/services/permission_service.dart`](../lib/core/services/permission_service.dart)
 
 ---
 
