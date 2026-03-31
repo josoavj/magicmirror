@@ -16,6 +16,7 @@ class MorphologyService {
   final List<double> _ratioHistory = [];
   final List<double> _confidenceHistory = [];
   final int _historySize = 10; // Garder les 10 dernières mesures
+  int _outlierLogCounter = 0;
 
   MorphologyService() {
     try {
@@ -175,10 +176,13 @@ class MorphologyService {
 
     // Détecte les outliers (valeur trop loin de la moyenne)
     if ((newRatio - mean).abs() > threshold) {
-      logger.debug(
-        'Ratio outlier détecté: $newRatio vs moyenne $mean (écart: ${(newRatio - mean).abs()})',
-        tag: 'MorphologyService',
-      );
+      _outlierLogCounter++;
+      if (_outlierLogCounter % 20 == 0) {
+        logger.debug(
+          'Ratio outlier detecte: $newRatio vs moyenne $mean (ecart: ${(newRatio - mean).abs()})',
+          tag: 'MorphologyService',
+        );
+      }
       return mean; // Ignorer outlier, garder la moyenne
     }
 

@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -32,6 +37,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Uint8List? _selectedAvatarBytes;
   String _selectedAvatarExt = 'jpg';
+
+  static const _pendingAvatarDataKey = 'auth.pendingAvatar.base64';
+  static const _pendingAvatarExtKey = 'auth.pendingAvatar.ext';
+  static const _maxPersistedAvatarBytes = 500 * 1024;
 
   DateTime? _birthDate;
   String _gender = 'Non precise';
@@ -66,6 +75,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _restorePendingAvatarPreview();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -74,6 +89,92 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _avatarUrlController.dispose();
     _signupPageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restorePendingAvatarPreview() async {
+    final prefs = await SharedPreferences.getInstance();
+    final base64 = prefs.getString(_pendingAvatarDataKey);
+    if (base64 == null || base64.isEmpty) {
+      return;
+    }
+
+    try {
+      final bytes = base64Decode(base64);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _selectedAvatarBytes = bytes;
+        _selectedAvatarExt = (prefs.getString(_pendingAvatarExtKey) ?? 'jpg')
+            .toLowerCase();
+      });
+    } catch (_) {
+      await _clearPendingAvatarStorage();
+    }
+  }
+
+  Future<void> _savePendingAvatarStorage(
+    Uint8List bytes,
+    String extension,
+  ) async {
+    if (bytes.length > _maxPersistedAvatarBytes) {
+      setState(() {
+        _info =
+            'Photo volumineuse: elle sera envoyee si vous terminez la connexion dans cette session.';
+      });
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pendingAvatarDataKey, base64Encode(bytes));
+    await prefs.setString(_pendingAvatarExtKey, extension.toLowerCase());
+  }
+
+  Future<void> _clearPendingAvatarStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingAvatarDataKey);
+    await prefs.remove(_pendingAvatarExtKey);
+  }
+
+  Future<void> _tryUploadPendingAvatarAfterLogin(
+    UserProfileNotifier profileNotifier,
+  ) async {
+    Uint8List? bytes = _selectedAvatarBytes;
+    var ext = _selectedAvatarExt;
+
+    if (bytes == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_pendingAvatarDataKey);
+      if (raw != null && raw.isNotEmpty) {
+        try {
+          bytes = base64Decode(raw);
+          ext = (prefs.getString(_pendingAvatarExtKey) ?? 'jpg').toLowerCase();
+        } catch (_) {
+          bytes = null;
+        }
+      }
+    }
+
+    if (bytes == null || bytes.isEmpty) {
+      return;
+    }
+
+    final uploadedUrl = await profileNotifier.uploadAvatar(
+      bytes: bytes,
+      fileExtension: ext,
+    );
+
+    if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+      _avatarUrlController.text = uploadedUrl;
+      await profileNotifier.syncToCloud();
+      await _clearPendingAvatarStorage();
+      if (mounted) {
+        setState(() {
+          _selectedAvatarBytes = null;
+          _info = 'Photo de profil synchronisee apres connexion.';
+        });
+      }
+    }
   }
 
   bool _isValidEmail(String value) {
@@ -153,49 +254,184 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _pickAvatarImage() async {
     final imagePicker = ImagePicker();
 
-    Future<bool> pickWithImagePickerFallback() async {
-      final pickedFile = await imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 90,
+    Future<bool> confirmBeforeAfter({
+      required Uint8List afterBytes,
+      Uint8List? beforeBytes,
+    }) async {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Confirmer la photo'),
+            content: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const Text('Avant'),
+                            const SizedBox(height: 6),
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: beforeBytes != null
+                                    ? Image.memory(
+                                        beforeBytes,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        color: Colors.black12,
+                                        alignment: Alignment.center,
+                                        child: const Text('N/A'),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            const Text('Apres'),
+                            const SizedBox(height: 6),
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.memory(
+                                  afterBytes,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Utiliser'),
+              ),
+            ],
+          );
+        },
       );
-      if (pickedFile == null) {
+      return result ?? false;
+    }
+
+    Future<bool> cropAndSaveFromPath(String path) async {
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: path,
+        compressQuality: 92,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Rogner la photo',
+            toolbarColor: const Color(0xFF0F172A),
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: const Color(0xFF0F172A),
+            activeControlsWidgetColor: const Color(0xFF22D3EE),
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Rogner la photo',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+
+      if (cropped == null) {
         return false;
       }
 
-      final bytes = await pickedFile.readAsBytes();
+      final bytes = await cropped.readAsBytes();
       if (bytes.isEmpty) {
         return false;
       }
 
-      final dotIndex = pickedFile.name.lastIndexOf('.');
+      Uint8List? beforeBytes;
+      try {
+        beforeBytes = await File(path).readAsBytes();
+      } catch (_) {
+        beforeBytes = null;
+      }
+
+      final confirmed = await confirmBeforeAfter(
+        afterBytes: bytes,
+        beforeBytes: beforeBytes,
+      );
+      if (!confirmed) {
+        return false;
+      }
+
+      final dotIndex = cropped.path.lastIndexOf('.');
       final extension = dotIndex >= 0
-          ? pickedFile.name.substring(dotIndex + 1).toLowerCase()
+          ? cropped.path.substring(dotIndex + 1).toLowerCase()
           : 'jpg';
 
+      if (!mounted) {
+        return false;
+      }
       setState(() {
         _selectedAvatarBytes = bytes;
         _selectedAvatarExt = extension;
         _error = null;
       });
+      await _savePendingAvatarStorage(bytes, extension);
       return true;
+    }
+
+    Future<bool> pickWithImagePickerFallback() async {
+      final pickedFile = await imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
+      if (pickedFile == null) {
+        return false;
+      }
+      return cropAndSaveFromPath(pickedFile.path);
     }
 
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
-        withData: true,
+        withData: false,
       );
       final file = result?.files.single;
-      final bytes = file?.bytes;
-      if (bytes == null || bytes.isEmpty) {
+      final path = file?.path;
+      if (path == null || path.isEmpty) {
+        final picked = await pickWithImagePickerFallback();
+        if (!picked && mounted) {
+          setState(() {
+            _error = 'Impossible de selectionner la photo.';
+          });
+        }
         return;
       }
-
-      setState(() {
-        _selectedAvatarBytes = bytes;
-        _selectedAvatarExt = (file?.extension ?? 'jpg').toLowerCase();
-        _error = null;
-      });
+      final picked = await cropAndSaveFromPath(path);
+      if (!picked && mounted) {
+        setState(() {
+          _error = 'Rognage annule ou photo invalide.';
+        });
+      }
     } on MissingPluginException {
       final picked = await pickWithImagePickerFallback();
       if (!picked && mounted) {
@@ -244,6 +480,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         final profileNotifier = ref.read(userProfileProvider.notifier);
         await profileNotifier.setUserId(userId);
         await profileNotifier.pullFromCloud();
+        await _tryUploadPendingAvatarAfterLogin(profileNotifier);
       }
     } on AuthException catch (e) {
       _error = e.message;
@@ -296,6 +533,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
           _avatarUrlController.text = uploadedUrl;
           await profileNotifier.syncToCloud();
+          await _clearPendingAvatarStorage();
         }
       }
 
@@ -827,6 +1065,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     setState(() {
                       _selectedAvatarBytes = null;
                     });
+                    _clearPendingAvatarStorage();
                   },
                   child: const Text('Retirer'),
                 ),

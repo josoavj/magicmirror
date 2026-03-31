@@ -23,6 +23,9 @@ final currentMorphologyProvider =
 /// État pour tracer le traitement ML
 final isMlProcessingProvider = StateProvider<bool>((ref) => false);
 
+/// Dernière erreur runtime du pipeline ML (null si aucune)
+final mlRuntimeErrorProvider = StateProvider<String?>((ref) => null);
+
 /// Provider pour le processeur ML avec caméra
 final mlFrameProcessorProvider =
     Provider.family<MlFrameProcessor, CameraDescription>((ref, camera) {
@@ -32,6 +35,9 @@ final mlFrameProcessorProvider =
 /// Notifier pour gérer les mises à jour de morphologie
 class MorphologyNotifier extends StateNotifier<MorphologyData?> {
   final MorphologyService _service;
+  DateTime? _lastDebugLogAt;
+  String? _lastLoggedBodyType;
+  double? _lastLoggedConfidence;
 
   MorphologyNotifier(this._service) : super(null);
 
@@ -41,10 +47,24 @@ class MorphologyNotifier extends StateNotifier<MorphologyData?> {
       final morphology = await _service.analyzePose(inputImage);
       if (morphology != null) {
         state = morphology;
-        logger.debug(
-          'Morphologie mise a jour: ${morphology.bodyType} (${morphology.confidence.toStringAsFixed(1)}%)',
-          tag: 'MorphologyNotifier',
-        );
+        final now = DateTime.now();
+        final confidenceDelta = _lastLoggedConfidence == null
+            ? 100.0
+            : (morphology.confidence - _lastLoggedConfidence!).abs();
+        final bodyTypeChanged = _lastLoggedBodyType != morphology.bodyType;
+        final enoughTimePassed =
+            _lastDebugLogAt == null ||
+            now.difference(_lastDebugLogAt!).inSeconds >= 3;
+
+        if (bodyTypeChanged || confidenceDelta >= 5 || enoughTimePassed) {
+          logger.debug(
+            'Morphologie mise a jour: ${morphology.bodyType} (${morphology.confidence.toStringAsFixed(1)}%)',
+            tag: 'MorphologyNotifier',
+          );
+          _lastDebugLogAt = now;
+          _lastLoggedBodyType = morphology.bodyType;
+          _lastLoggedConfidence = morphology.confidence;
+        }
       }
     } catch (e) {
       logger.error(

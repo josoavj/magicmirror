@@ -15,6 +15,10 @@ final profileSyncMessageProvider = StateProvider<String>((ref) {
   return 'Aucune synchronisation';
 });
 
+final profileLastSyncAtProvider = StateProvider<DateTime?>((ref) {
+  return null;
+});
+
 final userProfileSyncServiceProvider = Provider<UserProfileSyncService>((ref) {
   return UserProfileSyncService();
 });
@@ -50,6 +54,13 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   final Ref _ref;
   final UserProfileSyncService _syncService;
 
+  UserProfile _normalizeDerivedFields(UserProfile profile) {
+    if (profile.birthDate == null) {
+      return profile;
+    }
+    return profile.copyWith(age: _ageFromBirthDate(profile.birthDate!));
+  }
+
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final localUserId = prefs.getString('profile.userId') ?? 'local-user';
@@ -70,12 +81,28 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
           prefs.getStringList('profile.preferredStyles') ?? ['Casual'],
     );
 
-    if (state.birthDate != null) {
-      final normalizedAge = _ageFromBirthDate(state.birthDate!);
-      if (normalizedAge != state.age) {
-        state = state.copyWith(age: normalizedAge);
-        await _saveProfile();
+    final normalizedLocal = _normalizeDerivedFields(state);
+    if (normalizedLocal.age != state.age) {
+      state = normalizedLocal;
+      await _saveProfile();
+    }
+
+    // Si un profil cloud existe pour l'utilisateur authentifie, il devient la source de verite.
+    try {
+      final authUserId = await _syncService.resolveUserId();
+      if (authUserId != null && authUserId.isNotEmpty) {
+        if (authUserId != state.userId) {
+          state = state.copyWith(userId: authUserId);
+        }
+        final remote = await _syncService.fetchProfile(authUserId);
+        if (remote != null) {
+          state = _normalizeDerivedFields(remote);
+          await _saveProfile();
+          _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
+        }
       }
+    } catch (_) {
+      // On garde le profil local si la récupération cloud échoue au démarrage.
     }
   }
 
@@ -108,6 +135,17 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     }
     state = state.copyWith(userId: normalized);
     await _saveProfile();
+
+    // Quand l'utilisateur actif est connu, on recharge depuis Supabase.
+    try {
+      final remote = await _syncService.fetchProfile(normalized);
+      if (remote != null) {
+        state = _normalizeDerivedFields(remote);
+        await _saveProfile();
+      }
+    } catch (_) {
+      // On conserve l'etat local si la lecture cloud echoue.
+    }
   }
 
   Future<void> setDisplayName(String displayName) async {
@@ -116,11 +154,13 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       displayName: normalized.isEmpty ? 'Utilisateur' : normalized,
     );
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<void> setAvatarUrl(String avatarUrl) async {
     state = state.copyWith(avatarUrl: avatarUrl.trim());
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<String?> uploadAvatar({
@@ -195,11 +235,13 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   Future<void> setGender(String gender) async {
     state = state.copyWith(gender: gender);
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<void> setAge(int age) async {
     state = state.copyWith(age: age.clamp(12, 100));
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<void> setBirthDate(DateTime birthDate) async {
@@ -213,11 +255,13 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       age: _ageFromBirthDate(normalizedBirthDate),
     );
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<void> setMorphology(String morphology) async {
     state = state.copyWith(morphology: morphology);
     await _saveProfile();
+    await _syncToCloudSilently();
   }
 
   Future<void> togglePreferredStyle(String style) async {
@@ -233,6 +277,15 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
     state = state.copyWith(preferredStyles: styles);
     await _saveProfile();
+    await _syncToCloudSilently();
+  }
+
+  Future<void> _syncToCloudSilently() async {
+    try {
+      await syncToCloud();
+    } catch (_) {
+      // Le statut de sync est deja gere par syncToCloud.
+    }
   }
 
   Future<void> syncToCloud() async {
@@ -242,18 +295,16 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         'Synchronisation en cours...';
 
     try {
-      final resolvedUserId = await _syncService.resolveUserId(
-        fallback: state.userId,
-      );
-      if (resolvedUserId == null || resolvedUserId.isEmpty) {
+      final authUserId = await _syncService.resolveUserId();
+      if (authUserId == null || authUserId.isEmpty) {
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
         _ref.read(profileSyncMessageProvider.notifier).state =
             'Connectez-vous pour synchroniser votre profil.';
         return;
       }
-      if (resolvedUserId != state.userId) {
-        state = state.copyWith(userId: resolvedUserId);
+      if (authUserId != state.userId) {
+        state = state.copyWith(userId: authUserId);
       }
 
       await _syncService.pushProfile(state);
@@ -262,6 +313,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
           ProfileSyncStatus.success;
       _ref.read(profileSyncMessageProvider.notifier).state =
           'Profil synchronise avec Supabase.';
+      _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
     } catch (_) {
       _ref.read(profileSyncStatusProvider.notifier).state =
           ProfileSyncStatus.failure;
@@ -277,24 +329,26 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         'Recuperation du profil cloud...';
 
     try {
-      final resolvedUserId = await _syncService.resolveUserId(
-        fallback: state.userId,
-      );
-      if (resolvedUserId == null || resolvedUserId.isEmpty) {
+      final authUserId = await _syncService.resolveUserId();
+      if (authUserId == null || authUserId.isEmpty) {
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
         _ref.read(profileSyncMessageProvider.notifier).state =
             'Connectez-vous pour recuperer votre profil cloud.';
         return;
       }
-      final remote = await _syncService.fetchProfile(resolvedUserId);
+      if (authUserId != state.userId) {
+        state = state.copyWith(userId: authUserId);
+      }
+      final remote = await _syncService.fetchProfile(authUserId);
       if (remote != null) {
-        state = remote;
+        state = _normalizeDerivedFields(remote);
         await _saveProfile();
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.success;
         _ref.read(profileSyncMessageProvider.notifier).state =
             'Profil recupere depuis Supabase.';
+        _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
       } else {
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;

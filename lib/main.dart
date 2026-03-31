@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/theme/app_colors.dart';
 import 'core/utils/app_logger.dart';
 import 'core/services/cache_service.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
@@ -120,12 +121,71 @@ class MagicMirrorApp extends ConsumerWidget {
         primaryTextTheme: GoogleFonts.lexendTextTheme(
           baseTheme.primaryTextTheme,
         ),
+        cardTheme: CardThemeData(
+          color: Colors.white.withValues(alpha: 0.08),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: AppColors.glassBorder.withValues(
+                alpha: AppColors.glassBorderOpacity,
+              ),
+              width: 1.1,
+            ),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: 0.24),
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            backgroundColor: Colors.white.withValues(alpha: 0.06),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.16),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+          ),
+        ),
       ),
       home: const AuthGate(),
       routes: {
+        '/home': (context) => const HomeScreen(),
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
         '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
+        '/outfit-favorites': (context) =>
+            const OutfitSuggestionScreen(initialShowFavorites: true),
         '/profile': (context) => const UserProfileScreen(),
         '/account-settings': (context) => const AccountSettingsScreen(),
         '/settings': (context) => const SettingsScreen(),
@@ -175,11 +235,12 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favoritesCount = ref.watch(outfitFavoritesProvider).length;
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
     final horizontalPadding = isMobile ? 20.0 : 28.0;
@@ -276,6 +337,23 @@ class HomeScreen extends StatelessWidget {
                           onTap: () => Navigator.pushNamed(context, '/profile'),
                         ),
                         _HomeTile(
+                          icon: Icons.checkroom_rounded,
+                          label: 'Tenues',
+                          color: Colors.deepPurpleAccent,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/outfit-suggestion',
+                          ),
+                        ),
+                        _HomeTile(
+                          icon: Icons.favorite_rounded,
+                          label: 'Favoris',
+                          color: Colors.pinkAccent,
+                          badgeCount: favoritesCount,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/outfit-favorites'),
+                        ),
+                        _HomeTile(
                           icon: Icons.settings_rounded,
                           label: 'Réglages',
                           color: Colors.grey,
@@ -299,12 +377,14 @@ class _HomeTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final int badgeCount;
   final VoidCallback onTap;
 
   const _HomeTile({
     required this.icon,
     required this.label,
     required this.color,
+    this.badgeCount = 0,
     required this.onTap,
   });
 
@@ -342,6 +422,30 @@ class _HomeTile extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: iconSize),
               ),
+              if (badgeCount > 0) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
               SizedBox(height: isMobile ? 10 : 14),
               SizedBox(
                 height: isMobile ? 34 : 42,
