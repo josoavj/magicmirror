@@ -88,7 +88,7 @@ Les fichiers de logs sont nommés : `magicmirror_YYYY-MM-DD.log`
 
 Contenu d'exemple :
 ```
-[2026-03-05 10:23:45.123] [INFO] [GoogleCalendarService] Synchronisation réussie
+[2026-03-05 10:23:45.123] [INFO] [AgendaSupabaseService] Synchronisation réussie
 [2026-03-05 10:23:46.456] [WARNING] [WeatherService] Erreur de géolocalisation, fallback sur Antananarivo
 [2026-03-05 10:23:47.789] [ERROR] [MorphologyService] Erreur lors de l'analyse ML
 Error: Exception: ML Kit error
@@ -103,7 +103,7 @@ StackTrace:
 - **Modifié** : `pubspec.yaml` - Ajout de `path_provider`
 - **Modifié** : `lib/main.dart` - Initialisation du logger
 - **Modifié** : `lib/config/app_config.dart` - Utilise logger pour printStartupInfo
-- **Modifié** : `lib/data/services/google_calendar_service.dart` - Utilise logger
+- **Modifié** : `lib/features/agenda/data/services/agenda_supabase_service.dart` - Utilise logger
 - **Modifié** : `lib/features/mirror/presentation/providers/camera_provider.dart` - Utilise logger
 - **Modifié** : `lib/features/weather/presentation/widgets/weather_widget.dart` - Utilise logger
 - **Modifié** : `lib/features/ai_ml/data/services/morphology_service.dart` - Utilise logger
