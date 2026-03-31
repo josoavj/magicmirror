@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ class MlFrameProcessor {
   final Ref ref;
   final CameraDescription camera;
   bool _isProcessing = false;
+  int _skippedFrames = 0;
 
   // Performance tracking
   final List<int> _processingTimesMs = [];
@@ -23,9 +25,17 @@ class MlFrameProcessor {
   /// Point d'entrée principal pour le flux caméra
   Future<void> processCameraFrame(CameraImage image) async {
     if (_isProcessing) {
-      logger.debug('Frame déjà en traitement, skip', tag: 'MlFrameProcessor');
+      _skippedFrames++;
+      if (_skippedFrames % 30 == 0) {
+        logger.debug(
+          'Frames ignorees (traitement en cours): $_skippedFrames',
+          tag: 'MlFrameProcessor',
+        );
+      }
       return;
     }
+
+    _skippedFrames = 0;
 
     if (!_isValidCameraImage(image)) {
       logger.warning('CameraImage invalide, skip', tag: 'MlFrameProcessor');
@@ -33,11 +43,14 @@ class MlFrameProcessor {
     }
 
     _isProcessing = true;
+    ref.read(isMlProcessingProvider.notifier).state = true;
     final frameStartTime = DateTime.now();
 
     try {
       final inputImage = _convertCameraImageToInputImage(image);
       if (inputImage == null) {
+        ref.read(mlRuntimeErrorProvider.notifier).state =
+            'Format camera incompatible avec ML Kit';
         logger.warning(
           'Conversion InputImage échouée',
           tag: 'MlFrameProcessor',
@@ -48,7 +61,15 @@ class MlFrameProcessor {
       // Utilise le MorphologyNotifier pour traiter la frame
       final morphologyNotifier = ref.read(currentMorphologyProvider.notifier);
       await morphologyNotifier.processFrame(inputImage);
+      ref.read(mlRuntimeErrorProvider.notifier).state = null;
     } catch (e) {
+      if (e.toString().contains('InputImageConverterError')) {
+        ref.read(mlRuntimeErrorProvider.notifier).state =
+            'Format camera non supporte par ML Kit';
+      } else {
+        ref.read(mlRuntimeErrorProvider.notifier).state =
+            'Erreur analyse ML: ${e.runtimeType}';
+      }
       logger.error('Erreur ML Frame', tag: 'MlFrameProcessor', error: e);
     } finally {
       // Calcule le temps écoulé
@@ -60,6 +81,7 @@ class MlFrameProcessor {
       // Applique le délai dynamique pour éviter saturer le CPU
       await Future.delayed(Duration(milliseconds: _dynamicDelayMs));
       _isProcessing = false;
+      ref.read(isMlProcessingProvider.notifier).state = false;
     }
   }
 
@@ -139,21 +161,31 @@ class MlFrameProcessor {
   /// Conversion technique CameraImage -> InputImage
   InputImage? _convertCameraImageToInputImage(CameraImage image) {
     try {
-      final WriteBuffer allBytes = WriteBuffer();
-      for (final Plane plane in image.planes) {
-        if (plane.bytes.isEmpty) {
-          logger.warning('Plane bytes vide détecté', tag: 'MlFrameProcessor');
-          return null;
-        }
-        allBytes.putUint8List(plane.bytes);
-      }
-      final bytes = allBytes.done().buffer.asUint8List();
-
       final imageSize = Size(image.width.toDouble(), image.height.toDouble());
       final rotation = _getInputImageRotation();
-      final format = _getInputImageFormat(image);
 
-      if (format == null) return null;
+      late final Uint8List bytes;
+      late final InputImageFormat format;
+      late final int bytesPerRow;
+
+      if (Platform.isAndroid) {
+        final nv21 = _toNv21Bytes(image);
+        if (nv21 == null) {
+          return null;
+        }
+        bytes = nv21;
+        format = InputImageFormat.nv21;
+        bytesPerRow = image.width;
+      } else {
+        final pixelFormat = _getInputImageFormat(image);
+        if (pixelFormat == null) {
+          return null;
+        }
+        final firstPlane = image.planes.first;
+        bytes = firstPlane.bytes;
+        format = pixelFormat;
+        bytesPerRow = firstPlane.bytesPerRow;
+      }
 
       return InputImage.fromBytes(
         bytes: bytes,
@@ -161,7 +193,7 @@ class MlFrameProcessor {
           size: imageSize,
           rotation: rotation,
           format: format,
-          bytesPerRow: image.planes[0].bytesPerRow,
+          bytesPerRow: bytesPerRow,
         ),
       );
     } catch (e) {
@@ -172,6 +204,62 @@ class MlFrameProcessor {
       );
       return null;
     }
+  }
+
+  Uint8List? _toNv21Bytes(CameraImage image) {
+    if (image.planes.isEmpty) {
+      return null;
+    }
+
+    // Cas deja NV21 (plan unique)
+    if (image.planes.length == 1) {
+      return image.planes.first.bytes;
+    }
+
+    if (image.planes.length < 3) {
+      logger.warning(
+        'Format Android non supporte: ${image.planes.length} plans',
+        tag: 'MlFrameProcessor',
+      );
+      return null;
+    }
+
+    final width = image.width;
+    final height = image.height;
+    final yPlane = image.planes[0];
+    final uPlane = image.planes[1];
+    final vPlane = image.planes[2];
+
+    final ySize = width * height;
+    final uvSize = width * height ~/ 2;
+    final nv21 = Uint8List(ySize + uvSize);
+
+    var offset = 0;
+
+    // Copie Y
+    final yPixelStride = yPlane.bytesPerPixel ?? 1;
+    for (var row = 0; row < height; row++) {
+      final rowOffset = row * yPlane.bytesPerRow;
+      for (var col = 0; col < width; col++) {
+        nv21[offset++] = yPlane.bytes[rowOffset + col * yPixelStride];
+      }
+    }
+
+    // Interleave VU
+    final uvWidth = width ~/ 2;
+    final uvHeight = height ~/ 2;
+    final uPixelStride = uPlane.bytesPerPixel ?? 1;
+    final vPixelStride = vPlane.bytesPerPixel ?? 1;
+    for (var row = 0; row < uvHeight; row++) {
+      final uRowOffset = row * uPlane.bytesPerRow;
+      final vRowOffset = row * vPlane.bytesPerRow;
+      for (var col = 0; col < uvWidth; col++) {
+        nv21[offset++] = vPlane.bytes[vRowOffset + col * vPixelStride];
+        nv21[offset++] = uPlane.bytes[uRowOffset + col * uPixelStride];
+      }
+    }
+
+    return nv21;
   }
 
   /// Calcule la rotation nécessaire pour que l'IA "voit" l'image à l'endroit
