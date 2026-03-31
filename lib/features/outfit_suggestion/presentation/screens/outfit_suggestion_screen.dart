@@ -1,15 +1,315 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:magicmirror/features/agenda/data/models/event_model.dart';
+import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
+import 'package:magicmirror/features/weather/data/models/weather_model.dart';
+import 'package:magicmirror/features/weather/data/services/weather_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../presentation/widgets/glass_container.dart';
 
+final agendaEventsForDayProvider =
+    FutureProvider.family<List<AgendaEvent>, DateTime>((ref, day) async {
+      final service = ref.watch(agendaSupabaseServiceProvider);
+      final normalizedDay = DateTime(day.year, day.month, day.day);
+      return service.fetchEventsForDay(normalizedDay);
+    });
+
+final outfitWeatherServiceProvider = Provider<WeatherService>((ref) {
+  return WeatherService();
+});
+
+final outfitWeatherBundleProvider = FutureProvider<_OutfitWeatherBundle>((
+  ref,
+) async {
+  final weatherService = ref.watch(outfitWeatherServiceProvider);
+
+  final currentWeather = await weatherService.getCurrentWeather();
+
+  ForecastItem? tomorrowForecast;
+  final coords = await _resolveForecastCoordinates();
+  final forecast = await weatherService.getForecast(coords.lat, coords.lon);
+  if (forecast != null) {
+    tomorrowForecast = _pickTomorrowForecast(forecast.forecasts);
+  }
+
+  return _OutfitWeatherBundle(
+    currentWeather: currentWeather,
+    tomorrowForecast: tomorrowForecast,
+  );
+});
+
+final outfitFavoritesProvider =
+    StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
+      return OutfitFavoritesNotifier(ref);
+    });
+
+enum OutfitFavoritesSyncStatus { idle, syncing, synced, localOnly, error }
+
+final outfitFavoritesSyncStatusProvider =
+    StateProvider<OutfitFavoritesSyncStatus>((ref) {
+      return OutfitFavoritesSyncStatus.idle;
+    });
+
+final outfitFavoritesSyncMessageProvider = StateProvider<String>((ref) {
+  return 'Aucune synchronisation';
+});
+
+class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
+  OutfitFavoritesNotifier(this._ref) : super(<String>{}) {
+    _attachAuthListener();
+    _load();
+  }
+
+  final Ref _ref;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  static const _prefsKey = 'outfit.favorite.ids';
+
+  bool _isUndefinedColumnError(Object error) {
+    if (error is PostgrestException && error.code == '42703') {
+      return true;
+    }
+    final message = error.toString().toLowerCase();
+    return message.contains('42703') && message.contains('column');
+  }
+
+  String _syncErrorMessage(String operation, Object error) {
+    if (_isUndefinedColumnError(error)) {
+      return 'Schema Supabase incomplet (42703): ajoutez favorite_outfit_ids dans profiles.';
+    }
+    return '$operation: ${error.toString()}';
+  }
+
+  SupabaseClient? get _client {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveLocal(Set<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_prefsKey, ids.toList());
+  }
+
+  void _attachAuthListener() {
+    final client = _client;
+    if (client == null) {
+      return;
+    }
+    _authSubscription = client.auth.onAuthStateChange.listen((event) {
+      final userId = event.session?.user.id;
+      if (userId != null && userId.isNotEmpty) {
+        unawaited(_retryCloudSync());
+      }
+    });
+  }
+
+  Future<Set<String>?> _loadFromSupabase() async {
+    final client = _client;
+    if (client == null) {
+      return null;
+    }
+
+    final userId = client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+
+    try {
+      final data = await client
+          .from('profiles')
+          .select('favorite_outfit_ids')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (data == null || data['favorite_outfit_ids'] == null) {
+        return <String>{};
+      }
+
+      final raw = data['favorite_outfit_ids'];
+      if (raw is List) {
+        return raw.map((e) => e.toString()).toSet();
+      }
+      return <String>{};
+    } catch (error) {
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          _syncErrorMessage('Lecture cloud impossible', error);
+      return null;
+    }
+  }
+
+  Future<bool> _saveToSupabase(Set<String> ids) async {
+    final client = _client;
+    if (client == null) {
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          'Supabase indisponible sur cet ecran';
+      return false;
+    }
+
+    final userId = client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          'Connexion requise pour synchroniser les favoris';
+      return false;
+    }
+
+    try {
+      await client
+          .from('profiles')
+          .upsert({
+            'user_id': userId,
+            'favorite_outfit_ids': ids.toList(),
+            'updated_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id')
+          .select('user_id')
+          .maybeSingle();
+      return true;
+    } catch (error) {
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          _syncErrorMessage('Sync cloud echouee', error);
+      return false;
+    }
+  }
+
+  Future<void> _retryCloudSync() async {
+    final localIds = Set<String>.from(state);
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+        OutfitFavoritesSyncStatus.syncing;
+    _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+        'Nouvelle tentative de synchronisation cloud...';
+
+    final remoteIds = await _loadFromSupabase();
+    if (remoteIds == null) {
+      _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+          OutfitFavoritesSyncStatus.localOnly;
+      return;
+    }
+
+    final merged = <String>{...localIds, ...remoteIds};
+    state = merged;
+    await _saveLocal(merged);
+
+    final pushed = await _saveToSupabase(merged);
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state = pushed
+        ? OutfitFavoritesSyncStatus.synced
+        : OutfitFavoritesSyncStatus.localOnly;
+    if (pushed) {
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          'Favoris synchronises avec le cloud';
+    }
+  }
+
+  Future<void> _load() async {
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+        OutfitFavoritesSyncStatus.syncing;
+    _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+        'Synchronisation des favoris...';
+
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_prefsKey) ?? const <String>[];
+    final localIds = ids.toSet();
+    state = localIds;
+
+    final remoteIds = await _loadFromSupabase();
+    if (remoteIds == null) {
+      _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+          OutfitFavoritesSyncStatus.localOnly;
+      if (_ref.read(outfitFavoritesSyncMessageProvider) ==
+          'Synchronisation des favoris...') {
+        _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+            'Mode local (cloud indisponible)';
+      }
+      return;
+    }
+
+    if (remoteIds.isNotEmpty || localIds.isEmpty) {
+      state = remoteIds;
+      await _saveLocal(remoteIds);
+      _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+          OutfitFavoritesSyncStatus.synced;
+      _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+          'Favoris synchronises avec le cloud';
+      return;
+    }
+
+    // Si le cloud est vide mais local non vide, on pousse local vers Supabase.
+    final pushed = await _saveToSupabase(localIds);
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state = pushed
+        ? OutfitFavoritesSyncStatus.synced
+        : OutfitFavoritesSyncStatus.localOnly;
+    _ref.read(outfitFavoritesSyncMessageProvider.notifier).state = pushed
+        ? 'Favoris synchronises avec le cloud'
+        : 'Mode local (sync cloud echouee)';
+  }
+
+  Future<void> toggleFavorite(String outfitId) async {
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
+        OutfitFavoritesSyncStatus.syncing;
+    _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
+        'Mise a jour des favoris...';
+
+    final next = Set<String>.from(state);
+    if (next.contains(outfitId)) {
+      next.remove(outfitId);
+    } else {
+      next.add(outfitId);
+    }
+    state = next;
+    await _saveLocal(next);
+    final synced = await _saveToSupabase(next);
+    _ref.read(outfitFavoritesSyncStatusProvider.notifier).state = synced
+        ? OutfitFavoritesSyncStatus.synced
+        : OutfitFavoritesSyncStatus.localOnly;
+    _ref.read(outfitFavoritesSyncMessageProvider.notifier).state = synced
+        ? 'Favoris synchronises avec le cloud'
+        : 'Mode local (sync cloud echouee)';
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+}
+
 class OutfitSuggestionScreen extends ConsumerWidget {
-  const OutfitSuggestionScreen({super.key});
+  const OutfitSuggestionScreen({super.key, this.initialShowFavorites = false});
+
+  final bool initialShowFavorites;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isFavoritesMode = initialShowFavorites;
     final profile = ref.watch(userProfileProvider);
+    final favoriteIds = ref.watch(outfitFavoritesProvider);
+    final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
+    final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
+    final activeEmail =
+        Supabase.instance.client.auth.currentUser?.email ?? 'Non connecte';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final todayEventsAsync = ref.watch(agendaEventsForDayProvider(today));
+    final tomorrowEventsAsync = ref.watch(agendaEventsForDayProvider(tomorrow));
+    final weatherBundleAsync = ref.watch(outfitWeatherBundleProvider);
+
+    final todayEvents = todayEventsAsync.maybeWhen(
+      data: (events) => events,
+      orElse: () => const <AgendaEvent>[],
+    );
+    final tomorrowEvents = tomorrowEventsAsync.maybeWhen(
+      data: (events) => events,
+      orElse: () => const <AgendaEvent>[],
+    );
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -31,96 +331,371 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  'Recommandations',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 32,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(
+                        isFavoritesMode ? 'Mes Favoris' : 'Recommandations',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isFavoritesMode
+                            ? 'Collection cloud de vos tenues enregistrees'
+                            : 'Suggestions personnalisées basées sur vos préférences',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            _favoritesSyncIcon(favoritesSyncStatus),
+                            size: 14,
+                            color: _favoritesSyncColor(favoritesSyncStatus),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              favoritesSyncMessage,
+                              style: TextStyle(
+                                color: _favoritesSyncColor(favoritesSyncStatus),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Compte actif: $activeEmail',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      if (isFavoritesMode) ...[
+                        _buildFavoritesModeHeader(favoriteIds.length),
+                        const SizedBox(height: 16),
+                      ],
+
+                      if (!isFavoritesMode) ...[
+                        _buildProfileContext(
+                          profile,
+                          todayEvents: todayEvents,
+                          tomorrowEvents: tomorrowEvents,
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      _buildSuggestionSection(
+                        ref: ref,
+                        context: context,
+                        title: isFavoritesMode
+                            ? 'Favoris disponibles aujourd\'hui'
+                            : 'Suggestion pour aujourd\'hui',
+                        targetDay: today,
+                        profile: profile,
+                        favoriteIds: favoriteIds,
+                        showOnlyFavorites: initialShowFavorites,
+                        eventsAsync: todayEventsAsync,
+                        weatherContext: weatherBundleAsync.maybeWhen(
+                          data: (bundle) =>
+                              _weatherContextFromCurrent(bundle.currentWeather),
+                          orElse: () => null,
+                        ),
+                        referenceNow: now,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildSuggestionSection(
+                        ref: ref,
+                        context: context,
+                        title: isFavoritesMode
+                            ? 'Favoris disponibles demain'
+                            : 'Suggestion pour demain',
+                        targetDay: tomorrow,
+                        profile: profile,
+                        favoriteIds: favoriteIds,
+                        showOnlyFavorites: initialShowFavorites,
+                        eventsAsync: tomorrowEventsAsync,
+                        weatherContext: weatherBundleAsync.maybeWhen(
+                          data: (bundle) => _weatherContextFromForecast(
+                            bundle.tomorrowForecast,
+                          ),
+                          orElse: () => null,
+                        ),
+                        referenceNow: DateTime(
+                          tomorrow.year,
+                          tomorrow.month,
+                          tomorrow.day,
+                          8,
+                        ),
+                      ),
+
+                      if (!isFavoritesMode) ...[
+                        const SizedBox(height: 24),
+                        _buildWeatherSection(weatherBundleAsync),
+                      ],
+
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Suggestions personnalisées basées sur vos préférences',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                _buildProfileContext(profile),
-
-                const SizedBox(height: 24),
-
-                // Outfit Cards
-                ..._buildOutfitCards(profile),
-
-                const SizedBox(height: 24),
-
-                // Méteo actuelle
-                _buildWeatherSection(),
-
-                const SizedBox(height: 24),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileContext(UserProfile profile) {
-    return GlassContainer(
-      borderRadius: 20,
-      blur: 25,
-      opacity: 0.1,
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Profil applique',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+  Widget _buildProfileContext(
+    UserProfile profile, {
+    required List<AgendaEvent> todayEvents,
+    required List<AgendaEvent> tomorrowEvents,
+  }) {
+    final now = DateTime.now();
+    final dayLabel = _weekdayLabel(now.weekday);
+    final tomorrow = now.add(const Duration(days: 1));
+    final prioritySlotToday = _resolvePrioritySlot(todayEvents, now);
+    final prioritySlotTomorrow = _resolvePrioritySlot(
+      tomorrowEvents,
+      DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 8),
+    );
+    return SizedBox(
+      width: double.infinity,
+      child: GlassContainer(
+        borderRadius: 20,
+        blur: 25,
+        opacity: 0.1,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Profil applique',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${profile.gender}, ${profile.age} ans, ${profile.morphology}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.82),
-              fontSize: 14,
+            const SizedBox(height: 8),
+            Text(
+              '${profile.gender}, ${profile.age} ans, ${profile.morphology}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.82),
+                fontSize: 14,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Styles preferes: ${profile.preferredStyles.join(', ')}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
-              fontSize: 13,
+            const SizedBox(height: 6),
+            Text(
+              'Styles preferes: ${profile.preferredStyles.join(', ')}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontSize: 13,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              'Jour: $dayLabel - Planning du jour: ${todayEvents.length} evenement(s)',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Aujourd\'hui: ${_slotLabel(prioritySlotToday)}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Demain: ${tomorrowEvents.length} evenement(s) - ${_slotLabel(prioritySlotTomorrow)}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  List<Widget> _buildOutfitCards(UserProfile profile) {
-    final ranked = _rankOutfits(profile);
-    return ranked.map(_buildOutfitCard).toList();
+  Widget _buildSuggestionSection({
+    required WidgetRef ref,
+    required BuildContext context,
+    required String title,
+    required DateTime targetDay,
+    required UserProfile profile,
+    required Set<String> favoriteIds,
+    required bool showOnlyFavorites,
+    required AsyncValue<List<AgendaEvent>> eventsAsync,
+    required _OutfitWeatherContext? weatherContext,
+    required DateTime referenceNow,
+  }) {
+    return eventsAsync.when(
+      data: (events) {
+        final cards = _buildOutfitCards(
+          ref,
+          context,
+          profile,
+          events,
+          targetDay: targetDay,
+          favoriteIds: favoriteIds,
+          showOnlyFavorites: showOnlyFavorites,
+          weatherContext: weatherContext,
+          referenceNow: referenceNow,
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (weatherContext != null) ...[
+              Text(
+                'Météo: ${weatherContext.label}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            ...cards,
+          ],
+        );
+      },
+      loading: () => GlassContainer(
+        borderRadius: 16,
+        blur: 20,
+        opacity: 0.1,
+        padding: const EdgeInsets.all(14),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Chargement des suggestions...',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (error, stackTrace) => GlassContainer(
+        borderRadius: 16,
+        blur: 20,
+        opacity: 0.1,
+        padding: const EdgeInsets.all(14),
+        child: const Text(
+          'Impossible de charger le planning pour cette suggestion.',
+          style: TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
   }
 
-  List<_RankedOutfit> _rankOutfits(UserProfile profile) {
+  List<Widget> _buildOutfitCards(
+    WidgetRef ref,
+    BuildContext context,
+    UserProfile profile,
+    List<AgendaEvent> events, {
+    required DateTime targetDay,
+    required Set<String> favoriteIds,
+    required bool showOnlyFavorites,
+    required _OutfitWeatherContext? weatherContext,
+    required DateTime referenceNow,
+  }) {
+    final ranked = _rankOutfits(
+      profile,
+      events,
+      targetDay: targetDay,
+      weatherContext: weatherContext,
+      referenceNow: referenceNow,
+    );
+    final visible = showOnlyFavorites
+        ? ranked.where((item) => favoriteIds.contains(item.outfit.id)).toList()
+        : ranked;
+
+    if (visible.isEmpty) {
+      return [
+        GlassContainer(
+          borderRadius: 16,
+          blur: 20,
+          opacity: 0.1,
+          padding: const EdgeInsets.all(14),
+          child: Text(
+            showOnlyFavorites
+                ? 'Aucune tenue en favoris pour cette section.'
+                : 'Aucune suggestion disponible.',
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
+      ];
+    }
+
+    return visible
+        .map(
+          (item) => _buildOutfitCard(
+            ref,
+            context,
+            item,
+            isFavorite: favoriteIds.contains(item.outfit.id),
+          ),
+        )
+        .toList();
+  }
+
+  List<_RankedOutfit> _rankOutfits(
+    UserProfile profile,
+    List<AgendaEvent> events, {
+    required DateTime targetDay,
+    required _OutfitWeatherContext? weatherContext,
+    required DateTime referenceNow,
+  }) {
     final allOutfits = [
       _Outfit(
+        id: 'casual_moderne',
         title: 'Casual Moderne',
         description: 'Jeans + T-shirt léger',
         icon: Icons.checkroom,
@@ -135,6 +710,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 60,
       ),
       _Outfit(
+        id: 'elegant',
         title: 'Élégant',
         description: 'Chemise + Pantalon chino',
         icon: Icons.style,
@@ -149,6 +725,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 65,
       ),
       _Outfit(
+        id: 'sport',
         title: 'Sport',
         description: 'Legging + Hoodie',
         icon: Icons.sports,
@@ -164,6 +741,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 50,
       ),
       _Outfit(
+        id: 'street_dynamics',
         title: 'Street Dynamics',
         description: 'Cargo + bomber oversize',
         icon: Icons.local_fire_department,
@@ -178,6 +756,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 40,
       ),
       _Outfit(
+        id: 'business_smart',
         title: 'Business Smart',
         description: 'Blazer + pantalon taille haute',
         icon: Icons.business_center,
@@ -193,6 +772,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 70,
       ),
       _Outfit(
+        id: 'minimal_monochrome',
         title: 'Minimal Monochrome',
         description: 'Palette neutre + coupe clean',
         icon: Icons.layers,
@@ -209,18 +789,49 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         .map(_normalizeStyle)
         .toSet();
     final normalizedGender = profile.gender.toLowerCase();
+    final planningSignals = _extractPlanningSignals(events);
+    final isWeekend = _isWeekend(targetDay);
+    final prioritySlot = _resolvePrioritySlot(events, referenceNow);
+    final primaryContext = _resolvePrimaryContext(events, referenceNow);
 
-    final ranked = allOutfits.map((outfit) {
+    var candidates = allOutfits.where((outfit) {
+      final ageOk =
+          profile.age >= outfit.minAge && profile.age <= outfit.maxAge;
+      final morphologyOk = _isMorphologyCompatible(profile.morphology, outfit);
+      return ageOk && morphologyOk;
+    }).toList();
+
+    final contextFiltered = candidates.where((outfit) {
+      return _isContextCompatible(primaryContext, outfit.styles);
+    }).toList();
+    if (contextFiltered.isNotEmpty) {
+      candidates = contextFiltered;
+    }
+
+    if (candidates.isEmpty) {
+      candidates = allOutfits;
+    }
+
+    final ranked = candidates.map((outfit) {
       var score = 0;
       final reasons = <String>[];
 
       if (outfit.styles.any(normalizedStyles.contains)) {
-        score += 45;
+        score += 52;
         reasons.add('Correspond a vos styles');
       }
 
+      // Bonus additionnel si le style principal utilisateur est couvert.
+      if (profile.preferredStyles.isNotEmpty) {
+        final topStyle = _normalizeStyle(profile.preferredStyles.first);
+        if (outfit.styles.contains(topStyle)) {
+          score += 10;
+          reasons.add('Aligne avec votre style principal');
+        }
+      }
+
       if (profile.age >= outfit.minAge && profile.age <= outfit.maxAge) {
-        score += 20;
+        score += 24;
         reasons.add('Adapte a votre tranche d\'age');
       }
 
@@ -228,7 +839,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         profileMorphology: profile.morphology,
         compatibleMorphologies: outfit.compatibleMorphologies,
       )) {
-        score += 25;
+        score += 30;
         reasons.add('Compatible avec votre morphologie');
       }
 
@@ -238,7 +849,82 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             (gender) => normalizedGender.contains(gender),
           );
       if (isGenderMatch) {
+        score += 12;
+      }
+
+      if (_isContextCompatible(primaryContext, outfit.styles)) {
+        score += 18;
+        reasons.add('Adapte a votre contexte principal');
+      }
+
+      if (isWeekend &&
+          outfit.styles.any((style) {
+            return style == 'casual' ||
+                style == 'streetwear' ||
+                style == 'sport';
+          })) {
+        score += 12;
+        reasons.add('Adapte au rythme du week-end');
+      }
+
+      if (!isWeekend &&
+          outfit.styles.any((style) {
+            return style == 'business' || style == 'elegant';
+          })) {
+        score += 12;
+        reasons.add('Adapte a une journee de semaine');
+      }
+
+      if (planningSignals.hasWorkEvent &&
+          outfit.styles.any(
+            (style) => style == 'business' || style == 'elegant',
+          )) {
+        score += 24;
+        reasons.add('Compatible avec votre planning pro');
+      }
+
+      if (planningSignals.hasSportEvent && outfit.styles.contains('sport')) {
+        score += 24;
+        reasons.add('Compatible avec vos activites sportives');
+      }
+
+      if (planningSignals.hasEveningEvent &&
+          outfit.styles.any(
+            (style) => style == 'elegant' || style == 'streetwear',
+          )) {
+        score += 16;
+        reasons.add('Adapte a vos sorties du soir');
+      }
+
+      if (planningSignals.hasCasualEvent &&
+          outfit.styles.any((style) {
+            return style == 'casual' ||
+                style == 'streetwear' ||
+                style == 'minimaliste';
+          })) {
+        score += 14;
+        reasons.add('Adapte a un planning detendu');
+      }
+
+      if (events.isNotEmpty &&
+          planningSignals.hasOutdoorEvent &&
+          outfit.styles.any((style) => style == 'sport' || style == 'casual')) {
         score += 10;
+        reasons.add('Confortable pour des deplacements exterieurs');
+      }
+
+      final slotBoost = _slotScoreBoost(prioritySlot, outfit.styles);
+      if (slotBoost > 0) {
+        score += slotBoost;
+        reasons.add(
+          'Optimise pour le creneau ${_slotLabel(prioritySlot).toLowerCase()}',
+        );
+      }
+
+      final weatherBoost = _weatherScoreBoost(weatherContext, outfit.styles);
+      if (weatherBoost > 0) {
+        score += weatherBoost;
+        reasons.add('Adapte aux conditions météo');
       }
 
       return _RankedOutfit(outfit: outfit, score: score, reasons: reasons);
@@ -256,6 +942,332 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       return 'minimaliste';
     }
     return v;
+  }
+
+  bool _isWeekend(DateTime date) {
+    return date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'Lundi';
+      case DateTime.tuesday:
+        return 'Mardi';
+      case DateTime.wednesday:
+        return 'Mercredi';
+      case DateTime.thursday:
+        return 'Jeudi';
+      case DateTime.friday:
+        return 'Vendredi';
+      case DateTime.saturday:
+        return 'Samedi';
+      case DateTime.sunday:
+        return 'Dimanche';
+      default:
+        return 'Jour inconnu';
+    }
+  }
+
+  _PlanningSignals _extractPlanningSignals(List<AgendaEvent> events) {
+    var hasWorkEvent = false;
+    var hasSportEvent = false;
+    var hasEveningEvent = false;
+    var hasCasualEvent = false;
+    var hasOutdoorEvent = false;
+
+    for (final event in events) {
+      if (event.isCompleted) {
+        continue;
+      }
+
+      final eventBlob =
+          '${event.eventType} ${event.title} ${event.description ?? ''}'
+              .toLowerCase();
+
+      if (_containsAny(eventBlob, const [
+        'work',
+        'travail',
+        'reunion',
+        'meeting',
+        'bureau',
+        'rdv pro',
+        'professionnel',
+        'business',
+      ])) {
+        hasWorkEvent = true;
+      }
+
+      if (_containsAny(eventBlob, const [
+        'sport',
+        'gym',
+        'run',
+        'course',
+        'training',
+        'fitness',
+      ])) {
+        hasSportEvent = true;
+      }
+
+      if (_containsAny(eventBlob, const [
+        'soiree',
+        'soir',
+        'diner',
+        'resto',
+        'event',
+        'sortie',
+      ])) {
+        hasEveningEvent = true;
+      }
+
+      if (_containsAny(eventBlob, const [
+        'amis',
+        'detente',
+        'shopping',
+        'promenade',
+        'famille',
+        'loisir',
+        'casual',
+      ])) {
+        hasCasualEvent = true;
+      }
+
+      if (_containsAny(eventBlob, const [
+        'exterieur',
+        'outdoor',
+        'marche',
+        'balade',
+        'deplacement',
+      ])) {
+        hasOutdoorEvent = true;
+      }
+
+      if (event.startTime.hour >= 18) {
+        hasEveningEvent = true;
+      }
+    }
+
+    return _PlanningSignals(
+      hasWorkEvent: hasWorkEvent,
+      hasSportEvent: hasSportEvent,
+      hasEveningEvent: hasEveningEvent,
+      hasCasualEvent: hasCasualEvent,
+      hasOutdoorEvent: hasOutdoorEvent,
+    );
+  }
+
+  bool _containsAny(String source, List<String> keywords) {
+    for (final keyword in keywords) {
+      if (source.contains(keyword)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  _DayTimeSlot _resolvePrioritySlot(List<AgendaEvent> events, DateTime now) {
+    final pending = events.where((event) => !event.isCompleted).toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    for (final event in pending) {
+      if (!event.endTime.isBefore(now)) {
+        return _slotFromHour(event.startTime.hour);
+      }
+    }
+
+    return _slotFromHour(now.hour);
+  }
+
+  _DayTimeSlot _slotFromHour(int hour) {
+    if (hour < 12) {
+      return _DayTimeSlot.morning;
+    }
+    if (hour < 18) {
+      return _DayTimeSlot.afternoon;
+    }
+    return _DayTimeSlot.evening;
+  }
+
+  String _slotLabel(_DayTimeSlot slot) {
+    switch (slot) {
+      case _DayTimeSlot.morning:
+        return 'Matin';
+      case _DayTimeSlot.afternoon:
+        return 'Apres-midi';
+      case _DayTimeSlot.evening:
+        return 'Soiree';
+    }
+  }
+
+  int _slotScoreBoost(_DayTimeSlot slot, List<String> styles) {
+    switch (slot) {
+      case _DayTimeSlot.morning:
+        if (styles.any((s) => s == 'business' || s == 'minimaliste')) {
+          return 14;
+        }
+        if (styles.any((s) => s == 'casual')) {
+          return 8;
+        }
+        return 0;
+      case _DayTimeSlot.afternoon:
+        if (styles.any((s) => s == 'casual' || s == 'streetwear')) {
+          return 12;
+        }
+        if (styles.any((s) => s == 'business' || s == 'sport')) {
+          return 8;
+        }
+        return 0;
+      case _DayTimeSlot.evening:
+        if (styles.any((s) => s == 'elegant' || s == 'streetwear')) {
+          return 16;
+        }
+        if (styles.any((s) => s == 'minimaliste')) {
+          return 8;
+        }
+        return 0;
+    }
+  }
+
+  int _weatherScoreBoost(_OutfitWeatherContext? weather, List<String> styles) {
+    if (weather == null) {
+      return 0;
+    }
+
+    var boost = 0;
+    final main = weather.main.toLowerCase();
+
+    if (weather.temperature >= 28) {
+      if (styles.any(
+        (s) => s == 'casual' || s == 'minimaliste' || s == 'sport',
+      )) {
+        boost += 14;
+      }
+    }
+
+    if (weather.temperature <= 16) {
+      if (styles.any(
+        (s) => s == 'business' || s == 'elegant' || s == 'minimaliste',
+      )) {
+        boost += 12;
+      }
+    }
+
+    if (main.contains('rain') ||
+        main.contains('thunder') ||
+        main.contains('snow')) {
+      if (styles.any(
+        (s) => s == 'business' || s == 'minimaliste' || s == 'casual',
+      )) {
+        boost += 10;
+      }
+    }
+
+    if (weather.windSpeed >= 10) {
+      if (styles.any((s) => s == 'sport' || s == 'casual')) {
+        boost += 6;
+      }
+    }
+
+    return boost;
+  }
+
+  bool _isMorphologyCompatible(String morphology, _Outfit outfit) {
+    final normalized = morphology.trim().toLowerCase();
+    if (normalized == 'silhouette non definie' || normalized == 'non definie') {
+      return true;
+    }
+    return _matchesMorphology(
+      profileMorphology: morphology,
+      compatibleMorphologies: outfit.compatibleMorphologies,
+    );
+  }
+
+  _PlanningContext _resolvePrimaryContext(
+    List<AgendaEvent> events,
+    DateTime referenceNow,
+  ) {
+    final pending = events.where((event) => !event.isCompleted).toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    for (final event in pending) {
+      if (!event.endTime.isBefore(referenceNow)) {
+        return _contextFromEvent(event);
+      }
+    }
+
+    if (pending.isNotEmpty) {
+      return _contextFromEvent(pending.first);
+    }
+
+    return _PlanningContext.none;
+  }
+
+  _PlanningContext _contextFromEvent(AgendaEvent event) {
+    final blob = '${event.eventType} ${event.title} ${event.description ?? ''}'
+        .toLowerCase();
+
+    if (_containsAny(blob, const [
+      'work',
+      'travail',
+      'meeting',
+      'reunion',
+      'business',
+      'bureau',
+    ])) {
+      return _PlanningContext.work;
+    }
+    if (_containsAny(blob, const [
+      'sport',
+      'gym',
+      'training',
+      'fitness',
+      'run',
+      'course',
+    ])) {
+      return _PlanningContext.sport;
+    }
+    if (_containsAny(blob, const [
+      'soir',
+      'soiree',
+      'diner',
+      'event',
+      'sortie',
+      'resto',
+    ])) {
+      return _PlanningContext.evening;
+    }
+    if (_containsAny(blob, const [
+      'detente',
+      'famille',
+      'amis',
+      'shopping',
+      'loisir',
+      'promenade',
+    ])) {
+      return _PlanningContext.casual;
+    }
+    return _PlanningContext.mixed;
+  }
+
+  bool _isContextCompatible(_PlanningContext context, List<String> styles) {
+    switch (context) {
+      case _PlanningContext.work:
+        return styles.any((s) => s == 'business' || s == 'elegant');
+      case _PlanningContext.sport:
+        return styles.contains('sport');
+      case _PlanningContext.evening:
+        return styles.any((s) => s == 'elegant' || s == 'streetwear');
+      case _PlanningContext.casual:
+        return styles.any(
+          (s) => s == 'casual' || s == 'minimaliste' || s == 'streetwear',
+        );
+      case _PlanningContext.mixed:
+        return styles.any(
+          (s) => s == 'casual' || s == 'minimaliste' || s == 'business',
+        );
+      case _PlanningContext.none:
+        return true;
+    }
   }
 
   bool _matchesMorphology({
@@ -302,138 +1314,484 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildOutfitCard(_RankedOutfit rankedOutfit) {
+  Widget _buildOutfitCard(
+    WidgetRef ref,
+    BuildContext context,
+    _RankedOutfit rankedOutfit, {
+    required bool isFavorite,
+  }) {
     final outfit = rankedOutfit.outfit;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: GlassContainer(
-        borderRadius: 20,
-        blur: 25,
-        opacity: 0.1,
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [outfit.color, outfit.color.withValues(alpha: 0.6)],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _showOutfitDetailsSheet(
+          ref,
+          context,
+          rankedOutfit,
+          isFavorite: isFavorite,
+        ),
+        child: GlassContainer(
+          borderRadius: 20,
+          blur: 25,
+          opacity: 0.1,
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [outfit.color, outfit.color.withValues(alpha: 0.6)],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(outfit.icon, color: Colors.white, size: 28),
                 ),
               ),
-              child: Center(
-                child: Icon(outfit.icon, color: Colors.white, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      outfit.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      outfit.description,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: rankedOutfit.reasons
+                          .take(3)
+                          .map(
+                            (reason) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                reason,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Appuyez pour voir tous les details',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.52),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
+              Column(
+                children: [
+                  Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    size: 18,
+                    color: isFavorite
+                        ? Colors.pinkAccent
+                        : Colors.white.withValues(alpha: 0.72),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${rankedOutfit.score} pts',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Icon(
+                    Icons.open_in_new,
+                    size: 16,
+                    color: Colors.white.withValues(alpha: 0.72),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showOutfitDetailsSheet(
+    WidgetRef ref,
+    BuildContext context,
+    _RankedOutfit rankedOutfit, {
+    required bool isFavorite,
+  }) async {
+    final outfit = rankedOutfit.outfit;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.82,
+            child: GlassContainer(
+              borderRadius: 24,
+              blur: 28,
+              opacity: 0.14,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              outfit.color,
+                              outfit.color.withValues(alpha: 0.6),
+                            ],
+                          ),
+                        ),
+                        child: Icon(outfit.icon, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              outfit.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              outfit.description,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${rankedOutfit.score} pts',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        _buildDetailBlock(
+                          title: 'Pourquoi cette tenue',
+                          items: rankedOutfit.reasons,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDetailBlock(
+                          title: 'Styles associes',
+                          items: outfit.styles,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDetailBlock(
+                          title: 'Morphologies compatibles',
+                          items: outfit.compatibleMorphologies,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDetailBlock(
+                          title: 'Tranche d\'age cible',
+                          items: ['${outfit.minAge} a ${outfit.maxAge} ans'],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await ref
+                            .read(outfitFavoritesProvider.notifier)
+                            .toggleFavorite(outfit.id);
+                        if (sheetContext.mounted) {
+                          Navigator.of(sheetContext).pop();
+                        }
+                      },
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                      ),
+                      label: Text(
+                        isFavorite
+                            ? 'Retirer des favoris'
+                            : 'Ajouter aux favoris',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Fermer les details'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailBlock({
+    required String title,
+    required List<String> items,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '• $item',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.82)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFavoritesModeHeader(int favoritesCount) {
+    return GlassContainer(
+      borderRadius: 20,
+      blur: 24,
+      opacity: 0.12,
+      padding: const EdgeInsets.all(16),
+      tintColor: Colors.pinkAccent,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.pinkAccent.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+            ),
+            child: const Icon(Icons.favorite, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tenues favorites',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$favoritesCount tenue(s) sauvegardée(s)',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherSection(AsyncValue<_OutfitWeatherBundle> weatherAsync) {
+    return weatherAsync.when(
+      data: (weatherBundle) {
+        final current = weatherBundle.currentWeather;
+        if (current == null) {
+          return GlassContainer(
+            borderRadius: 20,
+            blur: 25,
+            opacity: 0.1,
+            padding: const EdgeInsets.all(20),
+            child: const Text(
+              'Conditions météo indisponibles.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+
+        return GlassContainer(
+          borderRadius: 20,
+          blur: 25,
+          opacity: 0.1,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Text(
-                    outfit.title,
+                    'Conditions - ${current.cityName}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    outfit.description,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: rankedOutfit.reasons
-                        .map(
-                          (reason) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              reason,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                  Icon(
+                    Icons.cloud_queue,
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '${rankedOutfit.score} pts',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+              const SizedBox(height: 8),
+              Text(
+                current.description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 13,
                 ),
               ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildWeatherStat(
+                    'Temp',
+                    '${current.temperature.toStringAsFixed(1)}°C',
+                  ),
+                  _buildWeatherStat('Humidite', '${current.humidity}%'),
+                  _buildWeatherStat(
+                    'Vent',
+                    '${current.windSpeed.toStringAsFixed(1)} m/s',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => GlassContainer(
+        borderRadius: 20,
+        blur: 25,
+        opacity: 0.1,
+        padding: const EdgeInsets.all(20),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
+            SizedBox(width: 10),
+            Text('Chargement météo...', style: TextStyle(color: Colors.white)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildWeatherSection() {
-    return GlassContainer(
-      borderRadius: 20,
-      blur: 25,
-      opacity: 0.1,
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Conditions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Icon(
-                Icons.cloud_queue,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildWeatherStat('Temp', '22°C'),
-              _buildWeatherStat('Humidité', '65%'),
-              _buildWeatherStat('Vent', '12 km/h'),
-            ],
-          ),
-        ],
+      error: (error, stackTrace) => GlassContainer(
+        borderRadius: 20,
+        blur: 25,
+        opacity: 0.1,
+        padding: const EdgeInsets.all(20),
+        child: const Text(
+          'Erreur lors du chargement de la météo.',
+          style: TextStyle(color: Colors.white70),
+        ),
       ),
     );
   }
@@ -460,9 +1818,40 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       ],
     );
   }
+
+  Color _favoritesSyncColor(OutfitFavoritesSyncStatus status) {
+    switch (status) {
+      case OutfitFavoritesSyncStatus.synced:
+        return Colors.greenAccent;
+      case OutfitFavoritesSyncStatus.localOnly:
+        return Colors.amberAccent;
+      case OutfitFavoritesSyncStatus.error:
+        return Colors.redAccent;
+      case OutfitFavoritesSyncStatus.syncing:
+        return Colors.lightBlueAccent;
+      case OutfitFavoritesSyncStatus.idle:
+        return Colors.white70;
+    }
+  }
+
+  IconData _favoritesSyncIcon(OutfitFavoritesSyncStatus status) {
+    switch (status) {
+      case OutfitFavoritesSyncStatus.synced:
+        return Icons.cloud_done;
+      case OutfitFavoritesSyncStatus.localOnly:
+        return Icons.cloud_off;
+      case OutfitFavoritesSyncStatus.error:
+        return Icons.error_outline;
+      case OutfitFavoritesSyncStatus.syncing:
+        return Icons.cloud_sync;
+      case OutfitFavoritesSyncStatus.idle:
+        return Icons.cloud_queue;
+    }
+  }
 }
 
 class _Outfit {
+  final String id;
   final String title;
   final String description;
   final IconData icon;
@@ -474,6 +1863,7 @@ class _Outfit {
   final int maxAge;
 
   const _Outfit({
+    required this.id,
     required this.title,
     required this.description,
     required this.icon,
@@ -496,4 +1886,140 @@ class _RankedOutfit {
     required this.score,
     required this.reasons,
   });
+}
+
+class _PlanningSignals {
+  final bool hasWorkEvent;
+  final bool hasSportEvent;
+  final bool hasEveningEvent;
+  final bool hasCasualEvent;
+  final bool hasOutdoorEvent;
+
+  const _PlanningSignals({
+    required this.hasWorkEvent,
+    required this.hasSportEvent,
+    required this.hasEveningEvent,
+    required this.hasCasualEvent,
+    required this.hasOutdoorEvent,
+  });
+}
+
+enum _DayTimeSlot { morning, afternoon, evening }
+
+enum _PlanningContext { work, sport, evening, casual, mixed, none }
+
+class _OutfitWeatherBundle {
+  final WeatherResponse? currentWeather;
+  final ForecastItem? tomorrowForecast;
+
+  const _OutfitWeatherBundle({
+    required this.currentWeather,
+    required this.tomorrowForecast,
+  });
+}
+
+class _OutfitWeatherContext {
+  final String label;
+  final double temperature;
+  final int humidity;
+  final double windSpeed;
+  final String main;
+
+  const _OutfitWeatherContext({
+    required this.label,
+    required this.temperature,
+    required this.humidity,
+    required this.windSpeed,
+    required this.main,
+  });
+}
+
+class _ForecastCoordinates {
+  final double lat;
+  final double lon;
+
+  const _ForecastCoordinates({required this.lat, required this.lon});
+}
+
+Future<_ForecastCoordinates> _resolveForecastCoordinates() async {
+  try {
+    final permission = await Geolocator.checkPermission();
+    var granted =
+        permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
+
+    if (!granted) {
+      final req = await Geolocator.requestPermission();
+      granted =
+          req == LocationPermission.always ||
+          req == LocationPermission.whileInUse;
+    }
+
+    if (granted) {
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.medium,
+      );
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
+      return _ForecastCoordinates(lat: pos.latitude, lon: pos.longitude);
+    }
+  } catch (_) {
+    // Fallback below
+  }
+
+  return const _ForecastCoordinates(lat: -18.8792, lon: 47.5079);
+}
+
+ForecastItem? _pickTomorrowForecast(List<ForecastItem> forecasts) {
+  final now = DateTime.now();
+  final tomorrowDate = DateTime(now.year, now.month, now.day + 1);
+  final tomorrowItems = forecasts.where((item) {
+    final d = item.dateTime;
+    return d.year == tomorrowDate.year &&
+        d.month == tomorrowDate.month &&
+        d.day == tomorrowDate.day;
+  }).toList();
+
+  if (tomorrowItems.isEmpty) {
+    return null;
+  }
+
+  tomorrowItems.sort((a, b) {
+    final aDiff = (a.dateTime.hour - 12).abs();
+    final bDiff = (b.dateTime.hour - 12).abs();
+    return aDiff.compareTo(bDiff);
+  });
+
+  return tomorrowItems.first;
+}
+
+_OutfitWeatherContext? _weatherContextFromCurrent(WeatherResponse? weather) {
+  if (weather == null) {
+    return null;
+  }
+
+  return _OutfitWeatherContext(
+    label:
+        '${weather.description} | ${weather.temperature.toStringAsFixed(1)}°C | ${weather.humidity}% | ${weather.windSpeed.toStringAsFixed(1)} m/s',
+    temperature: weather.temperature,
+    humidity: weather.humidity,
+    windSpeed: weather.windSpeed,
+    main: weather.main,
+  );
+}
+
+_OutfitWeatherContext? _weatherContextFromForecast(ForecastItem? forecast) {
+  if (forecast == null) {
+    return null;
+  }
+
+  return _OutfitWeatherContext(
+    label:
+        '${forecast.description} | ${forecast.temperature.toStringAsFixed(1)}°C | ${forecast.humidity}% | ${forecast.windSpeed.toStringAsFixed(1)} m/s',
+    temperature: forecast.temperature,
+    humidity: forecast.humidity,
+    windSpeed: forecast.windSpeed,
+    main: forecast.main,
+  );
 }
