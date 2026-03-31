@@ -1,13 +1,260 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
+import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import '../providers/agenda_provider.dart';
 
-class AgendaScreen extends ConsumerWidget {
+class AgendaScreen extends ConsumerStatefulWidget {
   const AgendaScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AgendaScreen> createState() => _AgendaScreenState();
+}
+
+class _AgendaScreenState extends ConsumerState<AgendaScreen> {
+  DateTime _selectedDay = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(agendaEventsProvider.notifier).refresh(_selectedDay);
+    });
+  }
+
+  Future<void> _pickDay() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedDay,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (selected == null) {
+      return;
+    }
+    setState(() {
+      _selectedDay = DateTime(selected.year, selected.month, selected.day);
+    });
+    await ref.read(agendaEventsProvider.notifier).refresh(_selectedDay);
+  }
+
+  Future<void> _showEventDialog({AgendaEvent? editingEvent}) async {
+    final titleController = TextEditingController(
+      text: editingEvent?.title ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: editingEvent?.description ?? '',
+    );
+    final locationController = TextEditingController(
+      text: editingEvent?.location ?? '',
+    );
+
+    DateTime startTime =
+        editingEvent?.startTime ??
+        DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 9, 0);
+    DateTime endTime =
+        editingEvent?.endTime ?? startTime.add(const Duration(hours: 1));
+    String eventType = editingEvent?.eventType ?? 'Personnel';
+
+    final formKey = GlobalKey<FormState>();
+    final eventTypes = <String>['Personnel', 'Travail', 'Routine', 'Autre'];
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (_, setLocalState) {
+            Future<void> pickDateTime({required bool forStart}) async {
+              final source = forStart ? startTime : endTime;
+              final date = await showDatePicker(
+                context: dialogContext,
+                initialDate: source,
+                firstDate: DateTime(_selectedDay.year - 1),
+                lastDate: DateTime(_selectedDay.year + 2),
+              );
+              if (date == null || !dialogContext.mounted) {
+                return;
+              }
+              final time = await showTimePicker(
+                context: dialogContext,
+                initialTime: TimeOfDay.fromDateTime(source),
+              );
+              if (time == null || !dialogContext.mounted) {
+                return;
+              }
+              final value = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
+              setLocalState(() {
+                if (forStart) {
+                  startTime = value;
+                  if (!endTime.isAfter(startTime)) {
+                    endTime = startTime.add(const Duration(hours: 1));
+                  }
+                } else {
+                  endTime = value;
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: Text(
+                editingEvent == null
+                    ? 'Nouvel evenement'
+                    : 'Modifier evenement',
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titre'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Titre obligatoire';
+                          }
+                          return null;
+                        },
+                      ),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        minLines: 1,
+                        maxLines: 3,
+                      ),
+                      TextFormField(
+                        controller: locationController,
+                        decoration: const InputDecoration(labelText: 'Lieu'),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        initialValue: eventType,
+                        items: eventTypes
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setLocalState(() {
+                              eventType = value;
+                            });
+                          }
+                        },
+                        decoration: const InputDecoration(labelText: 'Type'),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => pickDateTime(forStart: true),
+                              icon: const Icon(Icons.schedule),
+                              label: Text(
+                                'Debut\n${startTime.day.toString().padLeft(2, '0')}/${startTime.month.toString().padLeft(2, '0')} ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => pickDateTime(forStart: false),
+                              icon: const Icon(Icons.schedule_send),
+                              label: Text(
+                                'Fin\n${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')} ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (!(formKey.currentState?.validate() ?? false)) {
+                      return;
+                    }
+                    if (!endTime.isAfter(startTime)) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('La fin doit etre apres le debut.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final notifier = ref.read(agendaEventsProvider.notifier);
+                    if (editingEvent == null) {
+                      await notifier.createEvent(
+                        title: titleController.text.trim(),
+                        description: descriptionController.text.trim().isEmpty
+                            ? null
+                            : descriptionController.text.trim(),
+                        startTime: startTime,
+                        endTime: endTime,
+                        location: locationController.text.trim().isEmpty
+                            ? null
+                            : locationController.text.trim(),
+                        eventType: eventType,
+                      );
+                    } else {
+                      await notifier.updateEvent(
+                        editingEvent.copyWith(
+                          title: titleController.text.trim(),
+                          description: descriptionController.text.trim().isEmpty
+                              ? null
+                              : descriptionController.text.trim(),
+                          startTime: startTime,
+                          endTime: endTime,
+                          location: locationController.text.trim().isEmpty
+                              ? null
+                              : locationController.text.trim(),
+                          eventType: eventType,
+                        ),
+                      );
+                    }
+
+                    if (!dialogContext.mounted) {
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Enregistrer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    titleController.dispose();
+    descriptionController.dispose();
+    locationController.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final agendaState = ref.watch(agendaEventsProvider);
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
@@ -43,7 +290,7 @@ class AgendaScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Aujourd\'hui',
+                          '${_selectedDay.day.toString().padLeft(2, '0')}/${_selectedDay.month.toString().padLeft(2, '0')}/${_selectedDay.year}',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.58),
                             fontSize: isMobile ? 16 : 18,
@@ -52,11 +299,20 @@ class AgendaScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    _GlassIconButton(
-                      icon: Icons.sync,
-                      onPressed: () => ref
-                          .read(agendaEventsProvider.notifier)
-                          .syncWithGoogle(),
+                    Row(
+                      children: [
+                        _GlassIconButton(
+                          icon: Icons.event,
+                          onPressed: _pickDay,
+                        ),
+                        const SizedBox(width: 10),
+                        _GlassIconButton(
+                          icon: Icons.refresh,
+                          onPressed: () => ref
+                              .read(agendaEventsProvider.notifier)
+                              .refresh(_selectedDay),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -90,6 +346,18 @@ class AgendaScreen extends ConsumerWidget {
                         title: event.title,
                         type: event.eventType,
                         isNow: isNow,
+                        isCompleted: event.isCompleted,
+                        onEdit: () => _showEventDialog(editingEvent: event),
+                        onDelete: () async {
+                          await ref
+                              .read(agendaEventsProvider.notifier)
+                              .deleteEvent(event.id);
+                        },
+                        onToggleComplete: () async {
+                          await ref
+                              .read(agendaEventsProvider.notifier)
+                              .toggleComplete(event);
+                        },
                       );
                     },
                   ),
@@ -107,6 +375,11 @@ class AgendaScreen extends ConsumerWidget {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showEventDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('Ajouter'),
+      ),
     );
   }
 }
@@ -116,12 +389,20 @@ class _AgendaGlassTile extends StatelessWidget {
   final String title;
   final String type;
   final bool isNow;
+  final bool isCompleted;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onToggleComplete;
 
   const _AgendaGlassTile({
     required this.time,
     required this.title,
     required this.type,
     this.isNow = false,
+    required this.isCompleted,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleComplete,
   });
 
   @override
@@ -163,11 +444,37 @@ class _AgendaGlassTile extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isCompleted
+                      ? Colors.white.withValues(alpha: 0.55)
+                      : Colors.white,
                   fontSize: isMobile ? 16 : 18,
                   fontWeight: FontWeight.w500,
+                  decoration: isCompleted
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
                 ),
               ),
+            ),
+            IconButton(
+              onPressed: onToggleComplete,
+              icon: Icon(
+                isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: isCompleted ? Colors.greenAccent : Colors.white70,
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white70),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  onEdit();
+                } else if (value == 'delete') {
+                  onDelete();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+              ],
             ),
             if (isNow)
               Container(
