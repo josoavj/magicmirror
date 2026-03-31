@@ -24,6 +24,7 @@ PlatformType _getPlatformType() {
 ResolutionPreset _getResolutionForPlatform(PlatformType platform) {
   switch (platform) {
     case PlatformType.android:
+      return ResolutionPreset.medium; // Réduit pression mémoire en stream ML
     case PlatformType.ios:
     case PlatformType.macos:
       return ResolutionPreset.high; // Performance robuste
@@ -33,6 +34,22 @@ ResolutionPreset _getResolutionForPlatform(PlatformType platform) {
     case PlatformType.web:
     case PlatformType.unknown:
       return ResolutionPreset.medium;
+  }
+}
+
+ImageFormatGroup _getImageFormatForPlatform(PlatformType platform) {
+  switch (platform) {
+    case PlatformType.android:
+      // ML Kit Android attend un format YUV/NV21 compatible stream.
+      return ImageFormatGroup.nv21;
+    case PlatformType.ios:
+      return ImageFormatGroup.bgra8888;
+    case PlatformType.macos:
+    case PlatformType.windows:
+    case PlatformType.linux:
+    case PlatformType.web:
+    case PlatformType.unknown:
+      return ImageFormatGroup.unknown;
   }
 }
 
@@ -185,6 +202,7 @@ final cameraControllerProvider =
     ) async {
       final platform = ref.watch(platformTypeProvider);
       final resolutionPreset = _getResolutionForPlatform(platform);
+      final imageFormatGroup = _getImageFormatForPlatform(platform);
       final timeout = _getTimeoutForPlatform(platform);
 
       logger.info(
@@ -201,6 +219,7 @@ final cameraControllerProvider =
         camera,
         resolutionPreset,
         enableAudio: false,
+        imageFormatGroup: imageFormatGroup,
       );
 
       try {
@@ -237,6 +256,7 @@ final cameraControllerProvider =
             camera,
             ResolutionPreset.low,
             enableAudio: false,
+            imageFormatGroup: imageFormatGroup,
           );
 
           try {
