@@ -25,7 +25,7 @@
 | Fonctionnalité | Status | Détails |
 |---|---|---|
 | 🪞 **Miroir Caméra** | ✅ 100% | Caméra temps réel, détection morphologie, affichage full-screen |
-| 📅 **Agenda/Calendrier** | ✅ 100% | Sync Google Calendar (prod) ou données mockées (dev) |
+| 📅 **Agenda/Calendrier** | ✅ 100% | Agenda cloud Supabase lie au compte actif |
 | 🌦️ **Météo** | ✅ 100% | OpenWeatherMap API réelle + géolocalisation automatique |
 | 🤖 **Morphologie AI** | ✅ 100% | Google ML Kit pose detection + classification corps |
 | 👔 **Suggestions tenues** | ✅ 100% | Fitrée par morphologie + TTS français intégrée |
@@ -92,10 +92,10 @@ OPENWEATHERMAP_API_KEY=votre_cle_ici
 
 Voir: [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) pour guide complet
 
-#### 2️⃣ **Google Calendar (optionnel, pour prod)**
-Suivre : [SETUP.md](docs/SETUP.md)
-- Configuration OAuth2 Google
-- OU utiliser les données mockées (développement)
+#### 2️⃣ **Backend Supabase (recommandé)**
+- Configuration URL + ANON KEY dans `.env`
+- Création tables `profiles` + `agenda_events` + policies RLS
+- Guide complet: [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 
 ---
 
@@ -103,69 +103,59 @@ Suivre : [SETUP.md](docs/SETUP.md)
 
 ```
 lib/
-├── main.dart                          # Point d'entrée
+├── main.dart                          # Point d'entree (AuthGate + routes)
 ├── config/
 │   ├── app_config.dart                # Feature flags & configuration
-│   └── di_setup.dart                  # Dependency injection
+│   └── di_setup.dart                  # Bootstrap des dependances
 ├── core/
+│   ├── constants/
 │   ├── services/
-│   │   ├── connectivity_service.dart
-│   │   ├── storage_service.dart
-│   │   └── tts_service.dart
 │   ├── theme/
-│   ├── utils/
-│   └── constants/
+│   └── utils/
+├── features/
+│   ├── auth/                          # Connexion, verification email, reset
+│   ├── user_profile/                  # Profil utilisateur + sync cloud
+│   ├── agenda/                        # Agenda Supabase (CRUD)
+│   ├── mirror/                        # Ecran miroir/camera principal
+│   ├── weather/                       # Meteo + providers/repositories
+│   ├── ai_ml/                         # Detection morphologie (ML Kit)
+│   ├── outfit_suggestion/             # Suggestions de tenues
+│   └── settings/                      # Parametres app + compte
+├── presentation/
+│   ├── screens/
+│   │   └── about_screen.dart
+│   └── widgets/
+│       └── glass_container.dart
+├── routes/
+│   ├── app_routes.dart
+│   └── route_names.dart
+└── generated/
+  └── assets.gen.dart
+```
+
+### Exemple de structure feature (agenda)
+
+```
+lib/features/agenda/
 ├── data/
 │   ├── datasources/
 │   ├── models/
 │   ├── repositories/
 │   └── services/
-│       ├── google_calendar_service.dart
-│       ├── mock_calendar_service.dart
-│       └── ...
-├── features/
-│   ├── mirror/                        # Écran miroir principal
-│   │   ├── presentation/
-│   │   │   ├── screens/mirror_screen.dart
-│   │   │   ├── providers/camera_provider.dart
-│   │   │   └── widgets/
-│   │   └── ...
-│   ├── agenda/                        # Gestion calendrier
-│   │   ├── presentation/
-│   │   │   ├── screens/agenda_screen.dart
-│   │   │   ├── providers/agenda_provider.dart
-│   │   │   └── widgets/
-│   │   └── ...
-│   ├── weather/                       # Intégration météo
-│   │   ├── data/
-│   │   │   ├── services/weather_service.dart
-│   │   │   └── models/weather_model.dart
-│   │   └── presentation/
-│   │       └── widgets/weather_widget.dart
-│   ├── ai_ml/                         # Morphologie & ML
-│   │   ├── data/
-│   │   │   ├── services/morphology_service.dart
-│   │   │   └── models/morphology_model.dart
-│   │   ├── presentation/
-│   │   └── providers/ml_provider.dart
-│   └── outfit_suggestion/             # Suggestions tenues
-│       ├── data/
-│       │   └── models/outfit_model.dart
-│       ├── presentation/
-│       │   ├── providers/outfit_provider.dart
-│       │   └── widgets/outfit_recommendation_widget.dart
-│       └── ...
-├── presentation/                      # Widgets globaux
-│   ├── pages/
-│   ├── screens/
-│   ├── widgets/
-│   │   └── glass_container.dart
-│   └── providers/
-├── routes/
-│   ├── app_routes.dart
-│   └── route_names.dart
-└── generated/
-    └── assets.gen.dart
+└── presentation/
+  ├── providers/
+  ├── screens/
+  └── widgets/
+```
+
+### Extraits de fichiers importants
+
+```
+lib/features/agenda/data/services/agenda_supabase_service.dart
+lib/features/auth/presentation/screens/auth_screen.dart
+lib/features/settings/presentation/screens/account_settings_screen.dart
+lib/features/user_profile/presentation/providers/user_profile_provider.dart
+lib/features/weather/data/services/weather_service.dart
 ```
 
 ---
@@ -179,10 +169,8 @@ lib/
 - `flutter_dotenv: ^5.1.0` - Gestion variables d'environnement sécurisée
 
 ### Services & API
-- `googleapis: ^16.0.0` - Google Calendar API
-- `googleapis_auth: ^2.0.0` - Authentification API
-- `google_sign_in: ^7.2.0` - Connexion Google
 - `dio: ^5.3.1` - Client HTTP
+- `supabase_flutter: ^2.x` - Backend Auth + Profil + Agenda (mobile + web)
 - `geolocator: ^12.0.0` - Géolocalisation GPS
 
 ### Caméra & Média
@@ -235,7 +223,6 @@ static const bool enableAIFeatures = true;
 static const bool enableWeatherIntegration = true;
 static const bool enableAgendaSync = true;
 static const bool enableOutfitSuggestions = true;
-static const bool useMockCalendar = true; // false = production
 ```
 
 ### Mode développement vs production
@@ -292,10 +279,11 @@ flutter run
 - Vérifier la connexion internet
 - Voir [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) troubleshooting
 
-### "Google Sign-In not available"
+### "Agenda non disponible"
 **Solution** :
-- Configure les dépendances OAuth2 (voir [SETUP.md](docs/SETUP.md))
-- Ou utiliser `useMockCalendar = true` pour développement
+- Verifier `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `.env`
+- Executer le SQL de [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
+- Verifier que l'utilisateur est bien connecte
 
 ---
 
@@ -355,4 +343,4 @@ MIT License - voir [LICENSE](LICENSE) pour détails
 - 📖 [Flutter Documentation](https://flutter.dev)
 - 🤖 [Google ML Kit](https://developers.google.com/ml-kit)
 - 📡 [OpenWeatherMap API](https://openweathermap.org/api)
-- 🔐 [Google Calendar API](https://developers.google.com/calendar)
+- 🗄️ [Supabase Docs](https://supabase.com/docs)
