@@ -13,14 +13,6 @@ class AppConfig {
   static const bool enableAgendaSync = true;
   static const bool enableOutfitSuggestions = true;
 
-  // Mock Services (pour développement sans API configurées)
-  static const bool useMockCalendar = true;
-
-  // Google Sign-In Configuration
-  static const String? googleClientId = null; // À configurer pour production
-  static const String? googleServerClientId =
-      null; // À configurer pour production
-
   // App Settings
   static const bool enableDarkMode = false;
   static const Locale defaultLocale = Locale('fr', 'FR');
@@ -40,11 +32,7 @@ class AppConfig {
       'Mode: ${isDevelopment ? "Développement" : "Production"}',
       tag: 'Config',
     );
-    logger.info(
-      // BUG FIX #6: Unnecessary string interpolation - utiliser un ternaire direct
-      useMockCalendar ? 'Donnees mockees' : 'Google Calendar',
-      tag: 'Calendrier',
-    );
+    logger.info('Agenda Supabase', tag: 'Calendrier');
     logger.info('AI: ${enableAIFeatures ? "ON" : "OFF"}', tag: 'Features');
     logger.info(
       'Meteo: ${enableWeatherIntegration ? "ON" : "OFF"}',
