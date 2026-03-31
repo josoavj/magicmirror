@@ -44,7 +44,6 @@ class AgendaHUDWidget extends ConsumerWidget {
       },
     );
   }
-
 }
 
 class _EventItemWidget extends StatelessWidget {
@@ -114,7 +113,8 @@ Color _getTypeColor(String type) {
   return switch (type) {
     'Travail' => Colors.blueAccent,
     'Routine' => Colors.greenAccent,
-    'Google' => Colors.redAccent,
+    'Personnel' => Colors.purpleAccent,
+    'Autre' => Colors.orangeAccent,
     _ => Colors.white30,
   };
 }

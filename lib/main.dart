@@ -5,16 +5,24 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/utils/app_logger.dart';
 import 'core/services/cache_service.dart';
 import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
+import 'features/settings/presentation/screens/account_settings_screen.dart';
+import 'features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
+import 'features/user_profile/presentation/screens/user_profile_screen.dart';
+import 'features/auth/presentation/screens/auth_screen.dart';
+import 'features/auth/presentation/screens/verify_email_screen.dart';
+import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'presentation/screens/about_screen.dart';
 import 'presentation/widgets/glass_container.dart';
-import 'data/services/google_calendar_service.dart';
 import 'config/app_config.dart';
+
+bool _isSupabaseReady = false;
 
 void main() async {
   // Initialiser Flutter binding
@@ -27,23 +35,18 @@ void main() async {
   // Charger les variables d'environnement depuis .env
   await dotenv.load(fileName: "assets/.env");
 
+  final supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    _isSupabaseReady = true;
+  }
+
   // Initialiser le logger
   await logger.initialize();
 
   // Afficher la configuration au démarrage
   await AppConfig.printStartupInfo();
-
-  // Initialiser les services de base
-  final googleCalendarService = GoogleCalendarService();
-  await googleCalendarService.initialize(
-    clientId: dotenv.env['GOOGLE_CLIENT_ID']?.trim().isEmpty == true
-        ? null
-        : dotenv.env['GOOGLE_CLIENT_ID']?.trim(),
-    serverClientId:
-        dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim().isEmpty == true
-        ? null
-        : dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim(),
-  );
 
   SystemChannels.lifecycle.setMessageHandler((msg) async {
     if (msg == 'AppLifecycleState.detached') {
@@ -118,12 +121,55 @@ class MagicMirrorApp extends ConsumerWidget {
           baseTheme.primaryTextTheme,
         ),
       ),
-      home: const HomeScreen(),
+      home: const AuthGate(),
       routes: {
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
+        '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
+        '/profile': (context) => const UserProfileScreen(),
+        '/account-settings': (context) => const AccountSettingsScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/about': (context) => const AboutScreen(),
+      },
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isSupabaseReady) {
+      return const Scaffold(
+        body: Center(child: Text('Supabase non configure dans assets/.env')),
+      );
+    }
+
+    final client = Supabase.instance.client;
+
+    return StreamBuilder<AuthState>(
+      stream: client.auth.onAuthStateChange,
+      initialData: AuthState(
+        AuthChangeEvent.initialSession,
+        client.auth.currentSession,
+      ),
+      builder: (context, snapshot) {
+        final event = snapshot.data?.event;
+        final session = snapshot.data?.session;
+        if (event == AuthChangeEvent.passwordRecovery) {
+          return const ResetPasswordScreen();
+        }
+        if (session == null) {
+          return const AuthScreen();
+        }
+
+        final confirmed = session.user.emailConfirmedAt != null;
+        if (!confirmed) {
+          return const VerifyEmailScreen();
+        }
+
+        return const HomeScreen();
       },
     );
   }
@@ -224,10 +270,10 @@ class HomeScreen extends StatelessWidget {
                           onTap: () => Navigator.pushNamed(context, '/agenda'),
                         ),
                         _HomeTile(
-                          icon: Icons.checkroom_rounded,
-                          label: 'Tenues',
-                          color: Colors.purpleAccent,
-                          onTap: () {},
+                          icon: Icons.person_outline_rounded,
+                          label: 'Profil',
+                          color: Colors.tealAccent,
+                          onTap: () => Navigator.pushNamed(context, '/profile'),
                         ),
                         _HomeTile(
                           icon: Icons.settings_rounded,

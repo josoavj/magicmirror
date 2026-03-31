@@ -24,35 +24,19 @@ Ce guide couvre toutes les étapes nécessaires pour configurer Magic Mirror en 
 
 ## Configuration API
 
-### 1. Google Calendar API (Agenda)
+### 1. Supabase (Auth + Profil + Agenda)
 
-#### Setup OAuth2
-1. Aller à [Google Cloud Console](https://console.cloud.google.com)
-2. Créer un nouveau projet
-3. Activer l'API "Google Calendar API"
-4. Créer les credentials OAuth2:
-   - Type: Application Web
-   - Redirection URIs: `com.googleusercontent.apps.{CLIENT_ID}:/oauth2redirect`
+Configurer les variables dans votre `.env`:
 
-#### Android
-Ajouter dans `android/app/build.gradle`:
-```gradle
-client_id='YOUR_CLIENT_ID.apps.googleusercontent.com'
+```env
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
-#### iOS
-Ajouter dans `ios/Runner/Info.plist`:
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>com.googleusercontent.apps.YOUR_CLIENT_ID</string>
-    </array>
-  </dict>
-</array>
-```
+Puis executer les scripts SQL documentes dans [SUPABASE_SETUP.md](SUPABASE_SETUP.md):
+- table `profiles` + politiques RLS
+- bucket `avatars` + politiques storage
+- table `agenda_events` + politiques RLS
 
 ### 2. OpenWeatherMap API (Météo)
 

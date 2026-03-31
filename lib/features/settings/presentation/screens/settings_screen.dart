@@ -142,8 +142,9 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     SettingsToggle(
                       icon: Icons.calendar_today,
-                      label: 'Sync au demarrage',
-                      subtitle: 'Synchroniser Google Calendar au lancement',
+                      label: 'Agenda cloud au demarrage',
+                      subtitle:
+                          'Synchroniser votre agenda Supabase au lancement',
                       value: settings.syncCalendarOnStartup,
                       onChanged: (value) {
                         ref
@@ -277,6 +278,19 @@ class SettingsScreen extends ConsumerWidget {
                               .setMirrorHudCycleMinutes(value);
                         }
                       },
+                    ),
+                  ],
+                ),
+
+                SettingsSection(
+                  title: 'Compte',
+                  children: [
+                    SettingsActionTile(
+                      icon: Icons.manage_accounts_outlined,
+                      label: 'Parametres du compte',
+                      iconColor: Colors.tealAccent,
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/account-settings'),
                     ),
                   ],
                 ),
