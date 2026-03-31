@@ -197,7 +197,7 @@ class AboutScreen extends ConsumerWidget {
       {
         'icon': '📅',
         'title': 'Synchronisation Calendrier',
-        'description': 'Intégration Google Calendar complète',
+        'description': 'Agenda cloud Supabase lie au compte actif',
       },
       {
         'icon': '🌦️',
@@ -277,7 +277,7 @@ class AboutScreen extends ConsumerWidget {
       {'title': 'Langage', 'value': 'Dart 3.1.0+'},
       {'title': 'État', 'value': 'Riverpod 3.2.1'},
       {'title': 'ML', 'value': 'Google ML Kit 0.21.0'},
-      {'title': 'API', 'value': 'OpenWeatherMap + Google Calendar'},
+      {'title': 'API', 'value': 'OpenWeatherMap + Supabase'},
       {'title': 'Status', 'value': '✅ Stable'},
     ];
 
