@@ -1,21 +1,36 @@
-# Supabase Setup (Profil utilisateur)
+# Supabase Setup Complet (MagicMirror)
 
-Ce guide connecte le profil utilisateur de MagicMirror a Supabase pour Android, iOS, Web, Linux, macOS et Windows.
+Ce document est un setup unique, complet et operable pour:
+- auth utilisateur,
+- profil cloud,
+- agenda cloud,
+- avatars storage,
+- favoris tenues cloud,
+- verification rapide de bon fonctionnement.
 
 ## 1) Variables d'environnement
 
-Dans votre fichier `.env` (non versionne):
+Dans `assets/.env`:
 
 ```env
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=YOUR_ANON_KEY
+OPENWEATHERMAP_API_KEY=YOUR_OPENWEATHERMAP_API_KEY
 ```
 
-## 2) Table SQL
+Notes:
+- `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont obligatoires.
+- `OPENWEATHERMAP_API_KEY` est requis pour la meteo reelle.
 
-Executer ce script dans Supabase SQL Editor:
+## 2) SQL unique a executer (copier/coller dans SQL Editor)
 
 ```sql
+-- Extension utile pour gen_random_uuid()
+create extension if not exists pgcrypto;
+
+-- =========================
+-- TABLE PROFILES
+-- =========================
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null default 'Utilisateur',
@@ -25,54 +40,113 @@ create table if not exists public.profiles (
   age int not null default 25,
   morphology text not null default 'Silhouette non definie',
   preferred_styles text[] not null default array['Casual']::text[],
+  favorite_outfit_ids text[] not null default '{}',
   updated_at timestamptz not null default now()
 );
 
+-- Migration defensive si la table existait deja
+alter table public.profiles add column if not exists birth_date date;
+alter table public.profiles add column if not exists favorite_outfit_ids text[] not null default '{}';
+alter table public.profiles alter column morphology set default 'Silhouette non definie';
+
+create index if not exists profiles_favorite_outfit_ids_gin
+on public.profiles using gin (favorite_outfit_ids);
+
 alter table public.profiles enable row level security;
 
-create policy "Users can read own profile"
+drop policy if exists "profiles_select_own" on public.profiles;
+drop policy if exists "profiles_insert_own" on public.profiles;
+drop policy if exists "profiles_update_own" on public.profiles;
+
+create policy "profiles_select_own"
 on public.profiles
 for select
-using (auth.uid() = user_id);
+to authenticated
+using (user_id = auth.uid());
 
-create policy "Users can insert own profile"
+create policy "profiles_insert_own"
 on public.profiles
 for insert
-with check (auth.uid() = user_id);
+to authenticated
+with check (user_id = auth.uid());
 
-create policy "Users can update own profile"
+create policy "profiles_update_own"
 on public.profiles
 for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-```
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
 
-Si la table existe deja, executez aussi cette migration:
+-- =========================
+-- TABLE AGENDA EVENTS
+-- =========================
+create table if not exists public.agenda_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  description text,
+  start_time timestamptz not null,
+  end_time timestamptz not null,
+  location text,
+  event_type text not null default 'Other',
+  is_completed boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-```sql
-alter table public.profiles
-  add column if not exists birth_date date;
+alter table public.agenda_events enable row level security;
 
-alter table public.profiles
-  alter column morphology set default 'Silhouette non definie';
-```
+drop policy if exists "agenda_select_own" on public.agenda_events;
+drop policy if exists "agenda_insert_own" on public.agenda_events;
+drop policy if exists "agenda_update_own" on public.agenda_events;
+drop policy if exists "agenda_delete_own" on public.agenda_events;
 
-## 2.b) Storage pour photo utilisateur
+create policy "agenda_select_own"
+on public.agenda_events
+for select
+to authenticated
+using (user_id = auth.uid());
 
-Executer ensuite ce SQL pour creer le bucket d'avatars et ses politiques:
+create policy "agenda_insert_own"
+on public.agenda_events
+for insert
+to authenticated
+with check (user_id = auth.uid());
 
-```sql
+create policy "agenda_update_own"
+on public.agenda_events
+for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "agenda_delete_own"
+on public.agenda_events
+for delete
+to authenticated
+using (user_id = auth.uid());
+
+create index if not exists idx_agenda_events_user_start
+  on public.agenda_events(user_id, start_time);
+
+-- =========================
+-- STORAGE AVATARS
+-- =========================
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do nothing;
 
-create policy "Avatar read public"
+drop policy if exists "avatar_read_public" on storage.objects;
+drop policy if exists "avatar_insert_own" on storage.objects;
+drop policy if exists "avatar_update_own" on storage.objects;
+
+create policy "avatar_read_public"
 on storage.objects
 for select
 to public
 using (bucket_id = 'avatars');
 
-create policy "Avatar upload own folder"
+create policy "avatar_insert_own"
 on storage.objects
 for insert
 to authenticated
@@ -81,7 +155,7 @@ with check (
   and split_part(name, '/', 1) = auth.uid()::text
 );
 
-create policy "Avatar update own folder"
+create policy "avatar_update_own"
 on storage.objects
 for update
 to authenticated
@@ -95,66 +169,64 @@ with check (
 );
 ```
 
-## 2.c) Table agenda (calendrier local applicatif)
+## 3) Ce que Flutter fait avec ce schema
 
-Executer ce SQL pour activer un agenda complet lie au compte actif:
+1. Auth email/password via Supabase Auth.
+2. Profil cloud dans `public.profiles` (upsert/select sur `user_id = auth.uid()`).
+3. Agenda cloud dans `public.agenda_events` (CRUD scope compte actif).
+4. Upload avatar dans `storage.objects` bucket `avatars`, dossier par user id.
+5. Favoris tenues cloud dans `profiles.favorite_outfit_ids` + fallback local SharedPreferences.
+
+## 4) Verification rapide (checklist)
+
+1. Connexion avec un compte A.
+2. Modifier profil et verifier la persistence apres relance.
+3. Ajouter un evenement agenda, relancer app, verifier recuperation.
+4. Ajouter une tenue en favori, deconnecter/reconnecter compte A, verifier favoris.
+5. Changer de compte B, verifier que favoris/profil/agenda sont differents.
+
+## 5) Requetes de debug utiles
 
 ```sql
-create table if not exists public.agenda_events (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  title text not null,
-  description text,
-  start_time timestamptz not null,
-  end_time timestamptz not null,
-  location text,
-  event_type text not null default 'Autre',
-  is_completed boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Voir profils
+select user_id, display_name, favorite_outfit_ids, updated_at
+from public.profiles
+order by updated_at desc
+limit 20;
 
-alter table public.agenda_events enable row level security;
-
-create policy "Agenda read own"
-on public.agenda_events
-for select
-using (auth.uid() = user_id);
-
-create policy "Agenda insert own"
-on public.agenda_events
-for insert
-with check (auth.uid() = user_id);
-
-create policy "Agenda update own"
-on public.agenda_events
-for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-create policy "Agenda delete own"
-on public.agenda_events
-for delete
-using (auth.uid() = user_id);
-
-create index if not exists idx_agenda_events_user_start
-  on public.agenda_events(user_id, start_time);
+-- Voir agenda du compte connecte (dans SQL Editor avec role SQL, remplacer UUID)
+select user_id, title, start_time, end_time, event_type, is_completed
+from public.agenda_events
+where user_id = 'YOUR_USER_UUID'
+order by start_time asc;
 ```
 
-## 3) Auth
+## 6) Depannage erreur 42703
 
-Le client Flutter propose une page d'inscription/connexion (email + mot de passe).
-La session est persistante automatiquement (mobile + web) tant que l'utilisateur ne se deconnecte pas.
+Si l'app affiche une erreur `42703`, cela signifie qu'une colonne referencee par le client n'existe pas encore en base.
 
-## 4) Flux applicatif
+Pour le module favoris, executez cette migration minimale:
 
-- Donnees profil stockees localement (SharedPreferences)
-- Bouton "Envoyer": `upsert` sur `public.profiles`
-- Bouton "Recuperer": `select` du profil associe au `user_id`
-- Bouton "Se deconnecter": fermeture explicite de session Supabase
+```sql
+alter table public.profiles
+  add column if not exists favorite_outfit_ids text[] not null default '{}';
+```
 
-## 5) Conseils de maintenance
+Verification immediate:
 
-- Conserver `user_id` comme cle primaire unique.
-- Garder les politiques RLS actives.
-- Ajouter des migrations SQL versionnees pour chaque evolution schema.
+```sql
+select column_name, data_type, is_nullable, column_default
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'profiles'
+  and column_name = 'favorite_outfit_ids';
+```
+
+Puis relancez l'app et reconnectez-vous au compte pour relancer la synchronisation cloud.
+
+## 7) Bonnes pratiques
+
+- Garder RLS active sur `profiles` et `agenda_events`.
+- Ne jamais utiliser la service key dans le client Flutter.
+- Versionner les evolutions SQL (fichier migration).
+- Si un champ est ajoute en base, garder une migration `add column if not exists`.
