@@ -7,28 +7,32 @@ import '../providers/outfit_provider.dart';
 import '../../data/models/outfit_model.dart';
 
 class OutfitRecommendationWidget extends ConsumerWidget {
-  const OutfitRecommendationWidget({super.key});
+  const OutfitRecommendationWidget({super.key, this.enableTts = true});
+
+  final bool enableTts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suggestedOutfits = ref.watch(suggestedOutfitsProvider);
 
     // Écouter les changements pour déclencher la synthèse vocale
-    ref.listen<List<OutfitSuggestion>>(suggestedOutfitsProvider, (
-      previous,
-      next,
-    ) {
-      if (next.isNotEmpty &&
-          (previous == null ||
-              previous.isEmpty ||
-              next.first.id != previous.first.id)) {
-        final outfit = next.first;
-        final tts = ref.read(ttsServiceProvider);
-        final speech =
-            "Voici une suggestion pour vous : ${outfit.title}. ${outfit.reason}. Je vous conseille de porter : ${outfit.items.join(', ')}.";
-        tts.speak(speech);
-      }
-    });
+    if (enableTts) {
+      ref.listen<List<OutfitSuggestion>>(suggestedOutfitsProvider, (
+        previous,
+        next,
+      ) {
+        if (next.isNotEmpty &&
+            (previous == null ||
+                previous.isEmpty ||
+                next.first.id != previous.first.id)) {
+          final outfit = next.first;
+          final tts = ref.read(ttsServiceProvider);
+          final speech =
+              "Voici une suggestion pour vous : ${outfit.title}. ${outfit.reason}. Je vous conseille de porter : ${outfit.items.join(', ')}.";
+          tts.speak(speech);
+        }
+      });
+    }
 
     if (suggestedOutfits.isEmpty) {
       return const SizedBox.shrink();
