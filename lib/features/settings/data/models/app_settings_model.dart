@@ -7,6 +7,13 @@ class AppSettings {
   final String defaultCity;
   final bool syncCalendarOnStartup;
   final bool enableAudioFeedback;
+  final bool ttsEnabled;
+  final String ttsLanguage;
+  final bool ttsAnnounceMorphology;
+  final double ttsSpeechRate;
+  final double ttsPitch;
+  final int ttsMinRepeatSeconds;
+  final bool ttsInterruptCurrent;
   final bool cameraFlipped;
   final double cameraZoom;
   final int mirrorHudDisplaySeconds;
@@ -21,6 +28,13 @@ class AppSettings {
     required this.defaultCity,
     required this.syncCalendarOnStartup,
     required this.enableAudioFeedback,
+    required this.ttsEnabled,
+    required this.ttsLanguage,
+    required this.ttsAnnounceMorphology,
+    required this.ttsSpeechRate,
+    required this.ttsPitch,
+    required this.ttsMinRepeatSeconds,
+    required this.ttsInterruptCurrent,
     required this.cameraFlipped,
     required this.cameraZoom,
     required this.mirrorHudDisplaySeconds,
@@ -38,6 +52,13 @@ class AppSettings {
       defaultCity: 'Antananarivo',
       syncCalendarOnStartup: true,
       enableAudioFeedback: true,
+      ttsEnabled: true,
+      ttsLanguage: 'fr-FR',
+      ttsAnnounceMorphology: true,
+      ttsSpeechRate: 0.50,
+      ttsPitch: 1.00,
+      ttsMinRepeatSeconds: 45,
+      ttsInterruptCurrent: true,
       cameraFlipped: false,
       cameraZoom: 1.0,
       mirrorHudDisplaySeconds: 30,
@@ -55,6 +76,13 @@ class AppSettings {
     String? defaultCity,
     bool? syncCalendarOnStartup,
     bool? enableAudioFeedback,
+    bool? ttsEnabled,
+    String? ttsLanguage,
+    bool? ttsAnnounceMorphology,
+    double? ttsSpeechRate,
+    double? ttsPitch,
+    int? ttsMinRepeatSeconds,
+    bool? ttsInterruptCurrent,
     bool? cameraFlipped,
     double? cameraZoom,
     int? mirrorHudDisplaySeconds,
@@ -71,6 +99,14 @@ class AppSettings {
       syncCalendarOnStartup:
           syncCalendarOnStartup ?? this.syncCalendarOnStartup,
       enableAudioFeedback: enableAudioFeedback ?? this.enableAudioFeedback,
+      ttsEnabled: ttsEnabled ?? this.ttsEnabled,
+      ttsLanguage: ttsLanguage ?? this.ttsLanguage,
+      ttsAnnounceMorphology:
+          ttsAnnounceMorphology ?? this.ttsAnnounceMorphology,
+      ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
+      ttsPitch: ttsPitch ?? this.ttsPitch,
+      ttsMinRepeatSeconds: ttsMinRepeatSeconds ?? this.ttsMinRepeatSeconds,
+      ttsInterruptCurrent: ttsInterruptCurrent ?? this.ttsInterruptCurrent,
       cameraFlipped: cameraFlipped ?? this.cameraFlipped,
       cameraZoom: cameraZoom ?? this.cameraZoom,
       mirrorHudDisplaySeconds:
