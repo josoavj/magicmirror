@@ -198,13 +198,6 @@ class WeatherWidget extends ConsumerWidget {
                       'Ressenti',
                       '${weather.feelsLike.toStringAsFixed(1)}°C',
                     ),
-                    const SizedBox(height: 8),
-                    _WeatherDetailRow('Humidité', '${weather.humidity}%'),
-                    const SizedBox(height: 8),
-                    _WeatherDetailRow(
-                      'Vent',
-                      '${weather.windSpeed.toStringAsFixed(1)} m/s',
-                    ),
                   ],
                 ),
                 if (weather.description.isNotEmpty) ...[
