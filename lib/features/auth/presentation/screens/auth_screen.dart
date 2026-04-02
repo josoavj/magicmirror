@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -120,7 +121,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (bytes.length > _maxPersistedAvatarBytes) {
       setState(() {
         _info =
-            'Photo volumineuse: elle sera envoyee si vous terminez la connexion dans cette session.';
+            'Photo volumineuse: elle sera envoyée si vous terminez la connexion dans cette session.';
       });
       return;
     }
@@ -335,28 +336,43 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     Future<bool> cropAndSaveFromPath(String path) async {
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: path,
-        compressQuality: 92,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Rogner la photo',
-            toolbarColor: const Color(0xFF0F172A),
-            toolbarWidgetColor: Colors.white,
-            backgroundColor: const Color(0xFF0F172A),
-            activeControlsWidgetColor: const Color(0xFF22D3EE),
-            hideBottomControls: false,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-          ),
-          IOSUiSettings(
-            title: 'Rogner la photo',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
+      await SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: const [],
       );
+
+      CroppedFile? cropped;
+      try {
+        cropped = await ImageCropper().cropImage(
+          sourcePath: path,
+          compressQuality: 92,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Rogner la photo',
+              toolbarColor: const Color(0xFF0F172A),
+              toolbarWidgetColor: Colors.white,
+              statusBarLight: false,
+              navBarLight: false,
+              backgroundColor: const Color(0xFF0F172A),
+              activeControlsWidgetColor: const Color(0xFF22D3EE),
+              hideBottomControls: false,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+            ),
+            IOSUiSettings(
+              title: 'Rogner la photo',
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
+            ),
+          ],
+        );
+      } finally {
+        await SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        );
+      }
 
       if (cropped == null) {
         return false;
@@ -410,6 +426,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return cropAndSaveFromPath(pickedFile.path);
     }
 
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final picked = await pickWithImagePickerFallback();
+      if (!picked && mounted) {
+        setState(() {
+          _error = 'Impossible de sélectionner la photo.';
+        });
+      }
+      return;
+    }
+
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -421,7 +447,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         final picked = await pickWithImagePickerFallback();
         if (!picked && mounted) {
           setState(() {
-            _error = 'Impossible de selectionner la photo.';
+            _error = 'Impossible de sélectionner la photo.';
           });
         }
         return;
@@ -444,12 +470,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final picked = await pickWithImagePickerFallback();
       if (!picked && mounted) {
         setState(() {
-          _error = 'Impossible de selectionner la photo.';
+          _error = 'Impossible de sélectionner la photo.';
         });
       }
     } catch (_) {
       setState(() {
-        _error = 'Impossible de selectionner la photo.';
+        _error = 'Impossible de sélectionner la photo.';
       });
     }
   }
@@ -539,18 +565,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
       if (response.session == null) {
         _info = _selectedAvatarBytes == null
-            ? 'Compte cree. Confirmez votre email puis connectez-vous pour activer la synchronisation.'
-            : 'Compte cree. Confirmez votre email puis connectez-vous: la photo sera envoyee au cloud a la premiere session active.';
+            ? 'Compte créé. Confirmez votre email puis connectez-vous pour activer la synchronisation.'
+            : 'Compte créé. Confirmez votre email puis connectez-vous: la photo sera envoyée au cloud à la première session active.';
         _isLoginMode = true;
         _signupStep = 0;
         _signupPageController.jumpToPage(0);
       } else {
-        _info = 'Compte cree et profil initialise.';
+        _info = 'Compte créé et profil initialisé.';
       }
     } on AuthException catch (e) {
       _error = e.message;
     } catch (_) {
-      _error = 'Une erreur est survenue, veuillez reessayer.';
+      _error = 'Une erreur est survenue, veuillez réessayer.';
     } finally {
       if (mounted) {
         setState(() {
@@ -564,7 +590,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final email = _emailController.text.trim();
     if (!_isValidEmail(email)) {
       setState(() {
-        _error = 'Entrez un email valide pour reinitialiser le mot de passe.';
+        _error = 'Entrez un email valide pour réinitialiser le mot de passe.';
       });
       return;
     }
@@ -577,7 +603,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
       setState(() {
-        _info = 'Email de reinitialisation envoye.';
+        _info = 'Email de réinitialisation envoyé.';
       });
     } on AuthException catch (e) {
       setState(() {
@@ -585,7 +611,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Impossible d\'envoyer l\'email de reinitialisation.';
+        _error = 'Impossible d\'envoyer l\'email de réinitialisation.';
       });
     }
   }
