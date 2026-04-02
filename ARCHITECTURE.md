@@ -67,27 +67,27 @@ lib/
 ## Flux applicatif principal
 
 1. `main.dart` initialise dotenv, Supabase, logger puis lance `AuthGate`.
-2. `AuthGate` choisit l'ecran initial:
-   - non connecte: ecrans auth
-   - connecte non verifie: verification email
-   - connecte verifie: home
+2. `AuthGate` choisit l'écran initial:
+    - non connecté: écrans auth
+    - connecté non vérifié: vérification email
+    - connecté vérifié: home
 3. La home route vers les features (`/mirror`, `/agenda`, `/profile`, `/settings`, etc.).
 
-## Patterns de donnees
+## Patterns de données
 
 ### Agenda
 
-- Etat: `StateNotifier` Riverpod
+- État: `StateNotifier` Riverpod
 - Source: Supabase (`agenda_events`) via `agenda_supabase_service.dart`
-- Operations: create/read/update/delete + statut termine
+- Opérations: create/read/update/delete + statut terminé
 
 ### Profil utilisateur
 
-- Etat local: Riverpod + SharedPreferences
+- État local: Riverpod + SharedPreferences
 - Sync cloud: Supabase (`profiles`) + storage avatars
-- Ecran compte dedie: gestion photo, securite, sync
+- Écran compte dédié: gestion photo, sécurité, sync
 
-### Meteo
+### Météo
 
 - Service OpenWeatherMap
 - Provider Riverpod pour la consommation UI
@@ -95,11 +95,11 @@ lib/
 ## Conventions
 
 - Les surfaces visuelles utilisent `glass_container.dart`.
-- Les providers sont localises au plus proche de leur feature.
-- Les services externes (Supabase/API) sont encapsules dans la couche `data/services`.
+- Les providers sont localisés au plus proche de leur feature.
+- Les services externes (Supabase/API) sont encapsulés dans la couche `data/services`.
 
 ## Liens utiles
 
 - [README.md](README.md) - Vue globale du projet
-- [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) - Demarrage rapide
+- [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) - Démarrage rapide
 - [docs/SETUP.md](docs/SETUP.md) - Configuration production
