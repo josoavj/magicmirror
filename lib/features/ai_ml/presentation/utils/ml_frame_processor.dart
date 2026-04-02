@@ -28,7 +28,7 @@ class MlFrameProcessor {
       _skippedFrames++;
       if (_skippedFrames % 30 == 0) {
         logger.debug(
-          'Frames ignorees (traitement en cours): $_skippedFrames',
+          'Frames ignorées (traitement en cours): $_skippedFrames',
           tag: 'MlFrameProcessor',
         );
       }
@@ -50,7 +50,7 @@ class MlFrameProcessor {
       final inputImage = _convertCameraImageToInputImage(image);
       if (inputImage == null) {
         ref.read(mlRuntimeErrorProvider.notifier).state =
-            'Format camera incompatible avec ML Kit';
+            'Format caméra incompatible avec ML Kit';
         logger.warning(
           'Conversion InputImage échouée',
           tag: 'MlFrameProcessor',
@@ -60,12 +60,16 @@ class MlFrameProcessor {
 
       // Utilise le MorphologyNotifier pour traiter la frame
       final morphologyNotifier = ref.read(currentMorphologyProvider.notifier);
-      await morphologyNotifier.processFrame(inputImage);
+      await morphologyNotifier.processFrame(
+        inputImage,
+        frameWidth: image.width,
+        frameHeight: image.height,
+      );
       ref.read(mlRuntimeErrorProvider.notifier).state = null;
     } catch (e) {
       if (e.toString().contains('InputImageConverterError')) {
         ref.read(mlRuntimeErrorProvider.notifier).state =
-            'Format camera non supporte par ML Kit';
+            'Format caméra non supporté par ML Kit';
       } else {
         ref.read(mlRuntimeErrorProvider.notifier).state =
             'Erreur analyse ML: ${e.runtimeType}';
@@ -218,7 +222,7 @@ class MlFrameProcessor {
 
     if (image.planes.length < 3) {
       logger.warning(
-        'Format Android non supporte: ${image.planes.length} plans',
+        'Format Android non supporté: ${image.planes.length} plans',
         tag: 'MlFrameProcessor',
       );
       return null;
