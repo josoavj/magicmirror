@@ -6,60 +6,68 @@ class MirrorOverlay extends StatelessWidget {
   final String? morphologyType;
   final double? confidence;
   final Map<String, dynamic>? measurements;
+  final bool compact;
 
   const MirrorOverlay({
     super.key,
     this.morphologyType,
     this.confidence,
     this.measurements,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: 20,
-      left: 20,
-      right: 20,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Morphology Info
-          if (morphologyType != null)
-            Container(
-              padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-              decoration: BoxDecoration(
-                color: AppColors.mirrorOverlay,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    final infoPadding = compact
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+        : const EdgeInsets.all(AppDimensions.paddingMedium);
+    final titleSize = compact ? 13.0 : 16.0;
+    final confidenceSize = compact ? 11.0 : 14.0;
+    final spacing = compact ? 8.0 : 16.0;
+    final frameHeight = compact
+        ? AppDimensions.cameraFrameHeight * 0.46
+        : AppDimensions.cameraFrameHeight;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Morphology Info
+        if (morphologyType != null)
+          Container(
+            padding: infoPadding,
+            decoration: BoxDecoration(
+              color: AppColors.mirrorOverlay,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Morphologie: $morphologyType',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (confidence != null)
                   Text(
-                    'Morphologie: $morphologyType',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    'Confiance: ${(confidence! * 100).toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: confidenceSize,
                     ),
                   ),
-                  if (confidence != null)
-                    Text(
-                      'Confiance: ${(confidence! * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
+          ),
 
+        if (!compact) ...[
           // Measurement Grid Guide
-          const SizedBox(height: 16),
+          SizedBox(height: spacing),
           Container(
             width: double.infinity,
-            height: AppDimensions.cameraFrameHeight,
+            height: frameHeight,
             decoration: BoxDecoration(
               border: Border.all(
                 color: AppColors.cameraFrame.withValues(alpha: 0.3),
@@ -69,8 +77,7 @@ class MirrorOverlay extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }
-
