@@ -35,7 +35,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         email: email,
       );
       setState(() {
-        _message = 'Email de verification renvoye.';
+        _message = 'Email de vérification renvoyé.';
       });
     } on AuthException catch (e) {
       setState(() {
@@ -69,8 +69,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       }
       setState(() {
         _message = confirmed
-            ? 'Email verifie. Redirection en cours...'
-            : 'Email pas encore verifie.';
+            ? 'Email vérifié. Redirection en cours...'
+            : 'Email pas encore vérifié.';
       });
     } catch (_) {
       if (!mounted) {
@@ -114,7 +114,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Verification email requise',
+                      'Vérification email requise',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
@@ -124,7 +124,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Un email a ete envoye a: $email',
+                      'Un email a été envoyé à: $email',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.75),
@@ -147,7 +147,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     ElevatedButton.icon(
                       onPressed: _sending ? null : _refreshSession,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('J\'ai verifie, actualiser'),
+                      label: const Text('J\'ai vérifié, actualiser'),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
@@ -167,7 +167,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         await Supabase.instance.client.auth.signOut();
                       },
                       icon: const Icon(Icons.logout),
-                      label: const Text('Se deconnecter'),
+                      label: const Text('Se déconnecter'),
                     ),
                   ],
                 ),
