@@ -153,7 +153,7 @@ $ tail -f ~/.cache/magicmirror/logs/magicmirror_2026-03-05.log
 [2026-03-05 08:15:23.457] [INFO] [Config] Mode: Développement
 [2026-03-05 08:15:23.458] [INFO] [Calendrier] Agenda Supabase
 [2026-03-05 08:15:23.459] [INFO] [Features] AI: ON
-[2026-03-05 08:15:23.460] [INFO] [Features] Meteo: ON
+[2026-03-05 08:15:23.460] [INFO] [Features] Météo: ON
 [2026-03-05 08:15:23.461] [INFO] [Features] Tenues: ON
 [2026-03-05 08:15:23.462] [INFO] [MagicMirror] ========== OK ==========
 ```
