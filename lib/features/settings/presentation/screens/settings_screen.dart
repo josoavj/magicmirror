@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/services/tts_service.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 
@@ -14,7 +15,7 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Parametres'),
+        title: const Text('Paramètres'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -42,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsToggle(
                       icon: Icons.dark_mode,
                       label: 'Mode sombre',
-                      subtitle: 'Utiliser le theme sombre',
+                      subtitle: 'Utiliser le thème sombre',
                       value: settings.darkMode,
                       onChanged: (value) {
                         ref
@@ -58,7 +59,7 @@ class SettingsScreen extends ConsumerWidget {
                         const DropdownMenuItem(
                           value: 'fr_FR',
                           child: Text(
-                            'Francais',
+                            'Français',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -110,12 +111,174 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Localisation & Meteo',
+                  title: 'Voix (TTS)',
+                  children: [
+                    SettingsToggle(
+                      icon: Icons.record_voice_over,
+                      label: 'Annonces vocales',
+                      subtitle: 'Activer la synthèse vocale pour le miroir',
+                      value: settings.ttsEnabled,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setTtsEnabled(value);
+                      },
+                    ),
+                    SettingsDropdown<String>(
+                      icon: Icons.language,
+                      label: 'Langue de la voix',
+                      value: settings.ttsLanguage,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'fr-FR',
+                          child: Text(
+                            'Français (France)',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'en-US',
+                          child: Text(
+                            'English (US)',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setTtsLanguage(value);
+                        }
+                      },
+                    ),
+                    SettingsToggle(
+                      icon: Icons.accessibility_new,
+                      label: 'Inclure la morphologie détectée',
+                      subtitle:
+                          'Prononcer aussi le type de morphologie dans les annonces',
+                      value: settings.ttsAnnounceMorphology,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setTtsAnnounceMorphology(value);
+                      },
+                    ),
+                    SettingsSlider(
+                      icon: Icons.speed,
+                      label: 'Vitesse de lecture',
+                      value: settings.ttsSpeechRate,
+                      min: 0.25,
+                      max: 0.75,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setTtsSpeechRate(value);
+                      },
+                    ),
+                    SettingsSlider(
+                      icon: Icons.tune,
+                      label: 'Tonalité de la voix',
+                      value: settings.ttsPitch,
+                      min: 0.7,
+                      max: 1.4,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setTtsPitch(value);
+                      },
+                    ),
+                    SettingsDropdown<int>(
+                      icon: Icons.timer_off,
+                      label: 'Anti-répétition des annonces',
+                      value: settings.ttsMinRepeatSeconds,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 15,
+                          child: Text(
+                            '15 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 30,
+                          child: Text(
+                            '30 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 45,
+                          child: Text(
+                            '45 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 60,
+                          child: Text(
+                            '60 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 90,
+                          child: Text(
+                            '90 sec',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setTtsMinRepeatSeconds(value);
+                        }
+                      },
+                    ),
+                    SettingsToggle(
+                      icon: Icons.pause_circle_filled,
+                      label: 'Interrompre l\'annonce en cours',
+                      subtitle: 'Évite les annonces qui s\'empilent',
+                      value: settings.ttsInterruptCurrent,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setTtsInterruptCurrent(value);
+                      },
+                    ),
+                    SettingsButton(
+                      icon: Icons.play_arrow,
+                      label: 'Tester la voix',
+                      onPressed: () {
+                        final tts = ref.read(ttsServiceProvider);
+                        final testSpeech = settings.ttsLanguage.startsWith('en')
+                            ? 'Voice test. Your text to speech preferences are now applied.'
+                            : 'Test vocal. Vos préférences de synthèse vocale sont appliquées.';
+                        tts.speak(
+                          testSpeech,
+                          enabled:
+                              settings.enableAudioFeedback &&
+                              settings.ttsEnabled,
+                          interruptCurrent: settings.ttsInterruptCurrent,
+                          language: settings.ttsLanguage,
+                          speechRate: settings.ttsSpeechRate,
+                          pitch: settings.ttsPitch,
+                          minRepeatInterval: const Duration(seconds: 1),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                SettingsSection(
+                  title: 'Localisation & Météo',
                   children: [
                     SettingsToggle(
                       icon: Icons.location_on,
                       label: 'Suivi de localisation',
-                      subtitle: 'Utiliser votre position pour la meteo',
+                      subtitle: 'Utiliser votre position pour la météo',
                       value: settings.enableLocationTracking,
                       onChanged: (value) {
                         ref
@@ -125,7 +288,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsTextField(
                       icon: Icons.location_city,
-                      label: 'Ville par defaut',
+                      label: 'Ville par défaut',
                       initialValue: settings.defaultCity,
                       hint: 'Ex: Antananarivo',
                       onChanged: (value) {
@@ -142,7 +305,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     SettingsToggle(
                       icon: Icons.calendar_today,
-                      label: 'Agenda cloud au demarrage',
+                      label: 'Agenda cloud au démarrage',
                       subtitle:
                           'Synchroniser votre agenda Supabase au lancement',
                       value: settings.syncCalendarOnStartup,
@@ -156,12 +319,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Camera',
+                  title: 'Caméra',
                   children: [
                     SettingsToggle(
                       icon: Icons.flip,
-                      label: 'Inverser camera',
-                      subtitle: 'Retourner l\'affichage de la camera',
+                      label: 'Inverser caméra',
+                      subtitle: 'Retourner l\'affichage de la caméra',
                       value: settings.cameraFlipped,
                       onChanged: (value) {
                         ref
@@ -171,7 +334,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsSlider(
                       icon: Icons.zoom_in,
-                      label: 'Zoom camera',
+                      label: 'Zoom caméra',
                       value: settings.cameraZoom,
                       min: 0.5,
                       max: 3.0,
@@ -287,7 +450,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     SettingsActionTile(
                       icon: Icons.manage_accounts_outlined,
-                      label: 'Parametres du compte',
+                      label: 'Paramètres du compte',
                       iconColor: Colors.tealAccent,
                       onTap: () =>
                           Navigator.pushNamed(context, '/account-settings'),
@@ -337,19 +500,19 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Parametres Avancés',
+                  title: 'Paramètres avancés',
                   children: [
                     SettingsActionTile(
                       icon: Icons.restore,
-                      label: 'Reinitialiser par defaut',
+                      label: 'Réinitialiser par défaut',
                       iconColor: Colors.orangeAccent,
                       onTap: () {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Reinitialiser?'),
+                            title: const Text('Réinitialiser ?'),
                             content: const Text(
-                              'Cela va restaurer tous les parametres par defaut.',
+                              'Cela va restaurer tous les paramètres par défaut.',
                             ),
                             actions: [
                               TextButton(
@@ -364,11 +527,11 @@ class SettingsScreen extends ConsumerWidget {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Parametres reinitialises'),
+                                      content: Text('Paramètres réinitialisés'),
                                     ),
                                   );
                                 },
-                                child: const Text('Reinitialiser'),
+                                child: const Text('Réinitialiser'),
                               ),
                             ],
                           ),

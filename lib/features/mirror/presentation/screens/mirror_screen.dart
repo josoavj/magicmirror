@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
@@ -17,6 +18,47 @@ import '../../../outfit_suggestion/presentation/providers/outfit_provider.dart';
 import '../../../ai_ml/presentation/providers/ml_provider.dart';
 import '../../../ai_ml/data/models/morphology_model.dart';
 import '../../../agenda/presentation/widgets/agenda_hud_widget.dart';
+
+class _BodyTrackingFramePainter extends CustomPainter {
+  final Rect normalizedRect;
+
+  const _BodyTrackingFramePainter({required this.normalizedRect});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final safeLeft = normalizedRect.left.clamp(0.0, 1.0);
+    final safeTop = normalizedRect.top.clamp(0.0, 1.0);
+    final safeWidth = normalizedRect.width.clamp(0.05, 1.0);
+    final safeHeight = normalizedRect.height.clamp(0.05, 1.0);
+
+    final drawRect = Rect.fromLTWH(
+      safeLeft * size.width,
+      safeTop * size.height,
+      safeWidth * size.width,
+      safeHeight * size.height,
+    );
+
+    final border = Paint()
+      ..color = const Color(0xFF22C55E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    final glow = Paint()
+      ..color = const Color(0x8022C55E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    final rrect = RRect.fromRectAndRadius(drawRect, const Radius.circular(12));
+    canvas.drawRRect(rrect, glow);
+    canvas.drawRRect(rrect, border);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BodyTrackingFramePainter oldDelegate) {
+    return oldDelegate.normalizedRect != normalizedRect;
+  }
+}
 
 class MirrorScreen extends ConsumerWidget {
   const MirrorScreen({super.key});
@@ -56,11 +98,26 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   @override
   void initState() {
     super.initState();
+    unawaited(_enterMirrorImmersiveMode());
     _syncHudVisibility(force: true);
     _listenOutfitReadyForTts();
     _hudTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _syncHudVisibility();
     });
+  }
+
+  Future<void> _enterMirrorImmersiveMode() async {
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersiveSticky,
+      overlays: const [],
+    );
+  }
+
+  Future<void> _restoreSystemBars() async {
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
   }
 
   void _listenOutfitReadyForTts() {
@@ -85,24 +142,49 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         }
 
         _lastOutfitReadyTtsAt = now;
-        _announceOutfitReadyTts();
+        _announceOutfitReadyTts(next);
       },
     );
   }
 
-  Future<void> _announceOutfitReadyTts() async {
+  Future<void> _announceOutfitReadyTts(MorphologyData morphologyData) async {
+    final settings = ref.read(appSettingsProvider);
     final tts = ref.read(ttsServiceProvider);
     final suggestions = ref.read(suggestedOutfitsProvider);
+    final isEnglish = settings.ttsLanguage.startsWith('en');
+    final includeMorphology = settings.ttsAnnounceMorphology;
+    final morphologyMessage = includeMorphology
+        ? (isEnglish
+              ? 'Detected body type: ${morphologyData.bodyType}. '
+              : 'Morphologie détectée: ${morphologyData.bodyType}. ')
+        : '';
+
     if (suggestions.isNotEmpty) {
       final top = suggestions.first;
       await tts.speak(
-        'Corps complet detecte. Tenue recommandee: ${top.title}. ${top.reason}',
+        isEnglish
+            ? 'Full body detected. ${morphologyMessage}Recommended outfit: ${top.title}. ${top.reason}'
+            : 'Corps complet détecté. ${morphologyMessage}Tenue recommandée: ${top.title}. ${top.reason}',
+        enabled: settings.enableAudioFeedback && settings.ttsEnabled,
+        interruptCurrent: settings.ttsInterruptCurrent,
+        language: settings.ttsLanguage,
+        speechRate: settings.ttsSpeechRate,
+        pitch: settings.ttsPitch,
+        minRepeatInterval: Duration(seconds: settings.ttsMinRepeatSeconds),
       );
       return;
     }
 
     await tts.speak(
-      'Corps complet detecte. Vos suggestions de tenues sont pretes.',
+      isEnglish
+          ? 'Full body detected. ${morphologyMessage}Your outfit suggestions are ready.'
+          : 'Corps complet détecté. ${morphologyMessage}Vos suggestions de tenues sont prêtes.',
+      enabled: settings.enableAudioFeedback && settings.ttsEnabled,
+      interruptCurrent: settings.ttsInterruptCurrent,
+      language: settings.ttsLanguage,
+      speechRate: settings.ttsSpeechRate,
+      pitch: settings.ttsPitch,
+      minRepeatInterval: Duration(seconds: settings.ttsMinRepeatSeconds),
     );
   }
 
@@ -125,6 +207,29 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
           value.toString().replaceAll('%', '').replaceAll(',', '.').trim(),
         ) ??
         0;
+  }
+
+  Rect? _extractTrackingRect(MorphologyData? morphologyData) {
+    if (morphologyData == null) {
+      return null;
+    }
+
+    final measurements = morphologyData.measurements;
+    final left = _tryParseDouble(measurements['bbox_left_n']);
+    final top = _tryParseDouble(measurements['bbox_top_n']);
+    final width = _tryParseDouble(measurements['bbox_width_n']);
+    final height = _tryParseDouble(measurements['bbox_height_n']);
+
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return Rect.fromLTWH(
+      left.clamp(0.0, 1.0),
+      top.clamp(0.0, 1.0),
+      width.clamp(0.05, 1.0),
+      height.clamp(0.05, 1.0),
+    );
   }
 
   void _syncHudVisibility({bool force = false}) {
@@ -155,6 +260,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   void dispose() {
     _hudTimer?.cancel();
     _morphologySubscription?.close();
+    unawaited(_restoreSystemBars());
     _stopMlStream();
     super.dispose();
   }
@@ -206,7 +312,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       try {
         await controller.stopImageStream();
       } catch (_) {
-        // Le controller peut deja etre en cours de dispose; pas bloquant.
+        // Le contrôleur peut déjà être en cours de dispose; pas bloquant.
       }
     }
     _mlController = null;
@@ -306,6 +412,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     final morphologyData = morphology is MorphologyData ? morphology : null;
     final showOutfitReadyBadge =
         morphologyData != null && _isOutfitReadySignal(morphologyData);
+    final morphologyOverlayTop = topInset + 56;
+    final trackingRect = _extractTrackingRect(morphologyData);
 
     return Stack(
       fit: StackFit.expand,
@@ -350,6 +458,37 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             ),
           ),
 
+        if (trackingRect != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _BodyTrackingFramePainter(
+                  normalizedRect: trackingRect,
+                ),
+              ),
+            ),
+          ),
+
+        // Overlay morphologie compact sous le bouton paramètres
+        if (morphology != null)
+          Positioned(
+            top: morphologyOverlayTop,
+            right: rightInset,
+            child: SizedBox(
+              width: ResponsiveHelper.resp(context, mobile: 220, tablet: 260),
+              child: Transform.scale(
+                scale: 0.9,
+                alignment: Alignment.topRight,
+                child: MirrorOverlay(
+                  morphologyType: morphology.bodyType,
+                  confidence: morphology.confidence,
+                  measurements: morphology.measurements,
+                  compact: true,
+                ),
+              ),
+            ),
+          ),
+
         if (isMobile)
           Positioned(
             top: 14,
@@ -369,6 +508,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                     const WeatherWidget(),
                     const SizedBox(height: 10),
                     const AgendaHUDWidget(),
+                    const SizedBox(height: 10),
+                    const OutfitRecommendationWidget(enableTts: false),
                   ],
                 ),
               ),
@@ -387,8 +528,16 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
           Positioned(
             top: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
             left: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
-            width: 280,
-            child: const AgendaHUDWidget(),
+            width: 320,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AgendaHUDWidget(),
+                SizedBox(height: 12),
+                OutfitRecommendationWidget(enableTts: false),
+              ],
+            ),
           ),
         ],
 
@@ -423,28 +572,12 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             child: const WeatherWidget(),
           ),
 
-        // 4. Recommandations Tenues (Bas)
-        Positioned(
-          bottom: ResponsiveHelper.resp(context, mobile: 20, tablet: 50),
-          left: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
-          right: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
-          child: const OutfitRecommendationWidget(enableTts: false),
-        ),
-
         if (showOutfitReadyBadge)
           Positioned(
             bottom: ResponsiveHelper.resp(context, mobile: 108, tablet: 142),
             left: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
             right: ResponsiveHelper.resp(context, mobile: 15, tablet: 30),
             child: _buildOutfitReadyBadge(context),
-          ),
-
-        // Overlay Morphologie
-        if (morphology != null)
-          MirrorOverlay(
-            morphologyType: morphology.bodyType,
-            confidence: morphology.confidence,
-            measurements: morphology.measurements,
           ),
       ],
     );
@@ -507,7 +640,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
               Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 18),
               SizedBox(width: 8),
               Text(
-                'Corps complet detecte - Tenues pretes',
+                'Corps complet détecté - Tenues prêtes',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -527,7 +660,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     required bool isMlProcessing,
   }) {
     final statusText = !cameraReady
-        ? 'Camera inactive'
+        ? 'Caméra inactive'
         : isMlProcessing
         ? 'IA en analyse'
         : _mlStreamStarted

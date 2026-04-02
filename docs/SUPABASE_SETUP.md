@@ -20,7 +20,7 @@ OPENWEATHERMAP_API_KEY=YOUR_OPENWEATHERMAP_API_KEY
 
 Notes:
 - `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont obligatoires.
-- `OPENWEATHERMAP_API_KEY` est requis pour la meteo reelle.
+- `OPENWEATHERMAP_API_KEY` est requis pour la météo réelle.
 
 ## 2) SQL unique a executer (copier/coller dans SQL Editor)
 
@@ -44,7 +44,7 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
--- Migration defensive si la table existait deja
+-- Migration défensive si la table existait déjà
 alter table public.profiles add column if not exists birth_date date;
 alter table public.profiles add column if not exists favorite_outfit_ids text[] not null default '{}';
 alter table public.profiles alter column morphology set default 'Silhouette non definie';
@@ -177,15 +177,15 @@ with check (
 4. Upload avatar dans `storage.objects` bucket `avatars`, dossier par user id.
 5. Favoris tenues cloud dans `profiles.favorite_outfit_ids` + fallback local SharedPreferences.
 
-## 4) Verification rapide (checklist)
+## 4) Vérification rapide (checklist)
 
 1. Connexion avec un compte A.
-2. Modifier profil et verifier la persistence apres relance.
-3. Ajouter un evenement agenda, relancer app, verifier recuperation.
-4. Ajouter une tenue en favori, deconnecter/reconnecter compte A, verifier favoris.
-5. Changer de compte B, verifier que favoris/profil/agenda sont differents.
+2. Modifier profil et vérifier la persistance après relance.
+3. Ajouter un événement agenda, relancer app, vérifier récupération.
+4. Ajouter une tenue en favori, déconnecter/reconnecter compte A, vérifier favoris.
+5. Changer de compte B, vérifier que favoris/profil/agenda sont différents.
 
-## 5) Requetes de debug utiles
+## 5) Requêtes de debug utiles
 
 ```sql
 -- Voir profils
@@ -201,9 +201,9 @@ where user_id = 'YOUR_USER_UUID'
 order by start_time asc;
 ```
 
-## 6) Depannage erreur 42703
+## 6) Dépannage erreur 42703
 
-Si l'app affiche une erreur `42703`, cela signifie qu'une colonne referencee par le client n'existe pas encore en base.
+Si l'app affiche une erreur `42703`, cela signifie qu'une colonne référencée par le client n'existe pas encore en base.
 
 Pour le module favoris, executez cette migration minimale:
 
@@ -212,7 +212,7 @@ alter table public.profiles
   add column if not exists favorite_outfit_ids text[] not null default '{}';
 ```
 
-Verification immediate:
+Vérification immédiate:
 
 ```sql
 select column_name, data_type, is_nullable, column_default

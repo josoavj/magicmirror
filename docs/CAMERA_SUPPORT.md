@@ -109,7 +109,7 @@ cameraController = CameraController(
 ```
 
 ### Timeout et reprise caméra
-Le comportement de reprise/reinitialisation camera est gere dans:
+Le comportement de reprise/réinitialisation caméra est géré dans:
 - [`lib/features/mirror/presentation/providers/camera_provider.dart`](../lib/features/mirror/presentation/providers/camera_provider.dart)
 - [`lib/core/services/permission_service.dart`](../lib/core/services/permission_service.dart)
 

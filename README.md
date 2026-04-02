@@ -27,8 +27,8 @@
 | 🪞 **Miroir Caméra** | ✅ 100% | Caméra temps réel, détection morphologie, affichage full-screen |
 | 📅 **Agenda/Calendrier** | ✅ 100% | Agenda cloud Supabase lie au compte actif |
 | 🌦️ **Météo** | ✅ 100% | OpenWeatherMap API réelle + géolocalisation automatique |
-| 🤖 **Morphologie AI** | ✅ 100% | Google ML Kit pose detection + classification corps |
-| 👔 **Suggestions tenues** | ✅ 100% | Fitrée par morphologie + TTS français intégrée |
+| 🤖 **Morphologie AI** | ✅ 100% | Google ML Kit détection de pose + classification corps |
+| 👔 **Suggestions tenues** | ✅ 100% | Filtrée par morphologie + TTS français intégrée |
 | 🗣️ **Synthèse vocale** | ✅ 100% | FlutterTTS français pour recommandations |
 | 📱 **Responsive UI** | ✅ 100% | Glass morphism design, support multi-écran |
 
@@ -113,14 +113,14 @@ lib/
 │   ├── theme/
 │   └── utils/
 ├── features/
-│   ├── auth/                          # Connexion, verification email, reset
+│   ├── auth/                          # Connexion, vérification email, reset
 │   ├── user_profile/                  # Profil utilisateur + sync cloud
 │   ├── agenda/                        # Agenda Supabase (CRUD)
-│   ├── mirror/                        # Ecran miroir/camera principal
-│   ├── weather/                       # Meteo + providers/repositories
-│   ├── ai_ml/                         # Detection morphologie (ML Kit)
+│   ├── mirror/                        # Écran miroir/caméra principal
+│   ├── weather/                       # Météo + providers/repositories
+│   ├── ai_ml/                         # Détection morphologie (ML Kit)
 │   ├── outfit_suggestion/             # Suggestions de tenues
-│   └── settings/                      # Parametres app + compte
+│   └── settings/                      # Paramètres app + compte
 ├── presentation/
 │   ├── screens/
 │   │   └── about_screen.dart
@@ -177,7 +177,7 @@ lib/features/weather/data/services/weather_service.dart
 - `camera: ^0.12.0` - Accès caméra
 - `camera_linux: ^0.0.8` - Support Linux
 - `image: ^4.1.3` - Traitement images
-- `google_ml_kit: ^0.21.0` - ML Kit pour pose detection
+- `google_ml_kit: ^0.21.0` - ML Kit pour détection de pose
 
 ### Utils
 - `intl: ^0.20.2` - Localisation & internationalization

@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
@@ -121,28 +121,43 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       return;
     }
 
-    final cropped = await ImageCropper().cropImage(
-      sourcePath: picked.path,
-      compressQuality: 92,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Rogner la photo',
-          toolbarColor: const Color(0xFF0F172A),
-          toolbarWidgetColor: Colors.white,
-          backgroundColor: const Color(0xFF0F172A),
-          activeControlsWidgetColor: const Color(0xFF22D3EE),
-          hideBottomControls: false,
-          initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: true,
-        ),
-        IOSUiSettings(
-          title: 'Rogner la photo',
-          aspectRatioLockEnabled: true,
-          resetAspectRatioEnabled: false,
-        ),
-      ],
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: const [],
     );
+
+    CroppedFile? cropped;
+    try {
+      cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressQuality: 92,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Rogner la photo',
+            toolbarColor: const Color(0xFF0F172A),
+            toolbarWidgetColor: Colors.white,
+            statusBarLight: false,
+            navBarLight: false,
+            backgroundColor: const Color(0xFF0F172A),
+            activeControlsWidgetColor: const Color(0xFF22D3EE),
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Rogner la photo',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+    } finally {
+      await SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+    }
 
     if (cropped == null) {
       return;
@@ -193,7 +208,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         await notifier.syncToCloud();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Photo de profil mise a jour.')),
+            const SnackBar(content: Text('Photo de profil mise à jour.')),
           );
         }
       } else if (mounted) {
@@ -205,7 +220,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erreur lors de la mise a jour de la photo.'),
+            content: Text('Erreur lors de la mise à jour de la photo.'),
           ),
         );
       }
@@ -283,7 +298,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Chargement des donnees cloud...',
+                            'Chargement des données cloud...',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.92),
                               fontWeight: FontWeight.w600,
@@ -313,7 +328,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        isEmailVerified ? 'Email verifié' : 'Email non verifié',
+                        isEmailVerified ? 'Email vérifié' : 'Email non vérifié',
                         style: TextStyle(
                           color: isEmailVerified
                               ? Colors.greenAccent
@@ -363,7 +378,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                 : const Icon(Icons.crop),
                             label: Text(
                               _isAvatarUploading
-                                  ? 'Mise a jour photo...'
+                                  ? 'Mise à jour photo...'
                                   : 'Importer et rogner la photo',
                             ),
                           ),
@@ -405,7 +420,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           icon: Icons.photo,
                           label: 'Avatar (URL)',
                           value: profile.avatarUrl.isEmpty
-                              ? 'Non renseignee'
+                              ? 'Non renseignée'
                               : profile.avatarUrl,
                         ),
                       const SizedBox(height: 12),
@@ -470,7 +485,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Detection IA: ${detectedMorphology.bodyType}',
+                                'Détection IA: ${detectedMorphology.bodyType}',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontWeight: FontWeight.w500,
@@ -493,7 +508,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         )
                       else
                         Text(
-                          'Lancez la detection ML pour proposer une morphologie automatiquement.',
+                          'Lancez la détection ML pour proposer une morphologie automatiquement.',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 13,

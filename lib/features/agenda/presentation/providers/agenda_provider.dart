@@ -65,7 +65,7 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
       await refresh();
     } catch (e, st) {
       logger.error(
-        'Erreur creation evenement',
+        'Erreur création événement',
         tag: 'AgendaNotifier',
         error: e,
       );
@@ -79,7 +79,7 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
       await refresh();
     } catch (e, st) {
       logger.error(
-        'Erreur mise a jour evenement',
+        'Erreur mise à jour événement',
         tag: 'AgendaNotifier',
         error: e,
       );
@@ -93,7 +93,7 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
       await refresh();
     } catch (e, st) {
       logger.error(
-        'Erreur suppression evenement',
+        'Erreur suppression événement',
         tag: 'AgendaNotifier',
         error: e,
       );

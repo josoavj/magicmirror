@@ -52,7 +52,11 @@ class MorphologyService {
   }
 
   /// Traitement de l'image pour détecter la pose
-  Future<MorphologyData?> analyzePose(InputImage inputImage) async {
+  Future<MorphologyData?> analyzePose(
+    InputImage inputImage, {
+    required int frameWidth,
+    required int frameHeight,
+  }) async {
     if (!_isInitialized) {
       logger.warning('PoseDetector non init', tag: 'MorphologyService');
       return null;
@@ -70,7 +74,11 @@ class MorphologyService {
         return null;
       }
 
-      final morphology = _calculateMorphology(pose);
+      final morphology = _calculateMorphology(
+        pose,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
 
       // Stabilisation
       _frameCounter++;
@@ -179,7 +187,7 @@ class MorphologyService {
       _outlierLogCounter++;
       if (_outlierLogCounter % 20 == 0) {
         logger.debug(
-          'Ratio outlier detecte: $newRatio vs moyenne $mean (ecart: ${(newRatio - mean).abs()})',
+          'Ratio outlier détecté: $newRatio vs moyenne $mean (écart: ${(newRatio - mean).abs()})',
           tag: 'MorphologyService',
         );
       }
@@ -343,7 +351,11 @@ class MorphologyService {
   }
 
   /// Calcule la morphologie
-  MorphologyData _calculateMorphology(Pose pose) {
+  MorphologyData _calculateMorphology(
+    Pose pose, {
+    required int frameWidth,
+    required int frameHeight,
+  }) {
     try {
       final leftShoulder = pose.landmarks[PoseLandmarkType.leftShoulder];
       final rightShoulder = pose.landmarks[PoseLandmarkType.rightShoulder];
@@ -359,7 +371,7 @@ class MorphologyService {
           leftHip == null ||
           rightHip == null) {
         return MorphologyData(
-          bodyType: 'Non detectee',
+          bodyType: 'Non détectée',
           confidence: 0,
           measurements: {},
           detectedAt: DateTime.now(),
@@ -394,6 +406,11 @@ class MorphologyService {
       final heightEstimate = _calculateHeightEstimate(pose);
       final symmetryScore = _calculateSymmetryScore(pose);
       final poseQuality = _calculatePoseQuality(pose);
+      final trackingBox = _computeBodyTrackingBox(
+        pose,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
 
       return MorphologyData(
         bodyType: bodyType,
@@ -408,6 +425,10 @@ class MorphologyService {
           'height_estimate': heightEstimate.toStringAsFixed(0),
           'symmetry_score': symmetryScore.toStringAsFixed(1),
           'pose_quality': '$poseQuality%',
+          'bbox_left_n': trackingBox.$1.toStringAsFixed(4),
+          'bbox_top_n': trackingBox.$2.toStringAsFixed(4),
+          'bbox_width_n': trackingBox.$3.toStringAsFixed(4),
+          'bbox_height_n': trackingBox.$4.toStringAsFixed(4),
         },
         detectedAt: DateTime.now(),
       );
@@ -424,6 +445,45 @@ class MorphologyService {
         detectedAt: DateTime.now(),
       );
     }
+  }
+
+  (double, double, double, double) _computeBodyTrackingBox(
+    Pose pose, {
+    required int frameWidth,
+    required int frameHeight,
+  }) {
+    final points = pose.landmarks.values
+        .where((lm) => lm.x.isFinite && lm.y.isFinite)
+        .toList();
+
+    if (points.isEmpty || frameWidth <= 0 || frameHeight <= 0) {
+      return (0.15, 0.10, 0.70, 0.80);
+    }
+
+    var minX = points.first.x;
+    var minY = points.first.y;
+    var maxX = points.first.x;
+    var maxY = points.first.y;
+
+    for (final point in points.skip(1)) {
+      if (point.x < minX) minX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y > maxY) maxY = point.y;
+    }
+
+    final padX = (maxX - minX).abs() * 0.18;
+    final padY = (maxY - minY).abs() * 0.20;
+    minX = (minX - padX).clamp(0, frameWidth.toDouble());
+    minY = (minY - padY).clamp(0, frameHeight.toDouble());
+    maxX = (maxX + padX).clamp(0, frameWidth.toDouble());
+    maxY = (maxY + padY).clamp(0, frameHeight.toDouble());
+
+    final left = (minX / frameWidth).clamp(0.0, 1.0);
+    final top = (minY / frameHeight).clamp(0.0, 1.0);
+    final width = ((maxX - minX) / frameWidth).clamp(0.05, 1.0);
+    final height = ((maxY - minY) / frameHeight).clamp(0.05, 1.0);
+    return (left, top, width, height);
   }
 
   MorphologyData? getLastMorphology() => _lastMorphology;

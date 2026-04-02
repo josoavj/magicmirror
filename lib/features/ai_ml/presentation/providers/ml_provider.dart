@@ -42,9 +42,17 @@ class MorphologyNotifier extends StateNotifier<MorphologyData?> {
   MorphologyNotifier(this._service) : super(null);
 
   /// Traite une image et met à jour la morphologie
-  Future<void> processFrame(InputImage inputImage) async {
+  Future<void> processFrame(
+    InputImage inputImage, {
+    required int frameWidth,
+    required int frameHeight,
+  }) async {
     try {
-      final morphology = await _service.analyzePose(inputImage);
+      final morphology = await _service.analyzePose(
+        inputImage,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
       if (morphology != null) {
         state = morphology;
         final now = DateTime.now();
@@ -58,7 +66,7 @@ class MorphologyNotifier extends StateNotifier<MorphologyData?> {
 
         if (bodyTypeChanged || confidenceDelta >= 5 || enoughTimePassed) {
           logger.debug(
-            'Morphologie mise a jour: ${morphology.bodyType} (${morphology.confidence.toStringAsFixed(1)}%)',
+            'Morphologie mise à jour: ${morphology.bodyType} (${morphology.confidence.toStringAsFixed(1)}%)',
             tag: 'MorphologyNotifier',
           );
           _lastDebugLogAt = now;

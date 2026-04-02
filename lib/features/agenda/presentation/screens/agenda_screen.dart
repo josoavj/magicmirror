@@ -105,8 +105,8 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
             return AlertDialog(
               title: Text(
                 editingEvent == null
-                    ? 'Nouvel evenement'
-                    : 'Modifier evenement',
+                    ? 'Nouvel évènement'
+                    : 'Modifier évènement',
               ),
               content: Form(
                 key: formKey,
@@ -164,7 +164,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                               onPressed: () => pickDateTime(forStart: true),
                               icon: const Icon(Icons.schedule),
                               label: Text(
-                                'Debut\n${startTime.day.toString().padLeft(2, '0')}/${startTime.month.toString().padLeft(2, '0')} ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+                                'Début\n${startTime.day.toString().padLeft(2, '0')}/${startTime.month.toString().padLeft(2, '0')} ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
                               ),
                             ),
                           ),
@@ -197,7 +197,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                     if (!endTime.isAfter(startTime)) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         const SnackBar(
-                          content: Text('La fin doit etre apres le debut.'),
+                          content: Text('La fin doit être après le début.'),
                         ),
                       );
                       return;

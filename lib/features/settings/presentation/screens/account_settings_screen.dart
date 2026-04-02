@@ -73,7 +73,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Profil mis a jour.')));
+      ).showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));
     } finally {
       if (mounted) {
         setState(() {
@@ -138,7 +138,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           return;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Echec de mise a jour de la photo.')),
+          const SnackBar(content: Text('Échec de mise à jour de la photo.')),
         );
         return;
       }
@@ -150,7 +150,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo de profil mise a jour.')),
+        const SnackBar(content: Text('Photo de profil mise à jour.')),
       );
     } catch (_) {
       if (!mounted) {
@@ -248,7 +248,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           if (password.length < 6) {
                             setLocalState(() {
                               localError =
-                                  'Le mot de passe doit contenir au moins 6 caracteres.';
+                                  'Le mot de passe doit contenir au moins 6 caractères.';
                             });
                             return;
                           }
@@ -275,7 +275,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             navigator.pop();
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('Mot de passe mis a jour.'),
+                                content: Text('Mot de passe mis à jour.'),
                               ),
                             );
                           } on AuthException catch (e) {
@@ -324,7 +324,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Parametres du compte'),
+        title: const Text('Paramètres du compte'),
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
@@ -514,7 +514,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             navigator.pop();
                           },
                           icon: const Icon(Icons.logout),
-                          label: const Text('Se deconnecter'),
+                          label: const Text('Se déconnecter'),
                         ),
                       ),
                     ],
@@ -540,7 +540,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Chargement des donnees cloud...',
+                                'Chargement des données cloud...',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontWeight: FontWeight.w600,
