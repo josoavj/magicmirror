@@ -28,7 +28,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _error = '6 caracteres minimum.';
+        _error = '6 caractères minimum.';
       });
       return;
     }
@@ -50,7 +50,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         UserAttributes(password: password),
       );
       setState(() {
-        _message = 'Mot de passe mis a jour. Vous pouvez continuer.';
+        _message = 'Mot de passe mis à jour. Vous pouvez continuer.';
       });
     } on AuthException catch (e) {
       setState(() {
@@ -58,7 +58,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Erreur lors de la mise a jour du mot de passe.';
+        _error = 'Erreur lors de la mise à jour du mot de passe.';
       });
     } finally {
       if (mounted) {
@@ -158,7 +158,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Mettre a jour'),
+                                    : const Text('Mettre à jour'),
                               ),
                             ],
                           ),
