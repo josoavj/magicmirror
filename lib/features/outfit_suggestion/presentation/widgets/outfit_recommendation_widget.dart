@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/utils/responsive_helper.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:magicmirror/core/services/tts_service.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../providers/outfit_provider.dart';
 import '../../data/models/outfit_model.dart';
 
@@ -14,6 +15,7 @@ class OutfitRecommendationWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suggestedOutfits = ref.watch(suggestedOutfitsProvider);
+    final settings = ref.watch(appSettingsProvider);
 
     // Écouter les changements pour déclencher la synthèse vocale
     if (enableTts) {
@@ -27,9 +29,19 @@ class OutfitRecommendationWidget extends ConsumerWidget {
                 next.first.id != previous.first.id)) {
           final outfit = next.first;
           final tts = ref.read(ttsServiceProvider);
-          final speech =
-              "Voici une suggestion pour vous : ${outfit.title}. ${outfit.reason}. Je vous conseille de porter : ${outfit.items.join(', ')}.";
-          tts.speak(speech);
+          final isEnglish = settings.ttsLanguage.startsWith('en');
+          final speech = isEnglish
+              ? "Here is a suggestion for you: ${outfit.title}. ${outfit.reason}. I suggest wearing: ${outfit.items.join(', ')}."
+              : "Voici une suggestion pour vous : ${outfit.title}. ${outfit.reason}. Je vous conseille de porter : ${outfit.items.join(', ')}.";
+          tts.speak(
+            speech,
+            enabled: settings.enableAudioFeedback && settings.ttsEnabled,
+            interruptCurrent: settings.ttsInterruptCurrent,
+            language: settings.ttsLanguage,
+            speechRate: settings.ttsSpeechRate,
+            pitch: settings.ttsPitch,
+            minRepeatInterval: Duration(seconds: settings.ttsMinRepeatSeconds),
+          );
         }
       });
     }
