@@ -8,10 +8,11 @@ class AboutScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('À propos'),
+        title: Text(isEnglish ? 'About' : 'A propos'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -37,27 +38,27 @@ class AboutScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Logo & Titre
-                  _buildHeader(),
+                  _buildHeader(isEnglish),
 
                   const SizedBox(height: 32),
 
                   // Description Générale
-                  _buildAboutCard(),
+                  _buildAboutCard(isEnglish),
 
                   const SizedBox(height: 24),
 
                   // Fonctionnalités
-                  _buildFeaturesSection(),
+                  _buildFeaturesSection(isEnglish),
 
                   const SizedBox(height: 24),
 
                   // Informations Techniques
-                  _buildTechnicalInfo(),
+                  _buildTechnicalInfo(isEnglish),
 
                   const SizedBox(height: 24),
 
                   // Développeur
-                  _buildDeveloperSection(),
+                  _buildDeveloperSection(isEnglish),
 
                   const SizedBox(height: 32),
                 ],
@@ -69,7 +70,7 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isEnglish) {
     return Column(
       children: [
         Container(
@@ -134,7 +135,7 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAboutCard() {
+  Widget _buildAboutCard(bool isEnglish) {
     return GlassContainer(
       borderRadius: 24,
       blur: 30,
@@ -144,7 +145,7 @@ class AboutScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'À propos de l\'application',
+            isEnglish ? 'About The App' : 'A propos de l\'application',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -154,7 +155,9 @@ class AboutScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec capacités d\'intelligence artificielle avancées.',
+            isEnglish
+                ? 'Magic Mirror is a complete smart app that turns your screen into a sophisticated mirror with advanced AI capabilities.'
+                : 'Magic Mirror est une application intelligente complete qui transforme votre ecran en miroir sophistique avec des capacites d\'intelligence artificielle avancees.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.8),
               fontSize: 16,
@@ -164,7 +167,9 @@ class AboutScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Combinant technologie de pointe, design épuré et fonctionnalités pratiques pour une expérience utilisateur exceptionnelle.',
+            isEnglish
+                ? 'It combines cutting-edge technology, clean design, and practical features for an exceptional user experience.'
+                : 'Combinant technologie de pointe, design epure et fonctionnalites pratiques pour une experience utilisateur exceptionnelle.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 14,
@@ -177,37 +182,49 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFeaturesSection() {
+  Widget _buildFeaturesSection(bool isEnglish) {
     final features = [
       {
         'icon': '🪞',
-        'title': 'Miroir Intelligent',
-        'description': 'Caméra temps réel avec affichage full-screen',
+        'title': isEnglish ? 'Smart Mirror' : 'Miroir Intelligent',
+        'description': isEnglish
+            ? 'Real-time camera with full-screen display'
+            : 'Camera temps reel avec affichage plein ecran',
       },
       {
         'icon': '🤖',
-        'title': 'Morphologie AI',
-        'description': 'Détection pose et classification morphologie',
+        'title': isEnglish ? 'Body Type AI' : 'Morphologie AI',
+        'description': isEnglish
+            ? 'Pose detection and body type classification'
+            : 'Detection de pose et classification de morphologie',
       },
       {
         'icon': '👔',
-        'title': 'Suggestions Tenue',
-        'description': 'Recommandations personnalisées par morphologie',
+        'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions Tenue',
+        'description': isEnglish
+            ? 'Personalized recommendations by body type'
+            : 'Recommandations personnalisees par morphologie',
       },
       {
         'icon': '📅',
-        'title': 'Synchronisation Calendrier',
-        'description': 'Agenda cloud Supabase lie au compte actif',
+        'title': isEnglish ? 'Calendar Sync' : 'Synchronisation Calendrier',
+        'description': isEnglish
+            ? 'Supabase cloud agenda linked to active account'
+            : 'Agenda cloud Supabase lie au compte actif',
       },
       {
         'icon': '🌦️',
-        'title': 'Météo en Temps Réel',
-        'description': 'API OpenWeatherMap avec géolocalisation',
+        'title': isEnglish ? 'Live Weather' : 'Meteo en Temps Reel',
+        'description': isEnglish
+            ? 'OpenWeatherMap API with geolocation'
+            : 'API OpenWeatherMap avec geolocalisation',
       },
       {
         'icon': '🗣️',
-        'title': 'Synthèse Vocale',
-        'description': 'TTS français pour tous les contenus',
+        'title': isEnglish ? 'Text To Speech' : 'Synthese Vocale',
+        'description': isEnglish
+            ? 'TTS support for spoken guidance'
+            : 'Synthese vocale pour tous les contenus',
       },
     ];
 
@@ -215,7 +232,7 @@ class AboutScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Fonctionnalités',
+          isEnglish ? 'Features' : 'Fonctionnalites',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -271,14 +288,14 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTechnicalInfo() {
+  Widget _buildTechnicalInfo(bool isEnglish) {
     final techStack = [
       {'title': 'Framework', 'value': 'Flutter 3.1.0+'},
-      {'title': 'Langage', 'value': 'Dart 3.1.0+'},
-      {'title': 'État', 'value': 'Riverpod 3.2.1'},
+      {'title': isEnglish ? 'Language' : 'Langage', 'value': 'Dart 3.1.0+'},
+      {'title': isEnglish ? 'State' : 'Etat', 'value': 'Riverpod 3.2.1'},
       {'title': 'ML', 'value': 'Google ML Kit 0.21.0'},
       {'title': 'API', 'value': 'OpenWeatherMap + Supabase'},
-      {'title': 'Status', 'value': '✅ Stable'},
+      {'title': isEnglish ? 'Status' : 'Statut', 'value': '✅ Stable'},
     ];
 
     return GlassContainer(
@@ -290,7 +307,7 @@ class AboutScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Stack Technique',
+            isEnglish ? 'Technical Stack' : 'Stack Technique',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -339,7 +356,7 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDeveloperSection() {
+  Widget _buildDeveloperSection(bool isEnglish) {
     return GlassContainer(
       borderRadius: 24,
       blur: 30,
@@ -349,7 +366,7 @@ class AboutScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'À propos du développeur',
+            isEnglish ? 'About The Developer' : 'A propos du developpeur',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -384,7 +401,7 @@ class AboutScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Développé par',
+                      'Developed by',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -417,7 +434,9 @@ class AboutScreen extends ConsumerWidget {
           Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
           const SizedBox(height: 16),
           Text(
-            'Passionné par Flutter, et la création d\'expériences utilisateur innovantes.',
+            isEnglish
+                ? 'Passionate about Flutter and creating innovative user experiences.'
+                : 'Passionne par Flutter et la creation d\'experiences utilisateur innovantes.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
@@ -430,13 +449,13 @@ class AboutScreen extends ConsumerWidget {
             runSpacing: 8,
             children: [
               _buildSocialButton(
-                'GitHub Profil',
+                isEnglish ? 'GitHub Profile' : 'Profil GitHub',
                 Icons.code,
                 Colors.grey,
                 'https://github.com/josoavj',
               ),
               _buildSocialButton(
-                'Repo MagicMirror',
+                isEnglish ? 'MagicMirror Repo' : 'Depot MagicMirror',
                 Icons.source,
                 Colors.lightBlueAccent,
                 'https://github.com/josoavj/magicmirror',
