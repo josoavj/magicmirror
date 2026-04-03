@@ -1,0 +1,111 @@
+{
+  "@@locale": "en",
+  "appTitle": "Magic Mirror iOS 26",
+  "settingsTitle": "Settings",
+  "displaySection": "Display",
+  "darkModeLabel": "Dark mode",
+  "darkModeSubtitle": "Use dark theme",
+  "languageLabel": "Language",
+  "notificationsSoundSection": "Notifications & Sound",
+  "notificationsLabel": "Notifications",
+  "notificationsSubtitle": "Receive notifications",
+  "audioFeedbackLabel": "Audio feedback",
+  "audioFeedbackSubtitle": "Sounds and vibrations",
+  "ttsSection": "Voice (TTS)",
+  "ttsEnabledLabel": "Voice announcements",
+  "ttsEnabledSubtitle": "Enable speech synthesis for mirror",
+  "ttsLanguageLabel": "Voice language",
+  "ttsMorphologyLabel": "Include detected body type",
+  "ttsMorphologySubtitle": "Also speak detected body type in announcements",
+  "ttsSpeechRateLabel": "Speech rate",
+  "ttsPitchLabel": "Voice pitch",
+  "ttsRepeatLabel": "Announcement anti-repeat",
+  "ttsInterruptLabel": "Interrupt current announcement",
+  "ttsInterruptSubtitle": "Avoid stacked announcements",
+  "ttsTestButton": "Test voice",
+  "ttsTestSpeechFr": "Test vocal. Vos préférences de synthèse vocale sont appliquées.",
+  "ttsTestSpeechEn": "Voice test. Your text to speech preferences are now applied.",
+  "locationWeatherSection": "Location & Weather",
+  "locationTrackingLabel": "Location tracking",
+  "locationTrackingSubtitle": "Use your position for weather",
+  "defaultCityLabel": "Default city",
+  "defaultCityHint": "E.g. Antananarivo",
+  "calendarSection": "Calendar",
+  "calendarSyncLabel": "Cloud agenda on startup",
+  "calendarSyncSubtitle": "Sync your Supabase calendar at launch",
+  "cameraSection": "Camera",
+  "cameraFlipLabel": "Flip camera",
+  "cameraFlipSubtitle": "Mirror camera preview",
+  "flashModeLabel": "Flash mode",
+  "flashOff": "Off",
+  "flashAuto": "Auto",
+  "flashAlways": "On",
+  "flashTorch": "Torch",
+  "compatibilityLabel": "Compatibility",
+  "cameraControlInfo": "Zoom and exposure are now controlled directly in camera with an animated UI.",
+  "mirrorHudVisibleLabel": "Mirror HUD visible",
+  "mirrorHudEveryLabel": "Mirror HUD every",
+  "accountSection": "Account",
+  "accountSettingsLabel": "Account settings",
+  "informationSection": "Information",
+  "versionLabel": "Version",
+  "appVersionDialogTitle": "App version",
+  "appVersionDialogBody": "Magic Mirror {version}\\n\\nYou can check details in the About page.",
+  "@appVersionDialogBody": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "closeButton": "Close",
+  "seeAboutButton": "View About",
+  "aboutLabel": "About",
+  "advancedSection": "Advanced settings",
+  "resetDefaultsLabel": "Reset defaults",
+  "resetDialogTitle": "Reset?",
+  "resetDialogBody": "This will restore all settings to defaults.",
+  "cancelButton": "Cancel",
+  "resetButton": "Reset",
+  "settingsResetToast": "Settings reset",
+  "secondsShort": "sec",
+  "minuteSingular": "minute",
+  "minutePlural": "minutes",
+  "runtimeCameraInactive": "Camera inactive",
+  "runtimeAiAnalyzing": "AI analyzing",
+  "runtimeAiActive": "AI active",
+  "runtimeAiWaiting": "AI waiting",
+  "unsupportedSettings": "Unsupported settings: {items}",
+  "@unsupportedSettings": {
+    "placeholders": {
+      "items": {}
+    }
+  },
+  "unsupportedZoom": "zoom",
+  "unsupportedExposure": "exposure",
+  "unsupportedFlash": "flash",
+  "cameraControlsTooltip": "Camera controls",
+  "cameraExposureTooltip": "Exposure",
+  "quickSettingsTooltip": "Camera and HUD settings",
+  "outfitReadyBadge": "Full body detected - Outfits ready",
+  "cameraResetBadge": "Camera reset",
+  "fullBodyDetectedWithOutfit": "Full body detected. {morphology}Recommended outfit: {title}. {reason}",
+  "@fullBodyDetectedWithOutfit": {
+    "placeholders": {
+      "morphology": {},
+      "title": {},
+      "reason": {}
+    }
+  },
+  "fullBodyDetectedWithoutOutfit": "Full body detected. {morphology}Your outfit suggestions are ready.",
+  "@fullBodyDetectedWithoutOutfit": {
+    "placeholders": {
+      "morphology": {}
+    }
+  },
+  "detectedBodyType": "Detected body type: {bodyType}. ",
+  "@detectedBodyType": {
+    "placeholders": {
+      "bodyType": {}
+    }
+  },
+  "supabaseNotConfigured": "Supabase not configured in assets/.env"
+}
