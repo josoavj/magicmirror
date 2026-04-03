@@ -23,6 +23,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isUploadingAvatar = false;
   bool _isSavingProfile = false;
 
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
+  }
+
   void _applyProfileToControllers(UserProfile profile) {
     _displayNameController.text = profile.displayName;
     _avatarUrlController.text = profile.avatarUrl;
@@ -71,9 +75,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_tr(context, 'Profil mis a jour.', 'Profile updated.')),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -138,7 +144,15 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           return;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Échec de mise à jour de la photo.')),
+          SnackBar(
+            content: Text(
+              _tr(
+                context,
+                'Echec de mise a jour de la photo.',
+                'Failed to update profile photo.',
+              ),
+            ),
+          ),
         );
         return;
       }
@@ -150,14 +164,30 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo de profil mise à jour.')),
+        SnackBar(
+          content: Text(
+            _tr(
+              context,
+              'Photo de profil mise a jour.',
+              'Profile photo updated.',
+            ),
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible d\'importer la photo.')),
+        SnackBar(
+          content: Text(
+            _tr(
+              context,
+              'Impossible d\'importer la photo.',
+              'Unable to import photo.',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -182,7 +212,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         return StatefulBuilder(
           builder: (_, setLocalState) {
             return AlertDialog(
-              title: const Text('Changer le mot de passe'),
+              title: Text(
+                _tr(context, 'Changer le mot de passe', 'Change password'),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -190,7 +222,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     controller: newPasswordController,
                     obscureText: !showNew,
                     decoration: InputDecoration(
-                      labelText: 'Nouveau mot de passe',
+                      labelText: _tr(
+                        context,
+                        'Nouveau mot de passe',
+                        'New password',
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setLocalState(() {
@@ -208,7 +244,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     controller: confirmController,
                     obscureText: !showConfirm,
                     decoration: InputDecoration(
-                      labelText: 'Confirmer le mot de passe',
+                      labelText: _tr(
+                        context,
+                        'Confirmer le mot de passe',
+                        'Confirm password',
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setLocalState(() {
@@ -235,7 +275,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   onPressed: isSaving
                       ? null
                       : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Annuler'),
+                  child: Text(_tr(context, 'Annuler', 'Cancel')),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
@@ -247,15 +287,21 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           final confirm = confirmController.text;
                           if (password.length < 6) {
                             setLocalState(() {
-                              localError =
-                                  'Le mot de passe doit contenir au moins 6 caractères.';
+                              localError = _tr(
+                                context,
+                                'Le mot de passe doit contenir au moins 6 caracteres.',
+                                'Password must be at least 6 characters.',
+                              );
                             });
                             return;
                           }
                           if (password != confirm) {
                             setLocalState(() {
-                              localError =
-                                  'La confirmation du mot de passe ne correspond pas.';
+                              localError = _tr(
+                                context,
+                                'La confirmation du mot de passe ne correspond pas.',
+                                'Password confirmation does not match.',
+                              );
                             });
                             return;
                           }
@@ -274,8 +320,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             }
                             navigator.pop();
                             messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Mot de passe mis à jour.'),
+                              SnackBar(
+                                content: Text(
+                                  _tr(
+                                    context,
+                                    'Mot de passe mis a jour.',
+                                    'Password updated.',
+                                  ),
+                                ),
                               ),
                             );
                           } on AuthException catch (e) {
@@ -285,8 +337,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             });
                           } catch (_) {
                             setLocalState(() {
-                              localError =
-                                  'Impossible de changer le mot de passe.';
+                              localError = _tr(
+                                context,
+                                'Impossible de changer le mot de passe.',
+                                'Unable to change password.',
+                              );
                               isSaving = false;
                             });
                           }
@@ -297,7 +352,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Enregistrer'),
+                      : Text(_tr(context, 'Enregistrer', 'Save')),
                 ),
               ],
             );
@@ -312,6 +367,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final profile = ref.watch(userProfileProvider);
     final activeUser = Supabase.instance.client.auth.currentUser;
     final syncStatus = ref.watch(profileSyncStatusProvider);
@@ -324,7 +380,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Paramètres du compte'),
+        title: Text(isEnglish ? 'Account Settings' : 'Parametres du compte'),
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
@@ -352,8 +408,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Compte actif',
+                        Text(
+                          _tr(context, 'Compte actif', 'Active account'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -362,7 +418,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Email: ${activeUser?.email ?? 'Non connecte'}',
+                          '${_tr(context, 'Email', 'Email')}: ${activeUser?.email ?? _tr(context, 'Non connecte', 'Not connected')}',
                           style: const TextStyle(color: Colors.white),
                         ),
                         const SizedBox(height: 6),
@@ -385,8 +441,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Informations',
+                      Text(
+                        _tr(context, 'Informations', 'Information'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -433,8 +489,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                   : const Icon(Icons.add_a_photo_outlined),
                               label: Text(
                                 _isUploadingAvatar
-                                    ? 'Import en cours...'
-                                    : 'Changer la photo',
+                                    ? _tr(
+                                        context,
+                                        'Import en cours...',
+                                        'Uploading...',
+                                      )
+                                    : _tr(
+                                        context,
+                                        'Changer la photo',
+                                        'Change photo',
+                                      ),
                               ),
                             ),
                           ),
@@ -444,13 +508,17 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       TextField(
                         controller: _displayNameController,
                         style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Nom affiche'),
+                        decoration: _inputDecoration(
+                          _tr(context, 'Nom affiche', 'Display name'),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _avatarUrlController,
                         style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Photo (URL)'),
+                        decoration: _inputDecoration(
+                          _tr(context, 'Photo (URL)', 'Photo (URL)'),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
@@ -469,7 +537,13 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                   ),
                                 )
                               : const Icon(Icons.save_outlined),
-                          label: const Text('Enregistrer les modifications'),
+                          label: Text(
+                            _tr(
+                              context,
+                              'Enregistrer les modifications',
+                              'Save changes',
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -484,8 +558,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Securite',
+                      Text(
+                        _tr(context, 'Securite', 'Security'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -498,7 +572,13 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         child: OutlinedButton.icon(
                           onPressed: _showChangePasswordDialog,
                           icon: const Icon(Icons.lock_outline),
-                          label: const Text('Changer le mot de passe'),
+                          label: Text(
+                            _tr(
+                              context,
+                              'Changer le mot de passe',
+                              'Change password',
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -514,7 +594,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             navigator.pop();
                           },
                           icon: const Icon(Icons.logout),
-                          label: const Text('Se déconnecter'),
+                          label: Text(
+                            _tr(context, 'Se deconnecter', 'Sign out'),
+                          ),
                         ),
                       ),
                     ],
@@ -540,7 +622,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Chargement des données cloud...',
+                                _tr(
+                                  context,
+                                  'Chargement des donnees cloud...',
+                                  'Loading cloud data...',
+                                ),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontWeight: FontWeight.w600,
@@ -551,8 +637,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         ),
                         const SizedBox(height: 10),
                       ],
-                      const Text(
-                        'Synchronisation cloud',
+                      Text(
+                        _tr(context, 'Synchronisation cloud', 'Cloud sync'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -570,7 +656,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                     .syncToCloud();
                               },
                               icon: const Icon(Icons.cloud_upload),
-                              label: const Text('Sauvegarder'),
+                              label: Text(_tr(context, 'Sauvegarder', 'Save')),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -580,7 +666,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 await _refreshProfileFromCloud();
                               },
                               icon: const Icon(Icons.cloud_download),
-                              label: const Text('Synchroniser'),
+                              label: Text(_tr(context, 'Synchroniser', 'Sync')),
                             ),
                           ),
                         ],
@@ -595,7 +681,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Derniere synchronisation: ${_formatLastSync(lastSyncAt)}',
+                        '${_tr(context, 'Derniere synchronisation', 'Last sync')}: ${_formatLastSync(lastSyncAt, context)}',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.72),
                           fontSize: 12,
@@ -626,9 +712,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     }
   }
 
-  String _formatLastSync(DateTime? dateTime) {
+  String _formatLastSync(DateTime? dateTime, BuildContext context) {
     if (dateTime == null) {
-      return 'Jamais';
+      return _tr(context, 'Jamais', 'Never');
     }
     final local = dateTime.toLocal();
     final dd = local.day.toString().padLeft(2, '0');
@@ -636,7 +722,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     final yyyy = local.year.toString();
     final hh = local.hour.toString().padLeft(2, '0');
     final min = local.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy a $hh:$min';
+    return '$dd/$mm/$yyyy ${_tr(context, 'a', 'at')} $hh:$min';
   }
 
   InputDecoration _inputDecoration(String label) {

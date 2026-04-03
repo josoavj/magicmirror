@@ -16,6 +16,10 @@ class UserProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
+  }
+
   static const List<String> _genders = ['Femme', 'Homme', 'Non précise'];
 
   static const List<String> _morphologies = [
@@ -248,19 +252,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final profile = ref.watch(userProfileProvider);
     final detectedMorphology = ref.watch(currentMorphologyProvider);
     final syncStatus = ref.watch(profileSyncStatusProvider);
     final syncMessage = ref.watch(profileSyncMessageProvider);
     final lastSyncAt = ref.watch(profileLastSyncAtProvider);
     final activeUser = Supabase.instance.client.auth.currentUser;
-    final activeEmail = activeUser?.email ?? 'Non connecté';
+    final activeEmail =
+        activeUser?.email ?? _tr(context, 'Non connecte', 'Not connected');
     final isEmailVerified = activeUser?.emailConfirmedAt != null;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Profil utilisateur'),
+        title: Text(isEnglish ? 'User Profile' : 'Profil utilisateur'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -298,7 +304,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Chargement des données cloud...',
+                            _tr(
+                              context,
+                              'Chargement des donnees cloud...',
+                              'Loading cloud data...',
+                            ),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.92),
                               fontWeight: FontWeight.w600,
@@ -311,7 +321,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   const SizedBox(height: 12),
                 ],
                 _SectionCard(
-                  title: 'Compte actif',
+                  title: _tr(context, 'Compte actif', 'Active account'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -328,7 +338,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        isEmailVerified ? 'Email vérifié' : 'Email non vérifié',
+                        isEmailVerified
+                            ? _tr(context, 'Email verifie', 'Email verified')
+                            : _tr(
+                                context,
+                                'Email non verifie',
+                                'Email not verified',
+                              ),
                         style: TextStyle(
                           color: isEmailVerified
                               ? Colors.greenAccent
@@ -344,7 +360,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                             Navigator.pushNamed(context, '/account-settings');
                           },
                           icon: const Icon(Icons.manage_accounts_outlined),
-                          label: const Text('Gérer mon compte'),
+                          label: Text(
+                            _tr(
+                              context,
+                              'Gerer mon compte',
+                              'Manage my account',
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -352,7 +374,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Identité',
+                  title: _tr(context, 'Identite', 'Identity'),
                   child: Column(
                     children: [
                       _ProfileHeader(
@@ -378,8 +400,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                 : const Icon(Icons.crop),
                             label: Text(
                               _isAvatarUploading
-                                  ? 'Mise à jour photo...'
-                                  : 'Importer et rogner la photo',
+                                  ? _tr(
+                                      context,
+                                      'Mise a jour photo...',
+                                      'Updating photo...',
+                                    )
+                                  : _tr(
+                                      context,
+                                      'Importer et rogner la photo',
+                                      'Import and crop photo',
+                                    ),
                             ),
                           ),
                         ),
@@ -387,7 +417,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       if (_isEditMode)
                         _EditableTextRow(
                           icon: Icons.person,
-                          label: 'Nom',
+                          label: _tr(context, 'Nom', 'Name'),
                           value: profile.displayName,
                           hint: 'Ex: Alex',
                           onSubmitted: (value) {
@@ -399,14 +429,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       else
                         _ReadOnlyInfoRow(
                           icon: Icons.person,
-                          label: 'Nom',
+                          label: _tr(context, 'Nom', 'Name'),
                           value: profile.displayName,
                         ),
                       const SizedBox(height: 12),
                       if (_isEditMode)
                         _EditableTextRow(
                           icon: Icons.photo,
-                          label: 'Avatar (URL)',
+                          label: _tr(context, 'Avatar (URL)', 'Avatar (URL)'),
                           value: profile.avatarUrl,
                           hint: 'https://...',
                           onSubmitted: (value) {
@@ -418,16 +448,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       else
                         _ReadOnlyInfoRow(
                           icon: Icons.photo,
-                          label: 'Avatar (URL)',
+                          label: _tr(context, 'Avatar (URL)', 'Avatar (URL)'),
                           value: profile.avatarUrl.isEmpty
-                              ? 'Non renseignée'
+                              ? _tr(context, 'Non renseignee', 'Not set')
                               : profile.avatarUrl,
                         ),
                       const SizedBox(height: 12),
                       if (_isEditMode)
                         _DropdownField(
                           icon: Icons.wc,
-                          label: 'Sexe',
+                          label: _tr(context, 'Sexe', 'Gender'),
                           value: profile.gender,
                           items: _genders,
                           onChanged: (value) {
@@ -441,7 +471,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       else
                         _ReadOnlyInfoRow(
                           icon: Icons.wc,
-                          label: 'Sexe',
+                          label: _tr(context, 'Sexe', 'Gender'),
                           value: profile.gender,
                         ),
                       const SizedBox(height: 12),
@@ -455,14 +485,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Morphologie',
+                  title: _tr(context, 'Morphologie', 'Body Type'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_isEditMode)
                         _DropdownField(
                           icon: Icons.accessibility_new,
-                          label: 'Morphologie',
+                          label: _tr(context, 'Morphologie', 'Body Type'),
                           value: profile.morphology,
                           items: _morphologies,
                           onChanged: (value) {
@@ -476,7 +506,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       else
                         _ReadOnlyInfoRow(
                           icon: Icons.accessibility_new,
-                          label: 'Morphologie',
+                          label: _tr(context, 'Morphologie', 'Body Type'),
                           value: profile.morphology,
                         ),
                       const SizedBox(height: 12),
@@ -485,7 +515,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Détection IA: ${detectedMorphology.bodyType}',
+                                '${_tr(context, 'Detection IA', 'AI detection')}: ${detectedMorphology.bodyType}',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontWeight: FontWeight.w500,
@@ -502,13 +532,17 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                           );
                                     }
                                   : null,
-                              child: const Text('Utiliser'),
+                              child: Text(_tr(context, 'Utiliser', 'Use')),
                             ),
                           ],
                         )
                       else
                         Text(
-                          'Lancez la détection ML pour proposer une morphologie automatiquement.',
+                          _tr(
+                            context,
+                            'Lancez la detection ML pour proposer une morphologie automatiquement.',
+                            'Run ML detection to suggest body type automatically.',
+                          ),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 13,
@@ -519,7 +553,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Préférences vestimentaires',
+                  title: _tr(
+                    context,
+                    'Preferences vestimentaires',
+                    'Style preferences',
+                  ),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -563,8 +601,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         ),
                         label: Text(
                           _isEditMode
-                              ? 'Terminer la mise à jour'
-                              : 'Mettre à jour les infos et préférences',
+                              ? _tr(
+                                  context,
+                                  'Terminer la mise a jour',
+                                  'Finish update',
+                                )
+                              : _tr(
+                                  context,
+                                  'Mettre a jour les infos et preferences',
+                                  'Update info and preferences',
+                                ),
                         ),
                       ),
                     ),
@@ -572,7 +618,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Synchronisation cloud',
+                  title: _tr(context, 'Synchronisation cloud', 'Cloud sync'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -586,7 +632,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                     .syncToCloud();
                               },
                               icon: const Icon(Icons.cloud_upload),
-                              label: const Text('Sauvegarder'),
+                              label: Text(_tr(context, 'Sauvegarder', 'Save')),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -598,7 +644,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                     .pullFromCloud();
                               },
                               icon: const Icon(Icons.cloud_download),
-                              label: const Text('Synchroniser'),
+                              label: Text(_tr(context, 'Synchroniser', 'Sync')),
                             ),
                           ),
                         ],
@@ -613,7 +659,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Dernière synchronisation: ${_formatLastSync(lastSyncAt)}',
+                        '${_tr(context, 'Derniere synchronisation', 'Last sync')}: ${_formatLastSync(lastSyncAt, context)}',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.72),
                           fontSize: 12,
@@ -624,9 +670,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Résumé',
+                  title: _tr(context, 'Resume', 'Summary'),
                   child: Text(
-                    'Profil: ${profile.displayName}, ${profile.gender}, ${profile.age} ans, ${profile.morphology} - styles: ${profile.preferredStyles.join(', ')}',
+                    '${_tr(context, 'Profil', 'Profile')}: ${profile.displayName}, ${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.morphology} - ${_tr(context, 'styles', 'styles')}: ${profile.preferredStyles.join(', ')}',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.88),
                       height: 1.4,
@@ -655,9 +701,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     }
   }
 
-  String _formatLastSync(DateTime? dateTime) {
+  String _formatLastSync(DateTime? dateTime, BuildContext context) {
     if (dateTime == null) {
-      return 'Jamais';
+      return _tr(context, 'Jamais', 'Never');
     }
     final local = dateTime.toLocal();
     final dd = local.day.toString().padLeft(2, '0');
@@ -665,7 +711,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     final yyyy = local.year.toString();
     final hh = local.hour.toString().padLeft(2, '0');
     final min = local.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy a $hh:$min';
+    return '$dd/$mm/$yyyy ${_tr(context, 'a', 'at')} $hh:$min';
   }
 }
 
@@ -758,8 +804,9 @@ class _BirthDateField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final birthDateText = birthDate == null
-        ? 'Non renseignée'
+        ? (isEnglish ? 'Not set' : 'Non renseignee')
         : '${birthDate!.day.toString().padLeft(2, '0')}/${birthDate!.month.toString().padLeft(2, '0')}/${birthDate!.year}';
 
     return Column(
@@ -769,7 +816,10 @@ class _BirthDateField extends ConsumerWidget {
           children: [
             const Icon(Icons.cake, color: Colors.white70),
             const SizedBox(width: 12),
-            Text('Age: $age ans', style: const TextStyle(color: Colors.white)),
+            Text(
+              isEnglish ? 'Age: $age years' : 'Age: $age ans',
+              style: const TextStyle(color: Colors.white),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -810,7 +860,11 @@ class _BirthDateField extends ConsumerWidget {
                         );
                   },
             icon: const Icon(Icons.calendar_month),
-            label: Text('Date de naissance: $birthDateText'),
+            label: Text(
+              isEnglish
+                  ? 'Birth date: $birthDateText'
+                  : 'Date de naissance: $birthDateText',
+            ),
           ),
         ),
       ],

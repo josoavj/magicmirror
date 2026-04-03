@@ -16,6 +16,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   static const Set<String> _supportedLocales = {'fr_FR', 'en_US'};
   static const Set<String> _supportedTtsLanguages = {'fr-FR', 'en-US'};
+  static const Set<String> _supportedFlashModes = {
+    'off',
+    'auto',
+    'always',
+    'torch',
+  };
 
   String _normalizeLocale(String? rawLocale) {
     if (rawLocale != null && _supportedLocales.contains(rawLocale)) {
@@ -29,6 +35,13 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       return rawLanguage;
     }
     return 'fr-FR';
+  }
+
+  String _normalizeFlashMode(String? rawMode) {
+    if (rawMode != null && _supportedFlashModes.contains(rawMode)) {
+      return rawMode;
+    }
+    return 'off';
   }
 
   /// Charger les paramètres depuis shared_preferences
@@ -53,6 +66,10 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         ttsInterruptCurrent: prefs.getBool('ttsInterruptCurrent') ?? true,
         cameraFlipped: prefs.getBool('cameraFlipped') ?? false,
         cameraZoom: prefs.getDouble('cameraZoom') ?? 1.0,
+        cameraExposureOffset: prefs.getDouble('cameraExposureOffset') ?? 0.0,
+        cameraFlashMode: _normalizeFlashMode(
+          prefs.getString('cameraFlashMode'),
+        ),
         mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
         mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
         appVersion: prefs.getString('appVersion') ?? '1.0.0',
@@ -92,6 +109,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       await prefs.setBool('ttsInterruptCurrent', state.ttsInterruptCurrent);
       await prefs.setBool('cameraFlipped', state.cameraFlipped);
       await prefs.setDouble('cameraZoom', state.cameraZoom);
+      await prefs.setDouble('cameraExposureOffset', state.cameraExposureOffset);
+      await prefs.setString('cameraFlashMode', state.cameraFlashMode);
       await prefs.setInt(
         'mirrorHudDisplaySeconds',
         state.mirrorHudDisplaySeconds,
@@ -115,7 +134,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   /// Modifier la langue
   Future<void> setLocale(String locale) async {
-    state = state.copyWith(locale: _normalizeLocale(locale));
+    final normalizedLocale = _normalizeLocale(locale);
+    final autoTtsLanguage = normalizedLocale == 'en_US' ? 'en-US' : 'fr-FR';
+    state = state.copyWith(
+      locale: normalizedLocale,
+      ttsLanguage: autoTtsLanguage,
+    );
     await _saveSettings();
   }
 
@@ -202,7 +226,21 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   /// Modifier le zoom caméra
   Future<void> setCameraZoom(double zoom) async {
-    state = state.copyWith(cameraZoom: zoom);
+    final clamped = zoom.clamp(1.0, 4.0);
+    state = state.copyWith(cameraZoom: clamped);
+    await _saveSettings();
+  }
+
+  /// Modifier l'exposition caméra
+  Future<void> setCameraExposureOffset(double offset) async {
+    final clamped = offset.clamp(-2.0, 2.0);
+    state = state.copyWith(cameraExposureOffset: clamped);
+    await _saveSettings();
+  }
+
+  /// Modifier le mode flash caméra
+  Future<void> setCameraFlashMode(String mode) async {
+    state = state.copyWith(cameraFlashMode: _normalizeFlashMode(mode));
     await _saveSettings();
   }
 

@@ -1,0 +1,111 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Magic Mirror iOS 26",
+  "settingsTitle": "Paramètres",
+  "displaySection": "Affichage",
+  "darkModeLabel": "Mode sombre",
+  "darkModeSubtitle": "Utiliser le thème sombre",
+  "languageLabel": "Langue",
+  "notificationsSoundSection": "Notifications & Son",
+  "notificationsLabel": "Notifications",
+  "notificationsSubtitle": "Recevoir les notifications",
+  "audioFeedbackLabel": "Retours audio",
+  "audioFeedbackSubtitle": "Sons et vibrations",
+  "ttsSection": "Voix (TTS)",
+  "ttsEnabledLabel": "Annonces vocales",
+  "ttsEnabledSubtitle": "Activer la synthèse vocale pour le miroir",
+  "ttsLanguageLabel": "Langue de la voix",
+  "ttsMorphologyLabel": "Inclure la morphologie détectée",
+  "ttsMorphologySubtitle": "Prononcer aussi le type de morphologie dans les annonces",
+  "ttsSpeechRateLabel": "Vitesse de lecture",
+  "ttsPitchLabel": "Tonalité de la voix",
+  "ttsRepeatLabel": "Anti-répétition des annonces",
+  "ttsInterruptLabel": "Interrompre l'annonce en cours",
+  "ttsInterruptSubtitle": "Évite les annonces qui s'empilent",
+  "ttsTestButton": "Tester la voix",
+  "ttsTestSpeechFr": "Test vocal. Vos préférences de synthèse vocale sont appliquées.",
+  "ttsTestSpeechEn": "Voice test. Your text to speech preferences are now applied.",
+  "locationWeatherSection": "Localisation & Météo",
+  "locationTrackingLabel": "Suivi de localisation",
+  "locationTrackingSubtitle": "Utiliser votre position pour la météo",
+  "defaultCityLabel": "Ville par défaut",
+  "defaultCityHint": "Ex: Antananarivo",
+  "calendarSection": "Calendrier",
+  "calendarSyncLabel": "Agenda cloud au démarrage",
+  "calendarSyncSubtitle": "Synchroniser votre agenda Supabase au lancement",
+  "cameraSection": "Caméra",
+  "cameraFlipLabel": "Inverser caméra",
+  "cameraFlipSubtitle": "Retourner l'affichage de la caméra",
+  "flashModeLabel": "Mode flash",
+  "flashOff": "Désactivé",
+  "flashAuto": "Auto",
+  "flashAlways": "Activé",
+  "flashTorch": "Torche",
+  "compatibilityLabel": "Compatibilité",
+  "cameraControlInfo": "Le zoom et l’exposition se règlent directement sur la caméra avec une interface animée.",
+  "mirrorHudVisibleLabel": "HUD miroir visible",
+  "mirrorHudEveryLabel": "HUD miroir toutes les",
+  "accountSection": "Compte",
+  "accountSettingsLabel": "Paramètres du compte",
+  "informationSection": "Informations",
+  "versionLabel": "Version",
+  "appVersionDialogTitle": "Version de l'application",
+  "appVersionDialogBody": "Magic Mirror {version}\\n\\nVous pouvez consulter les détails dans la page À propos.",
+  "@appVersionDialogBody": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "closeButton": "Fermer",
+  "seeAboutButton": "Voir À propos",
+  "aboutLabel": "À propos",
+  "advancedSection": "Paramètres avancés",
+  "resetDefaultsLabel": "Réinitialiser par défaut",
+  "resetDialogTitle": "Réinitialiser ?",
+  "resetDialogBody": "Cela va restaurer tous les paramètres par défaut.",
+  "cancelButton": "Annuler",
+  "resetButton": "Réinitialiser",
+  "settingsResetToast": "Paramètres réinitialisés",
+  "secondsShort": "sec",
+  "minuteSingular": "minute",
+  "minutePlural": "minutes",
+  "runtimeCameraInactive": "Caméra inactive",
+  "runtimeAiAnalyzing": "IA en analyse",
+  "runtimeAiActive": "IA active",
+  "runtimeAiWaiting": "IA en attente",
+  "unsupportedSettings": "Réglages non supportés: {items}",
+  "@unsupportedSettings": {
+    "placeholders": {
+      "items": {}
+    }
+  },
+  "unsupportedZoom": "zoom",
+  "unsupportedExposure": "exposition",
+  "unsupportedFlash": "flash",
+  "cameraControlsTooltip": "Contrôles caméra",
+  "cameraExposureTooltip": "Exposition",
+  "quickSettingsTooltip": "Paramètres caméra et HUD",
+  "outfitReadyBadge": "Corps complet détecté - Tenues prêtes",
+  "cameraResetBadge": "Reset caméra",
+  "fullBodyDetectedWithOutfit": "Corps complet détecté. {morphology}Tenue recommandée: {title}. {reason}",
+  "@fullBodyDetectedWithOutfit": {
+    "placeholders": {
+      "morphology": {},
+      "title": {},
+      "reason": {}
+    }
+  },
+  "fullBodyDetectedWithoutOutfit": "Corps complet détecté. {morphology}Vos suggestions de tenues sont prêtes.",
+  "@fullBodyDetectedWithoutOutfit": {
+    "placeholders": {
+      "morphology": {}
+    }
+  },
+  "detectedBodyType": "Morphologie détectée: {bodyType}. ",
+  "@detectedBodyType": {
+    "placeholders": {
+      "bodyType": {}
+    }
+  },
+  "supabaseNotConfigured": "Supabase non configuré dans assets/.env"
+}

@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/l10n/app_localizations.dart';
 import 'package:magicmirror/core/services/tts_service.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_widgets.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  // BUG FIX #10: Super parameter - simplifier avec super keyword
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
+    final l10n = AppLocalizations.of(context);
+
+    String secondsLabel(int seconds) => '$seconds ${l10n.secondsShort}';
+    String minutesLabel(int minutes) =>
+        '$minutes ${minutes > 1 ? l10n.minutePlural : l10n.minuteSingular}';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Paramètres'),
+        title: Text(l10n.settingsTitle),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -38,12 +43,12 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 SettingsSection(
-                  title: 'Affichage',
+                  title: l10n.displaySection,
                   children: [
                     SettingsToggle(
                       icon: Icons.dark_mode,
-                      label: 'Mode sombre',
-                      subtitle: 'Utiliser le thème sombre',
+                      label: l10n.darkModeLabel,
+                      subtitle: l10n.darkModeSubtitle,
                       value: settings.darkMode,
                       onChanged: (value) {
                         ref
@@ -53,7 +58,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsDropdown<String>(
                       icon: Icons.language,
-                      label: 'Langue',
+                      label: l10n.languageLabel,
                       value: settings.locale,
                       items: [
                         const DropdownMenuItem(
@@ -83,12 +88,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Notifications & Son',
+                  title: l10n.notificationsSoundSection,
                   children: [
                     SettingsToggle(
                       icon: Icons.notifications,
-                      label: 'Notifications',
-                      subtitle: 'Recevoir les notifications',
+                      label: l10n.notificationsLabel,
+                      subtitle: l10n.notificationsSubtitle,
                       value: settings.enableNotifications,
                       onChanged: (value) {
                         ref
@@ -98,8 +103,8 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsToggle(
                       icon: Icons.volume_up,
-                      label: 'Retours audio',
-                      subtitle: 'Sons et vibrations',
+                      label: l10n.audioFeedbackLabel,
+                      subtitle: l10n.audioFeedbackSubtitle,
                       value: settings.enableAudioFeedback,
                       onChanged: (value) {
                         ref
@@ -111,12 +116,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Voix (TTS)',
+                  title: l10n.ttsSection,
                   children: [
                     SettingsToggle(
                       icon: Icons.record_voice_over,
-                      label: 'Annonces vocales',
-                      subtitle: 'Activer la synthèse vocale pour le miroir',
+                      label: l10n.ttsEnabledLabel,
+                      subtitle: l10n.ttsEnabledSubtitle,
                       value: settings.ttsEnabled,
                       onChanged: (value) {
                         ref
@@ -126,7 +131,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsDropdown<String>(
                       icon: Icons.language,
-                      label: 'Langue de la voix',
+                      label: l10n.ttsLanguageLabel,
                       value: settings.ttsLanguage,
                       items: const [
                         DropdownMenuItem(
@@ -154,9 +159,8 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsToggle(
                       icon: Icons.accessibility_new,
-                      label: 'Inclure la morphologie détectée',
-                      subtitle:
-                          'Prononcer aussi le type de morphologie dans les annonces',
+                      label: l10n.ttsMorphologyLabel,
+                      subtitle: l10n.ttsMorphologySubtitle,
                       value: settings.ttsAnnounceMorphology,
                       onChanged: (value) {
                         ref
@@ -166,7 +170,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsSlider(
                       icon: Icons.speed,
-                      label: 'Vitesse de lecture',
+                      label: l10n.ttsSpeechRateLabel,
                       value: settings.ttsSpeechRate,
                       min: 0.25,
                       max: 0.75,
@@ -178,7 +182,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsSlider(
                       icon: Icons.tune,
-                      label: 'Tonalité de la voix',
+                      label: l10n.ttsPitchLabel,
                       value: settings.ttsPitch,
                       min: 0.7,
                       max: 1.4,
@@ -190,41 +194,41 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsDropdown<int>(
                       icon: Icons.timer_off,
-                      label: 'Anti-répétition des annonces',
+                      label: l10n.ttsRepeatLabel,
                       value: settings.ttsMinRepeatSeconds,
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 15,
                           child: Text(
-                            '15 sec',
+                            secondsLabel(15),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 30,
                           child: Text(
-                            '30 sec',
+                            secondsLabel(30),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 45,
                           child: Text(
-                            '45 sec',
+                            secondsLabel(45),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 60,
                           child: Text(
-                            '60 sec',
+                            secondsLabel(60),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 90,
                           child: Text(
-                            '90 sec',
+                            secondsLabel(90),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -239,8 +243,8 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsToggle(
                       icon: Icons.pause_circle_filled,
-                      label: 'Interrompre l\'annonce en cours',
-                      subtitle: 'Évite les annonces qui s\'empilent',
+                      label: l10n.ttsInterruptLabel,
+                      subtitle: l10n.ttsInterruptSubtitle,
                       value: settings.ttsInterruptCurrent,
                       onChanged: (value) {
                         ref
@@ -250,12 +254,12 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsButton(
                       icon: Icons.play_arrow,
-                      label: 'Tester la voix',
+                      label: l10n.ttsTestButton,
                       onPressed: () {
                         final tts = ref.read(ttsServiceProvider);
                         final testSpeech = settings.ttsLanguage.startsWith('en')
-                            ? 'Voice test. Your text to speech preferences are now applied.'
-                            : 'Test vocal. Vos préférences de synthèse vocale sont appliquées.';
+                            ? l10n.ttsTestSpeechEn
+                            : l10n.ttsTestSpeechFr;
                         tts.speak(
                           testSpeech,
                           enabled:
@@ -273,12 +277,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Localisation & Météo',
+                  title: l10n.locationWeatherSection,
                   children: [
                     SettingsToggle(
                       icon: Icons.location_on,
-                      label: 'Suivi de localisation',
-                      subtitle: 'Utiliser votre position pour la météo',
+                      label: l10n.locationTrackingLabel,
+                      subtitle: l10n.locationTrackingSubtitle,
                       value: settings.enableLocationTracking,
                       onChanged: (value) {
                         ref
@@ -288,9 +292,9 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsTextField(
                       icon: Icons.location_city,
-                      label: 'Ville par défaut',
+                      label: l10n.defaultCityLabel,
                       initialValue: settings.defaultCity,
-                      hint: 'Ex: Antananarivo',
+                      hint: l10n.defaultCityHint,
                       onChanged: (value) {
                         ref
                             .read(appSettingsProvider.notifier)
@@ -301,13 +305,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Calendrier',
+                  title: l10n.calendarSection,
                   children: [
                     SettingsToggle(
                       icon: Icons.calendar_today,
-                      label: 'Agenda cloud au démarrage',
-                      subtitle:
-                          'Synchroniser votre agenda Supabase au lancement',
+                      label: l10n.calendarSyncLabel,
+                      subtitle: l10n.calendarSyncSubtitle,
                       value: settings.syncCalendarOnStartup,
                       onChanged: (value) {
                         ref
@@ -319,12 +322,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Caméra',
+                  title: l10n.cameraSection,
                   children: [
                     SettingsToggle(
                       icon: Icons.flip,
-                      label: 'Inverser caméra',
-                      subtitle: 'Retourner l\'affichage de la caméra',
+                      label: l10n.cameraFlipLabel,
+                      subtitle: l10n.cameraFlipSubtitle,
                       value: settings.cameraFlipped,
                       onChanged: (value) {
                         ref
@@ -332,55 +335,90 @@ class SettingsScreen extends ConsumerWidget {
                             .setCameraFlipped(value);
                       },
                     ),
-                    SettingsSlider(
-                      icon: Icons.zoom_in,
-                      label: 'Zoom caméra',
-                      value: settings.cameraZoom,
-                      min: 0.5,
-                      max: 3.0,
+                    SettingsDropdown<String>(
+                      icon: Icons.flash_on,
+                      label: l10n.flashModeLabel,
+                      value: settings.cameraFlashMode,
+                      items: [
+                        DropdownMenuItem(
+                          value: 'off',
+                          child: Text(
+                            l10n.flashOff,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'auto',
+                          child: Text(
+                            l10n.flashAuto,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'always',
+                          child: Text(
+                            l10n.flashAlways,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'torch',
+                          child: Text(
+                            l10n.flashTorch,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
                       onChanged: (value) {
-                        ref
-                            .read(appSettingsProvider.notifier)
-                            .setCameraZoom(value);
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setCameraFlashMode(value);
+                        }
                       },
+                    ),
+                    SettingsInfo(
+                      icon: Icons.info_outline,
+                      label: l10n.compatibilityLabel,
+                      value: l10n.cameraControlInfo,
                     ),
                     SettingsDropdown<int>(
                       icon: Icons.timer,
-                      label: 'HUD miroir visible',
+                      label: l10n.mirrorHudVisibleLabel,
                       value: settings.mirrorHudDisplaySeconds,
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 15,
                           child: Text(
-                            '15 sec',
+                            secondsLabel(15),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 20,
                           child: Text(
-                            '20 sec',
+                            secondsLabel(20),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 30,
                           child: Text(
-                            '30 sec',
+                            secondsLabel(30),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 45,
                           child: Text(
-                            '45 sec',
+                            secondsLabel(45),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 60,
                           child: Text(
-                            '60 sec',
+                            secondsLabel(60),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -395,41 +433,41 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsDropdown<int>(
                       icon: Icons.schedule,
-                      label: 'HUD miroir toutes les',
+                      label: l10n.mirrorHudEveryLabel,
                       value: settings.mirrorHudCycleMinutes,
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 1,
                           child: Text(
-                            '1 minute',
+                            minutesLabel(1),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 2,
                           child: Text(
-                            '2 minutes',
+                            minutesLabel(2),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 3,
                           child: Text(
-                            '3 minutes',
+                            minutesLabel(3),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 5,
                           child: Text(
-                            '5 minutes',
+                            minutesLabel(5),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
                         DropdownMenuItem(
                           value: 10,
                           child: Text(
-                            '10 minutes',
+                            minutesLabel(10),
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -446,11 +484,11 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Compte',
+                  title: l10n.accountSection,
                   children: [
                     SettingsActionTile(
                       icon: Icons.manage_accounts_outlined,
-                      label: 'Paramètres du compte',
+                      label: l10n.accountSettingsLabel,
                       iconColor: Colors.tealAccent,
                       onTap: () =>
                           Navigator.pushNamed(context, '/account-settings'),
@@ -459,31 +497,31 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Informations',
+                  title: l10n.informationSection,
                   children: [
                     SettingsInfo(
                       icon: Icons.info,
-                      label: 'Version',
+                      label: l10n.versionLabel,
                       value: settings.appVersion,
                       onTap: () {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Version de l\'application'),
+                            title: Text(l10n.appVersionDialogTitle),
                             content: Text(
-                              'Magic Mirror ${settings.appVersion}\n\nVous pouvez consulter les détails dans la page À propos.',
+                              l10n.appVersionDialogBody(settings.appVersion),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text('Fermer'),
+                                child: Text(l10n.closeButton),
                               ),
                               TextButton(
                                 onPressed: () {
                                   Navigator.pop(context);
                                   Navigator.pushNamed(context, '/about');
                                 },
-                                child: const Text('Voir À propos'),
+                                child: Text(l10n.seeAboutButton),
                               ),
                             ],
                           ),
@@ -492,7 +530,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     SettingsActionTile(
                       icon: Icons.help_outline,
-                      label: 'À propos',
+                      label: l10n.aboutLabel,
                       iconColor: Colors.blueAccent,
                       onTap: () => Navigator.pushNamed(context, '/about'),
                     ),
@@ -500,24 +538,22 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: 'Paramètres avancés',
+                  title: l10n.advancedSection,
                   children: [
                     SettingsActionTile(
                       icon: Icons.restore,
-                      label: 'Réinitialiser par défaut',
+                      label: l10n.resetDefaultsLabel,
                       iconColor: Colors.orangeAccent,
                       onTap: () {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Réinitialiser ?'),
-                            content: const Text(
-                              'Cela va restaurer tous les paramètres par défaut.',
-                            ),
+                            title: Text(l10n.resetDialogTitle),
+                            content: Text(l10n.resetDialogBody),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text('Annuler'),
+                                child: Text(l10n.cancelButton),
                               ),
                               TextButton(
                                 onPressed: () {
@@ -526,12 +562,12 @@ class SettingsScreen extends ConsumerWidget {
                                       .resetToDefaults();
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Paramètres réinitialisés'),
+                                    SnackBar(
+                                      content: Text(l10n.settingsResetToast),
                                     ),
                                   );
                                 },
-                                child: const Text('Réinitialiser'),
+                                child: Text(l10n.resetButton),
                               ),
                             ],
                           ),

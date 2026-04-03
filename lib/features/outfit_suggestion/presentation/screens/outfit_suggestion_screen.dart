@@ -286,15 +286,21 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
   final bool initialShowFavorites;
 
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final isFavoritesMode = initialShowFavorites;
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
     final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
     final activeEmail =
-        Supabase.instance.client.auth.currentUser?.email ?? 'Non connecte';
+        Supabase.instance.client.auth.currentUser?.email ??
+        _tr(context, 'Non connecte', 'Not connected');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
@@ -314,7 +320,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Suggestions de Tenue'),
+        title: Text(isEnglish ? 'Outfit Suggestions' : 'Suggestions de Tenue'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -347,7 +353,11 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     children: [
                       const SizedBox(height: 8),
                       Text(
-                        isFavoritesMode ? 'Mes Favoris' : 'Recommandations',
+                        isFavoritesMode
+                            ? (isEnglish ? 'My Favorites' : 'Mes Favoris')
+                            : (isEnglish
+                                  ? 'Recommendations'
+                                  : 'Recommandations'),
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               color: Colors.white,
@@ -357,8 +367,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         isFavoritesMode
-                            ? 'Collection cloud de vos tenues enregistrees'
-                            : 'Suggestions personnalisées basées sur vos préférences',
+                            ? (isEnglish
+                                  ? 'Cloud collection of your saved outfits'
+                                  : 'Collection cloud de vos tenues enregistrees')
+                            : (isEnglish
+                                  ? 'Personalized suggestions based on your preferences'
+                                  : 'Suggestions personnalisees basees sur vos preferences'),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 14,
@@ -387,7 +401,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Compte actif: $activeEmail',
+                        '${_tr(context, 'Compte actif', 'Active account')}: $activeEmail',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.72),
                           fontSize: 12,
@@ -402,6 +416,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
                       if (!isFavoritesMode) ...[
                         _buildProfileContext(
+                          context,
                           profile,
                           todayEvents: todayEvents,
                           tomorrowEvents: tomorrowEvents,
@@ -413,8 +428,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         ref: ref,
                         context: context,
                         title: isFavoritesMode
-                            ? 'Favoris disponibles aujourd\'hui'
-                            : 'Suggestion pour aujourd\'hui',
+                            ? _tr(
+                                context,
+                                'Favoris disponibles aujourd\'hui',
+                                'Available favorites today',
+                              )
+                            : _tr(
+                                context,
+                                'Suggestion pour aujourd\'hui',
+                                'Suggestion for today',
+                              ),
                         targetDay: today,
                         profile: profile,
                         favoriteIds: favoriteIds,
@@ -434,8 +457,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         ref: ref,
                         context: context,
                         title: isFavoritesMode
-                            ? 'Favoris disponibles demain'
-                            : 'Suggestion pour demain',
+                            ? _tr(
+                                context,
+                                'Favoris disponibles demain',
+                                'Available favorites tomorrow',
+                              )
+                            : _tr(
+                                context,
+                                'Suggestion pour demain',
+                                'Suggestion for tomorrow',
+                              ),
                         targetDay: tomorrow,
                         profile: profile,
                         favoriteIds: favoriteIds,
@@ -473,12 +504,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
   }
 
   Widget _buildProfileContext(
+    BuildContext context,
     UserProfile profile, {
     required List<AgendaEvent> todayEvents,
     required List<AgendaEvent> tomorrowEvents,
   }) {
     final now = DateTime.now();
-    final dayLabel = _weekdayLabel(now.weekday);
+    final dayLabel = _weekdayLabelLocalized(now.weekday, context);
     final tomorrow = now.add(const Duration(days: 1));
     final prioritySlotToday = _resolvePrioritySlot(todayEvents, now);
     final prioritySlotTomorrow = _resolvePrioritySlot(
@@ -495,8 +527,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Profil applique',
+            Text(
+              _tr(context, 'Profil applique', 'Applied profile'),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -505,7 +537,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${profile.gender}, ${profile.age} ans, ${profile.morphology}',
+              '${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.morphology}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 14,
@@ -513,7 +545,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Styles preferes: ${profile.preferredStyles.join(', ')}',
+              '${_tr(context, 'Styles preferes', 'Preferred styles')}: ${profile.preferredStyles.join(', ')}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
                 fontSize: 13,
@@ -521,7 +553,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Jour: $dayLabel - Planning du jour: ${todayEvents.length} evenement(s)',
+              '${_tr(context, 'Jour', 'Day')}: $dayLabel - ${_tr(context, 'Planning du jour', 'Today agenda')}: ${todayEvents.length} ${_tr(context, 'evenement(s)', 'event(s)')}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
                 fontSize: 13,
@@ -529,7 +561,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Aujourd\'hui: ${_slotLabel(prioritySlotToday)}',
+              '${_tr(context, 'Aujourd\'hui', 'Today')}: ${_slotLabelLocalized(prioritySlotToday, context)}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
                 fontSize: 13,
@@ -537,7 +569,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Demain: ${tomorrowEvents.length} evenement(s) - ${_slotLabel(prioritySlotTomorrow)}',
+              '${_tr(context, 'Demain', 'Tomorrow')}: ${tomorrowEvents.length} ${_tr(context, 'evenement(s)', 'event(s)')} - ${_slotLabelLocalized(prioritySlotTomorrow, context)}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
                 fontSize: 13,
@@ -588,7 +620,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             if (weatherContext != null) ...[
               Text(
-                'Météo: ${weatherContext.label}',
+                '${_tr(context, 'Meteo', 'Weather')}: ${weatherContext.label}',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: 13,
@@ -605,17 +637,21 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         blur: 20,
         opacity: 0.1,
         padding: const EdgeInsets.all(14),
-        child: const Row(
+        child: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Chargement des suggestions...',
+                _tr(
+                  context,
+                  'Chargement des suggestions...',
+                  'Loading suggestions...',
+                ),
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -627,9 +663,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         blur: 20,
         opacity: 0.1,
         padding: const EdgeInsets.all(14),
-        child: const Text(
-          'Impossible de charger le planning pour cette suggestion.',
-          style: TextStyle(color: Colors.white70),
+        child: Text(
+          _tr(
+            context,
+            'Impossible de charger le planning pour cette suggestion.',
+            'Unable to load schedule for this suggestion.',
+          ),
+          style: const TextStyle(color: Colors.white70),
         ),
       ),
     );
@@ -666,8 +706,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(14),
           child: Text(
             showOnlyFavorites
-                ? 'Aucune tenue en favoris pour cette section.'
-                : 'Aucune suggestion disponible.',
+                ? _tr(
+                    context,
+                    'Aucune tenue en favoris pour cette section.',
+                    'No favorite outfit available for this section.',
+                  )
+                : _tr(
+                    context,
+                    'Aucune suggestion disponible.',
+                    'No suggestion available.',
+                  ),
             style: const TextStyle(color: Colors.white70),
           ),
         ),
@@ -1096,6 +1144,43 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         return 'Apres-midi';
       case _DayTimeSlot.evening:
         return 'Soiree';
+    }
+  }
+
+  String _slotLabelLocalized(_DayTimeSlot slot, BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    switch (slot) {
+      case _DayTimeSlot.morning:
+        return isEnglish ? 'Morning' : 'Matin';
+      case _DayTimeSlot.afternoon:
+        return isEnglish ? 'Afternoon' : 'Apres-midi';
+      case _DayTimeSlot.evening:
+        return isEnglish ? 'Evening' : 'Soiree';
+    }
+  }
+
+  String _weekdayLabelLocalized(int weekday, BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    if (!isEnglish) {
+      return _weekdayLabel(weekday);
+    }
+    switch (weekday) {
+      case DateTime.monday:
+        return 'Monday';
+      case DateTime.tuesday:
+        return 'Tuesday';
+      case DateTime.wednesday:
+        return 'Wednesday';
+      case DateTime.thursday:
+        return 'Thursday';
+      case DateTime.friday:
+        return 'Friday';
+      case DateTime.saturday:
+        return 'Saturday';
+      case DateTime.sunday:
+        return 'Sunday';
+      default:
+        return 'Unknown day';
     }
   }
 

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:magicmirror/l10n/app_localizations.dart';
 import 'core/theme/app_colors.dart';
 import 'core/utils/app_logger.dart';
 import 'core/services/cache_service.dart';
@@ -31,7 +31,7 @@ void main() async {
 
   // Initialiser les données de locale pour la formatage des dates
   // Cela résout l'erreur LocaleDataException sur Android
-  await initializeDateFormatting('fr_FR', null);
+  await initializeDateFormatting();
 
   // Charger les variables d'environnement depuis .env
   await dotenv.load(fileName: "assets/.env");
@@ -111,11 +111,7 @@ class MagicMirrorApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       locale: effectiveLocale,
       supportedLocales: supportedLocales,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: baseTheme.copyWith(
         textTheme: GoogleFonts.lexendTextTheme(baseTheme.textTheme),
         primaryTextTheme: GoogleFonts.lexendTextTheme(
@@ -201,8 +197,17 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!_isSupabaseReady) {
-      return const Scaffold(
-        body: Center(child: Text('Supabase non configure dans assets/.env')),
+      final l10n = Localizations.of<AppLocalizations>(
+        context,
+        AppLocalizations,
+      );
+      return Scaffold(
+        body: Center(
+          child: Text(
+            l10n?.supabaseNotConfigured ??
+                'Supabase non configure dans assets/.env',
+          ),
+        ),
       );
     }
 
@@ -241,6 +246,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesCount = ref.watch(outfitFavoritesProvider).length;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
     final horizontalPadding = isMobile ? 20.0 : 28.0;
@@ -320,25 +326,25 @@ class HomeScreen extends ConsumerWidget {
                       children: [
                         _HomeTile(
                           icon: Icons.auto_awesome_mosaic,
-                          label: 'Miroir',
+                          label: isEnglish ? 'Mirror' : 'Miroir',
                           color: Colors.blueAccent,
                           onTap: () => Navigator.pushNamed(context, '/mirror'),
                         ),
                         _HomeTile(
                           icon: Icons.calendar_today_rounded,
-                          label: 'Agenda',
+                          label: isEnglish ? 'Agenda' : 'Agenda',
                           color: Colors.orangeAccent,
                           onTap: () => Navigator.pushNamed(context, '/agenda'),
                         ),
                         _HomeTile(
                           icon: Icons.person_outline_rounded,
-                          label: 'Profil',
+                          label: isEnglish ? 'Profile' : 'Profil',
                           color: Colors.tealAccent,
                           onTap: () => Navigator.pushNamed(context, '/profile'),
                         ),
                         _HomeTile(
                           icon: Icons.checkroom_rounded,
-                          label: 'Tenues',
+                          label: isEnglish ? 'Outfits' : 'Tenues',
                           color: Colors.deepPurpleAccent,
                           onTap: () => Navigator.pushNamed(
                             context,
@@ -347,7 +353,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         _HomeTile(
                           icon: Icons.favorite_rounded,
-                          label: 'Favoris',
+                          label: isEnglish ? 'Favorites' : 'Favoris',
                           color: Colors.pinkAccent,
                           badgeCount: favoritesCount,
                           onTap: () =>
@@ -355,7 +361,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         _HomeTile(
                           icon: Icons.settings_rounded,
-                          label: 'Réglages',
+                          label: isEnglish ? 'Settings' : 'Reglages',
                           color: Colors.grey,
                           onTap: () =>
                               Navigator.pushNamed(context, '/settings'),
