@@ -14,6 +14,10 @@ class AgendaScreen extends ConsumerStatefulWidget {
 class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   DateTime _selectedDay = DateTime.now();
 
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,8 +109,8 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
             return AlertDialog(
               title: Text(
                 editingEvent == null
-                    ? 'Nouvel évènement'
-                    : 'Modifier évènement',
+                    ? _tr(dialogContext, 'Nouvel evenement', 'New event')
+                    : _tr(dialogContext, 'Modifier evenement', 'Edit event'),
               ),
               content: Form(
                 key: formKey,
@@ -187,7 +191,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Annuler'),
+                  child: Text(_tr(dialogContext, 'Annuler', 'Cancel')),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -239,7 +243,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                     }
                     Navigator.of(dialogContext).pop();
                   },
-                  child: const Text('Enregistrer'),
+                  child: Text(_tr(dialogContext, 'Enregistrer', 'Save')),
                 ),
               ],
             );
@@ -281,7 +285,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Planning',
+                          _tr(context, 'Planning', 'Schedule'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: isMobile ? 30 : 34,
@@ -324,7 +328,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                   ),
                   error: (err, stack) => Center(
                     child: Text(
-                      'Erreur: $err',
+                      '${_tr(context, 'Erreur', 'Error')}: $err',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -369,7 +373,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                   children: [
                     Expanded(
                       child: _GlassButton(
-                        label: 'Retour',
+                        label: _tr(context, 'Retour', 'Back'),
                         onPressed: () => Navigator.pushNamedAndRemoveUntil(
                           context,
                           '/home',
@@ -380,10 +384,10 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                     ),
 
                     const SizedBox(width: 12),
-                    
+
                     Expanded(
                       child: _GlassButton(
-                        label: 'Ajouter',
+                        label: _tr(context, 'Ajouter', 'Add'),
                         onPressed: _showEventDialog,
                         icon: Icons.add,
                       ),
@@ -423,6 +427,7 @@ class _AgendaGlassTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -486,9 +491,15 @@ class _AgendaGlassTile extends StatelessWidget {
                   onDelete();
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text(isEnglish ? 'Edit' : 'Modifier'),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(isEnglish ? 'Delete' : 'Supprimer'),
+                ),
               ],
             ),
             if (isNow)
