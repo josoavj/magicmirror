@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:magicmirror/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
@@ -115,13 +116,16 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   bool _exposureUnsupported = false;
   bool _flashUnsupported = false;
 
-  String? get _cameraPreferenceWarning {
+  String? _cameraPreferenceWarning(AppLocalizations? l10n) {
     final unsupported = <String>[];
-    if (_zoomUnsupported) unsupported.add('zoom');
-    if (_exposureUnsupported) unsupported.add('exposition');
-    if (_flashUnsupported) unsupported.add('flash');
+    if (_zoomUnsupported) unsupported.add(l10n?.unsupportedZoom ?? 'zoom');
+    if (_exposureUnsupported) {
+      unsupported.add(l10n?.unsupportedExposure ?? 'exposition');
+    }
+    if (_flashUnsupported) unsupported.add(l10n?.unsupportedFlash ?? 'flash');
     if (unsupported.isEmpty) return null;
-    return 'Réglages non supportés: ${unsupported.join(', ')}';
+    return l10n?.unsupportedSettings(unsupported.join(', ')) ??
+        'Reglages non supportes: ${unsupported.join(', ')}';
   }
 
   @override
@@ -177,23 +181,30 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   }
 
   Future<void> _announceOutfitReadyTts(MorphologyData morphologyData) async {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final settings = ref.read(appSettingsProvider);
     final tts = ref.read(ttsServiceProvider);
     final suggestions = ref.read(suggestedOutfitsProvider);
     final isEnglish = settings.ttsLanguage.startsWith('en');
     final includeMorphology = settings.ttsAnnounceMorphology;
     final morphologyMessage = includeMorphology
-        ? (isEnglish
-              ? 'Detected body type: ${morphologyData.bodyType}. '
-              : 'Morphologie détectée: ${morphologyData.bodyType}. ')
+        ? (l10n?.detectedBodyType(morphologyData.bodyType) ??
+              (isEnglish
+                  ? 'Detected body type: ${morphologyData.bodyType}. '
+                  : 'Morphologie detectee: ${morphologyData.bodyType}. '))
         : '';
 
     if (suggestions.isNotEmpty) {
       final top = suggestions.first;
       await tts.speak(
-        isEnglish
-            ? 'Full body detected. ${morphologyMessage}Recommended outfit: ${top.title}. ${top.reason}'
-            : 'Corps complet détecté. ${morphologyMessage}Tenue recommandée: ${top.title}. ${top.reason}',
+        l10n?.fullBodyDetectedWithOutfit(
+              morphologyMessage,
+              top.title,
+              top.reason,
+            ) ??
+            (isEnglish
+                ? 'Full body detected. ${morphologyMessage}Recommended outfit: ${top.title}. ${top.reason}'
+                : 'Corps complet detecte. ${morphologyMessage}Tenue recommandee: ${top.title}. ${top.reason}'),
         enabled: settings.enableAudioFeedback && settings.ttsEnabled,
         interruptCurrent: settings.ttsInterruptCurrent,
         language: settings.ttsLanguage,
@@ -205,9 +216,10 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     }
 
     await tts.speak(
-      isEnglish
-          ? 'Full body detected. ${morphologyMessage}Your outfit suggestions are ready.'
-          : 'Corps complet détecté. ${morphologyMessage}Vos suggestions de tenues sont prêtes.',
+      l10n?.fullBodyDetectedWithoutOutfit(morphologyMessage) ??
+          (isEnglish
+              ? 'Full body detected. ${morphologyMessage}Your outfit suggestions are ready.'
+              : 'Corps complet detecte. ${morphologyMessage}Vos suggestions de tenues sont pretes.'),
       enabled: settings.enableAudioFeedback && settings.ttsEnabled,
       interruptCurrent: settings.ttsInterruptCurrent,
       language: settings.ttsLanguage,
@@ -658,6 +670,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     required bool isMlProcessing,
     required String? mlRuntimeError,
   }) {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+    final cameraPreferenceWarning = _cameraPreferenceWarning(l10n);
     final cameraReady = controller != null && controller.value.isInitialized;
     if (cameraReady && !_cameraSessionActive) {
       _cameraSessionActive = true;
@@ -851,13 +865,11 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             child: _buildMlErrorBadge(mlRuntimeError),
           ),
 
-        if (_cameraPreferenceWarning != null)
+        if (cameraPreferenceWarning != null)
           Positioned(
             top: topInset + 72,
             right: rightInset + 58,
-            child: _buildCameraPreferenceWarningBadge(
-              _cameraPreferenceWarning!,
-            ),
+            child: _buildCameraPreferenceWarningBadge(cameraPreferenceWarning),
           ),
 
         if (cameraReady)
@@ -870,7 +882,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         // Replacer météo sous le bouton sur grand écran pour éviter le chevauchement
         if (!isMobile)
           Positioned(
-            top: _cameraPreferenceWarning != null
+            top: cameraPreferenceWarning != null
                 ? topInset + 106
                 : topInset + 72,
             right: rightInset,
@@ -928,18 +940,22 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                     horizontal: 10,
                     vertical: 6,
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.refresh_rounded,
                         color: Color(0xFF38BDF8),
                         size: 14,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
-                        'Reset caméra',
-                        style: TextStyle(
+                        Localizations.of<AppLocalizations>(
+                              context,
+                              AppLocalizations,
+                            )?.cameraResetBadge ??
+                            'Reset camera',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1106,7 +1122,12 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                   opacity: 0.24,
                   padding: EdgeInsets.zero,
                   child: IconButton(
-                    tooltip: 'Contrôles caméra',
+                    tooltip:
+                        Localizations.of<AppLocalizations>(
+                          context,
+                          AppLocalizations,
+                        )?.cameraControlsTooltip ??
+                        'Camera controls',
                     icon: Icon(
                       _showCameraControls
                           ? Icons.tune_rounded
@@ -1137,7 +1158,12 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                   opacity: 0.22,
                   padding: EdgeInsets.zero,
                   child: IconButton(
-                    tooltip: 'Exposition',
+                    tooltip:
+                        Localizations.of<AppLocalizations>(
+                          context,
+                          AppLocalizations,
+                        )?.cameraExposureTooltip ??
+                        'Exposure',
                     icon: Icon(
                       _showExposureControl
                           ? Icons.wb_sunny
@@ -1185,7 +1211,10 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             ),
           ),
           Text(
-            DateFormat('EEEE d MMMM', 'fr_FR').format(DateTime.now()),
+            DateFormat(
+              'EEEE d MMMM',
+              Localizations.localeOf(context).toString(),
+            ).format(DateTime.now()),
             style: TextStyle(
               fontSize: ResponsiveHelper.resp(context, mobile: 14, tablet: 20),
               color: Colors.white.withValues(alpha: 0.5),
@@ -1204,7 +1233,12 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       opacity: 0.12,
       padding: EdgeInsets.zero,
       child: IconButton(
-        tooltip: 'Paramètres caméra et HUD',
+        tooltip:
+            Localizations.of<AppLocalizations>(
+              context,
+              AppLocalizations,
+            )?.quickSettingsTooltip ??
+            'Camera and HUD settings',
         icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
         onPressed: () => Navigator.pushNamed(context, '/settings'),
       ),
@@ -1221,20 +1255,28 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
           blur: 18,
           opacity: 0.18,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 18),
-              SizedBox(width: 8),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF22C55E),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
               Text(
-                'Corps complet détecté - Tenues prêtes',
-                style: TextStyle(
+                Localizations.of<AppLocalizations>(
+                      context,
+                      AppLocalizations,
+                    )?.outfitReadyBadge ??
+                    'Full body detected - Outfits ready',
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(width: 10),
-              Icon(Icons.arrow_forward, color: Colors.white70, size: 16),
+              const SizedBox(width: 10),
+              const Icon(Icons.arrow_forward, color: Colors.white70, size: 16),
             ],
           ),
         ),
@@ -1246,13 +1288,14 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     required bool cameraReady,
     required bool isMlProcessing,
   }) {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final statusText = !cameraReady
-        ? 'Caméra inactive'
+        ? (l10n?.runtimeCameraInactive ?? 'Camera inactive')
         : isMlProcessing
-        ? 'IA en analyse'
+        ? (l10n?.runtimeAiAnalyzing ?? 'AI analyzing')
         : _mlStreamStarted
-        ? 'IA active'
-        : 'IA en attente';
+        ? (l10n?.runtimeAiActive ?? 'AI active')
+        : (l10n?.runtimeAiWaiting ?? 'AI waiting');
     final statusColor = !cameraReady
         ? Colors.redAccent
         : isMlProcessing
