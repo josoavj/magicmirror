@@ -332,17 +332,53 @@ class SettingsScreen extends ConsumerWidget {
                             .setCameraFlipped(value);
                       },
                     ),
-                    SettingsSlider(
-                      icon: Icons.zoom_in,
-                      label: 'Zoom caméra',
-                      value: settings.cameraZoom,
-                      min: 0.5,
-                      max: 3.0,
+                    SettingsDropdown<String>(
+                      icon: Icons.flash_on,
+                      label: 'Mode flash',
+                      value: settings.cameraFlashMode,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'off',
+                          child: Text(
+                            'Désactivé',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'auto',
+                          child: Text(
+                            'Auto',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'always',
+                          child: Text(
+                            'Activé',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'torch',
+                          child: Text(
+                            'Torche',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
                       onChanged: (value) {
-                        ref
-                            .read(appSettingsProvider.notifier)
-                            .setCameraZoom(value);
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setCameraFlashMode(value);
+                        }
                       },
+                    ),
+                    SettingsInfo(
+                      icon: Icons.info_outline,
+                      label: 'Compatibilité',
+                      value:
+                          'Le zoom et l’exposition se règlent directement sur la caméra avec une interface animée.',
                     ),
                     SettingsDropdown<int>(
                       icon: Icons.timer,
