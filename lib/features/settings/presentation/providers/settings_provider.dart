@@ -134,7 +134,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   /// Modifier la langue
   Future<void> setLocale(String locale) async {
-    state = state.copyWith(locale: _normalizeLocale(locale));
+    final normalizedLocale = _normalizeLocale(locale);
+    final autoTtsLanguage = normalizedLocale == 'en_US' ? 'en-US' : 'fr-FR';
+    state = state.copyWith(
+      locale: normalizedLocale,
+      ttsLanguage: autoTtsLanguage,
+    );
     await _saveSettings();
   }
 
