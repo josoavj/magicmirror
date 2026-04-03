@@ -16,6 +16,8 @@ class AppSettings {
   final bool ttsInterruptCurrent;
   final bool cameraFlipped;
   final double cameraZoom;
+  final double cameraExposureOffset;
+  final String cameraFlashMode;
   final int mirrorHudDisplaySeconds;
   final int mirrorHudCycleMinutes;
   final String appVersion;
@@ -37,6 +39,8 @@ class AppSettings {
     required this.ttsInterruptCurrent,
     required this.cameraFlipped,
     required this.cameraZoom,
+    required this.cameraExposureOffset,
+    required this.cameraFlashMode,
     required this.mirrorHudDisplaySeconds,
     required this.mirrorHudCycleMinutes,
     required this.appVersion,
@@ -61,6 +65,8 @@ class AppSettings {
       ttsInterruptCurrent: true,
       cameraFlipped: false,
       cameraZoom: 1.0,
+      cameraExposureOffset: 0.0,
+      cameraFlashMode: 'off',
       mirrorHudDisplaySeconds: 30,
       mirrorHudCycleMinutes: 5,
       appVersion: '1.0.0',
@@ -85,6 +91,8 @@ class AppSettings {
     bool? ttsInterruptCurrent,
     bool? cameraFlipped,
     double? cameraZoom,
+    double? cameraExposureOffset,
+    String? cameraFlashMode,
     int? mirrorHudDisplaySeconds,
     int? mirrorHudCycleMinutes,
     String? appVersion,
@@ -109,6 +117,8 @@ class AppSettings {
       ttsInterruptCurrent: ttsInterruptCurrent ?? this.ttsInterruptCurrent,
       cameraFlipped: cameraFlipped ?? this.cameraFlipped,
       cameraZoom: cameraZoom ?? this.cameraZoom,
+      cameraExposureOffset: cameraExposureOffset ?? this.cameraExposureOffset,
+      cameraFlashMode: cameraFlashMode ?? this.cameraFlashMode,
       mirrorHudDisplaySeconds:
           mirrorHudDisplaySeconds ?? this.mirrorHudDisplaySeconds,
       mirrorHudCycleMinutes:
