@@ -948,6 +948,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final ranked = candidates.map((outfit) {
       var score = 10;
       final reasonScores = <String, int>{};
+      final contextCompatible = _isContextCompatible(
+        primaryContext,
+        outfit.styles,
+      );
 
       void addReason(String reason, int weight) {
         final current = reasonScores[reason] ?? 0;
@@ -957,8 +961,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       }
 
       if (favoriteIds.contains(outfit.id)) {
-        score += 22;
-        addReason('Historique favori', 80);
+        if (contextCompatible) {
+          score += 22;
+          addReason('Historique favori', 80);
+        } else {
+          score += 8;
+          addReason('Favori avec compromis contexte', 30);
+        }
       }
 
       if (outfit.styles.any(normalizedStyles.contains)) {
@@ -997,11 +1006,23 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         score += 12;
       }
 
-      if (_isContextCompatible(primaryContext, outfit.styles)) {
+      if (contextCompatible) {
         score += 24;
         addReason('Adapte a votre contexte principal', 90);
       } else {
         score -= 12;
+      }
+
+      final planningCoherence = _planningCoherenceBoost(
+        planningSignals: planningSignals,
+        primaryContext: primaryContext,
+        styles: outfit.styles,
+      );
+      if (planningCoherence > 0) {
+        score += planningCoherence;
+        addReason('Cohérence avec vos priorites du jour', 88);
+      } else if (planningCoherence < 0) {
+        score += planningCoherence;
       }
 
       if (isWeekend &&
@@ -1083,7 +1104,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         addReason('Adapte aux conditions meteo', 100);
       } else if (weatherBoost < 0) {
         score += weatherBoost;
-        addReason('Compromis meteo detecte', 25);
+        addReason('Compromis meteo detecte', 45);
       }
 
       if (score < 0) {
@@ -1330,6 +1351,53 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
   }
 
+  int _planningCoherenceBoost({
+    required _PlanningSignals planningSignals,
+    required _PlanningContext primaryContext,
+    required List<String> styles,
+  }) {
+    var boost = 0;
+
+    if (primaryContext == _PlanningContext.work) {
+      if (styles.any((s) => s == 'business' || s == 'elegant')) {
+        boost += 8;
+      } else {
+        boost -= 8;
+      }
+    }
+
+    if (primaryContext == _PlanningContext.sport) {
+      if (styles.contains('sport')) {
+        boost += 8;
+      } else {
+        boost -= 8;
+      }
+    }
+
+    if (planningSignals.hasWorkEvent && planningSignals.hasEveningEvent) {
+      // Favor versatile outfits that can transition from work to evening.
+      if (styles.any((s) => s == 'elegant' || s == 'minimaliste')) {
+        boost += 6;
+      }
+      if (styles.length == 1 && styles.contains('sport')) {
+        boost -= 6;
+      }
+    }
+
+    if (planningSignals.hasWorkEvent && planningSignals.hasSportEvent) {
+      // Mixed day: avoid ultra-specialized outfits.
+      if (styles.length == 1 &&
+          (styles.contains('business') || styles.contains('sport'))) {
+        boost -= 6;
+      }
+      if (styles.any((s) => s == 'casual' || s == 'minimaliste')) {
+        boost += 4;
+      }
+    }
+
+    return boost;
+  }
+
   List<String> _sortedReasons(Map<String, int> reasonScores) {
     final entries = reasonScores.entries.toList()
       ..sort((a, b) {
@@ -1390,13 +1458,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       if (weather.temperature >= 31 &&
           styles.contains('business') &&
           !styles.contains('casual')) {
-        boost -= 12;
+        boost -= 14;
       }
 
       if (weather.temperature <= 8 &&
           styles.length == 1 &&
           styles.contains('sport')) {
-        boost -= 10;
+        boost -= 12;
       }
 
       final main = weather.main.toLowerCase();
@@ -1407,7 +1475,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       if (isRainy &&
           styles.contains('streetwear') &&
           !styles.contains('business')) {
-        boost -= 10;
+        boost -= 12;
       }
     }
 
