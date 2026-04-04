@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -64,6 +64,141 @@ final outfitFavoritesSyncMessageProvider = StateProvider<String>((ref) {
 final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
   return true;
 });
+
+final outfitPersonalizationProvider =
+    StateNotifierProvider<
+      OutfitPersonalizationNotifier,
+      OutfitPersonalizationState
+    >((ref) {
+      return OutfitPersonalizationNotifier();
+    });
+
+class OutfitPersonalizationState {
+  final Map<String, int> styleBiasByStyle;
+  final Map<String, int> outfitBiasById;
+  final Map<String, int> lastSeenAtMsByOutfitId;
+
+  const OutfitPersonalizationState({
+    required this.styleBiasByStyle,
+    required this.outfitBiasById,
+    required this.lastSeenAtMsByOutfitId,
+  });
+
+  const OutfitPersonalizationState.initial()
+    : styleBiasByStyle = const <String, int>{},
+      outfitBiasById = const <String, int>{},
+      lastSeenAtMsByOutfitId = const <String, int>{};
+
+  OutfitPersonalizationState copyWith({
+    Map<String, int>? styleBiasByStyle,
+    Map<String, int>? outfitBiasById,
+    Map<String, int>? lastSeenAtMsByOutfitId,
+  }) {
+    return OutfitPersonalizationState(
+      styleBiasByStyle: styleBiasByStyle ?? this.styleBiasByStyle,
+      outfitBiasById: outfitBiasById ?? this.outfitBiasById,
+      lastSeenAtMsByOutfitId:
+          lastSeenAtMsByOutfitId ?? this.lastSeenAtMsByOutfitId,
+    );
+  }
+}
+
+class OutfitPersonalizationNotifier
+    extends StateNotifier<OutfitPersonalizationState> {
+  OutfitPersonalizationNotifier()
+    : super(const OutfitPersonalizationState.initial()) {
+    Future.microtask(_load);
+  }
+
+  static const _prefsKey = 'outfit.personalization.v1';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_prefsKey);
+    if (raw == null || raw.isEmpty) {
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+
+      Map<String, int> parseIntMap(Object? input) {
+        if (input is! Map) {
+          return <String, int>{};
+        }
+        final parsed = <String, int>{};
+        input.forEach((key, value) {
+          final k = key.toString();
+          final v = int.tryParse(value.toString());
+          if (v != null) {
+            parsed[k] = v;
+          }
+        });
+        return parsed;
+      }
+
+      state = OutfitPersonalizationState(
+        styleBiasByStyle: parseIntMap(decoded['styleBiasByStyle']),
+        outfitBiasById: parseIntMap(decoded['outfitBiasById']),
+        lastSeenAtMsByOutfitId: parseIntMap(decoded['lastSeenAtMsByOutfitId']),
+      );
+    } catch (_) {
+      // Ignore corrupted local personalization cache.
+    }
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = jsonEncode({
+      'styleBiasByStyle': state.styleBiasByStyle,
+      'outfitBiasById': state.outfitBiasById,
+      'lastSeenAtMsByOutfitId': state.lastSeenAtMsByOutfitId,
+    });
+    await prefs.setString(_prefsKey, raw);
+  }
+
+  Future<void> recordFeedback({
+    required String outfitId,
+    required List<String> styles,
+    required bool positive,
+  }) async {
+    final deltaOutfit = positive ? 10 : -10;
+    final deltaStyle = positive ? 6 : -6;
+
+    final nextOutfitBias = Map<String, int>.from(state.outfitBiasById);
+    final currentOutfit = nextOutfitBias[outfitId] ?? 0;
+    nextOutfitBias[outfitId] = (currentOutfit + deltaOutfit).clamp(-40, 40);
+
+    final nextStyleBias = Map<String, int>.from(state.styleBiasByStyle);
+    for (final style in styles) {
+      final key = style.toLowerCase();
+      final current = nextStyleBias[key] ?? 0;
+      nextStyleBias[key] = (current + deltaStyle).clamp(-30, 30);
+    }
+
+    state = state.copyWith(
+      outfitBiasById: nextOutfitBias,
+      styleBiasByStyle: nextStyleBias,
+    );
+    await _save();
+  }
+
+  Future<void> markOutfitSeen(String outfitId) async {
+    final nextSeen = Map<String, int>.from(state.lastSeenAtMsByOutfitId);
+    nextSeen[outfitId] = DateTime.now().millisecondsSinceEpoch;
+
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 14))
+        .millisecondsSinceEpoch;
+    nextSeen.removeWhere((_, timestamp) => timestamp < cutoff);
+
+    state = state.copyWith(lastSeenAtMsByOutfitId: nextSeen);
+    await _save();
+  }
+}
 
 class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   OutfitFavoritesNotifier(this._ref) : super(<String>{}) {
@@ -301,6 +436,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final isFavoritesMode = initialShowFavorites;
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
+    final personalization = ref.watch(outfitPersonalizationProvider);
     final strictWeatherMode = ref.watch(outfitStrictWeatherModeProvider);
     final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
@@ -454,6 +590,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         profile: profile,
                         favoriteIds: favoriteIds,
                         showOnlyFavorites: initialShowFavorites,
+                        personalization: personalization,
                         eventsAsync: todayEventsAsync,
                         weatherContext: weatherBundleAsync.maybeWhen(
                           data: (bundle) =>
@@ -484,6 +621,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         profile: profile,
                         favoriteIds: favoriteIds,
                         showOnlyFavorites: initialShowFavorites,
+                        personalization: personalization,
                         eventsAsync: tomorrowEventsAsync,
                         weatherContext: weatherBundleAsync.maybeWhen(
                           data: (bundle) => _weatherContextFromForecast(
@@ -653,6 +791,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required UserProfile profile,
     required Set<String> favoriteIds,
     required bool showOnlyFavorites,
+    required OutfitPersonalizationState personalization,
     required AsyncValue<List<AgendaEvent>> eventsAsync,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
@@ -668,6 +807,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           targetDay: targetDay,
           favoriteIds: favoriteIds,
           showOnlyFavorites: showOnlyFavorites,
+          personalization: personalization,
           weatherContext: weatherContext,
           strictWeatherMode: strictWeatherMode,
           referenceNow: referenceNow,
@@ -749,6 +889,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required DateTime targetDay,
     required Set<String> favoriteIds,
     required bool showOnlyFavorites,
+    required OutfitPersonalizationState personalization,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
     required DateTime referenceNow,
@@ -757,6 +898,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       profile,
       events,
       favoriteIds: favoriteIds,
+      personalization: personalization,
       targetDay: targetDay,
       weatherContext: weatherContext,
       strictWeatherMode: strictWeatherMode,
@@ -807,6 +949,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     UserProfile profile,
     List<AgendaEvent> events, {
     required Set<String> favoriteIds,
+    required OutfitPersonalizationState personalization,
     required DateTime targetDay,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
@@ -1108,6 +1251,34 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         addReason('Compromis meteo detecte', 45);
       }
 
+      final styleBias = _styleBiasBoost(
+        styles: outfit.styles,
+        styleBiasByStyle: personalization.styleBiasByStyle,
+      );
+      if (styleBias > 0) {
+        score += styleBias;
+        addReason('Affinite learnée avec vos styles', 92);
+      } else if (styleBias < 0) {
+        score += styleBias;
+      }
+
+      final outfitBias = personalization.outfitBiasById[outfit.id] ?? 0;
+      if (outfitBias > 0) {
+        score += outfitBias;
+        addReason('Feedback positif precedent', 84);
+      } else if (outfitBias < 0) {
+        score += outfitBias;
+      }
+
+      final repetitionPenalty = _recentRepetitionPenalty(
+        outfitId: outfit.id,
+        lastSeenAtMsByOutfitId: personalization.lastSeenAtMsByOutfitId,
+      );
+      if (repetitionPenalty > 0) {
+        score -= repetitionPenalty;
+        addReason('Rotation anti-repetition', 52);
+      }
+
       if (score < 0) {
         score = 0;
       }
@@ -1117,7 +1288,122 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       return _RankedOutfit(outfit: outfit, score: score, reasons: reasons);
     }).toList()..sort((a, b) => b.score.compareTo(a.score));
 
-    return ranked.take(4).toList();
+    return _selectDiverseTopOutfits(ranked, maxCount: 4);
+  }
+
+  int _styleBiasBoost({
+    required List<String> styles,
+    required Map<String, int> styleBiasByStyle,
+  }) {
+    if (styles.isEmpty || styleBiasByStyle.isEmpty) {
+      return 0;
+    }
+    var total = 0;
+    for (final style in styles) {
+      total += styleBiasByStyle[style.toLowerCase()] ?? 0;
+    }
+    return (total / styles.length).round();
+  }
+
+  int _recentRepetitionPenalty({
+    required String outfitId,
+    required Map<String, int> lastSeenAtMsByOutfitId,
+  }) {
+    final seenAt = lastSeenAtMsByOutfitId[outfitId];
+    if (seenAt == null) {
+      return 0;
+    }
+    final seenDate = DateTime.fromMillisecondsSinceEpoch(seenAt);
+    final elapsedDays = DateTime.now().difference(seenDate).inDays;
+    if (elapsedDays >= 7) {
+      return 0;
+    }
+    final decay = 7 - elapsedDays;
+    return 4 + decay * 3;
+  }
+
+  List<_RankedOutfit> _selectDiverseTopOutfits(
+    List<_RankedOutfit> ranked, {
+    required int maxCount,
+  }) {
+    if (ranked.length <= maxCount) {
+      return ranked;
+    }
+
+    final remaining = List<_RankedOutfit>.from(ranked);
+    final selected = <_RankedOutfit>[];
+
+    while (selected.length < maxCount && remaining.isNotEmpty) {
+      var bestIndex = 0;
+      var bestScore = -1;
+      var bestPenalty = 0;
+
+      for (var i = 0; i < remaining.length; i++) {
+        final candidate = remaining[i];
+        final penalty = _diversityPenalty(
+          candidate: candidate.outfit,
+          selected: selected,
+        );
+        final adjusted = candidate.score - penalty;
+        if (adjusted > bestScore) {
+          bestScore = adjusted;
+          bestPenalty = penalty;
+          bestIndex = i;
+        }
+      }
+
+      final chosen = remaining.removeAt(bestIndex);
+      final adjustedScore = bestScore < 0 ? 0 : bestScore;
+      final adjustedReasons = <String>[...chosen.reasons];
+      if (bestPenalty > 0) {
+        adjustedReasons.add('Ajoute de la variete a la selection');
+      }
+
+      selected.add(
+        _RankedOutfit(
+          outfit: chosen.outfit,
+          score: adjustedScore,
+          reasons: adjustedReasons,
+        ),
+      );
+    }
+
+    return selected;
+  }
+
+  int _diversityPenalty({
+    required _Outfit candidate,
+    required List<_RankedOutfit> selected,
+  }) {
+    if (selected.isEmpty) {
+      return 0;
+    }
+
+    var penalty = 0;
+    for (final picked in selected) {
+      final sim = _styleSimilarity(candidate.styles, picked.outfit.styles);
+      penalty += (sim * 14).round();
+
+      final samePrimaryStyle =
+          candidate.styles.isNotEmpty &&
+          picked.outfit.styles.isNotEmpty &&
+          candidate.styles.first == picked.outfit.styles.first;
+      if (samePrimaryStyle) {
+        penalty += 5;
+      }
+    }
+    return penalty;
+  }
+
+  double _styleSimilarity(List<String> left, List<String> right) {
+    final a = left.toSet();
+    final b = right.toSet();
+    final union = <String>{...a, ...b};
+    if (union.isEmpty) {
+      return 0;
+    }
+    final intersection = a.intersection(b);
+    return intersection.length / union.length;
   }
 
   String _normalizeStyle(String value) {
@@ -1697,12 +1983,17 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _showOutfitDetailsSheet(
-          ref,
-          context,
-          rankedOutfit,
-          isFavorite: isFavorite,
-        ),
+        onTap: () {
+          ref
+              .read(outfitPersonalizationProvider.notifier)
+              .markOutfitSeen(rankedOutfit.outfit.id);
+          _showOutfitDetailsSheet(
+            ref,
+            context,
+            rankedOutfit,
+            isFavorite: isFavorite,
+          );
+        },
         child: GlassContainer(
           borderRadius: 20,
           blur: 25,
@@ -1815,6 +2106,47 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     Icons.open_in_new,
                     size: 16,
                     color: Colors.white.withValues(alpha: 0.72),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          context,
+                          outfit,
+                          positive: true,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.thumb_up_alt_outlined,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.76),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          context,
+                          outfit,
+                          positive: false,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.thumb_down_alt_outlined,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.76),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1950,6 +2282,9 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () async {
                         await ref
+                            .read(outfitPersonalizationProvider.notifier)
+                            .markOutfitSeen(outfit.id);
+                        await ref
                             .read(outfitFavoritesProvider.notifier)
                             .toggleFavorite(outfit.id);
                         if (sheetContext.mounted) {
@@ -1967,6 +2302,36 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: true,
+                          ),
+                          icon: const Icon(Icons.thumb_up_alt_outlined),
+                          label: const Text('Plus comme ca'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: false,
+                          ),
+                          icon: const Icon(Icons.thumb_down_alt_outlined),
+                          label: const Text('Moins comme ca'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -1982,6 +2347,41 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _handleOutfitFeedback(
+    WidgetRef ref,
+    BuildContext context,
+    _Outfit outfit, {
+    required bool positive,
+  }) async {
+    await ref
+        .read(outfitPersonalizationProvider.notifier)
+        .recordFeedback(
+          outfitId: outfit.id,
+          styles: outfit.styles,
+          positive: positive,
+        );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final msg = positive
+        ? _tr(
+            context,
+            'Parfait, on va favoriser ce style.',
+            'Great, we will prioritize this style.',
+          )
+        : _tr(
+            context,
+            'Bien note, on va reduire ce style.',
+            'Noted, we will reduce this style.',
+          );
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Widget _buildDetailBlock({
