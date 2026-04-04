@@ -61,6 +61,10 @@ final outfitFavoritesSyncMessageProvider = StateProvider<String>((ref) {
   return 'Aucune synchronisation';
 });
 
+final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
+  return true;
+});
+
 class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   OutfitFavoritesNotifier(this._ref) : super(<String>{}) {
     _attachAuthListener();
@@ -296,6 +300,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final isFavoritesMode = initialShowFavorites;
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
+    final strictWeatherMode = ref.watch(outfitStrictWeatherModeProvider);
     final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
     final activeEmail =
@@ -421,6 +426,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           todayEvents: todayEvents,
                           tomorrowEvents: tomorrowEvents,
                         ),
+                        const SizedBox(height: 14),
+                        _buildRecommendationTuning(
+                          context,
+                          ref,
+                          strictWeatherMode,
+                        ),
                         const SizedBox(height: 24),
                       ],
 
@@ -448,6 +459,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                               _weatherContextFromCurrent(bundle.currentWeather),
                           orElse: () => null,
                         ),
+                        strictWeatherMode: strictWeatherMode,
                         referenceNow: now,
                       ),
 
@@ -478,6 +490,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           ),
                           orElse: () => null,
                         ),
+                        strictWeatherMode: strictWeatherMode,
                         referenceNow: DateTime(
                           tomorrow.year,
                           tomorrow.month,
@@ -581,6 +594,56 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildRecommendationTuning(
+    BuildContext context,
+    WidgetRef ref,
+    bool strictWeatherMode,
+  ) {
+    return GlassContainer(
+      borderRadius: 16,
+      blur: 20,
+      opacity: 0.1,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _tr(context, 'Mode meteo strict', 'Strict weather mode'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _tr(
+                    context,
+                    'Filtre fortement les tenues incompatibles avec la meteo.',
+                    'Strongly filters outfits incompatible with weather.',
+                  ),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch.adaptive(
+            value: strictWeatherMode,
+            onChanged: (value) {
+              ref.read(outfitStrictWeatherModeProvider.notifier).state = value;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSuggestionSection({
     required WidgetRef ref,
     required BuildContext context,
@@ -591,6 +654,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required bool showOnlyFavorites,
     required AsyncValue<List<AgendaEvent>> eventsAsync,
     required _OutfitWeatherContext? weatherContext,
+    required bool strictWeatherMode,
     required DateTime referenceNow,
   }) {
     return eventsAsync.when(
@@ -604,6 +668,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           favoriteIds: favoriteIds,
           showOnlyFavorites: showOnlyFavorites,
           weatherContext: weatherContext,
+          strictWeatherMode: strictWeatherMode,
           referenceNow: referenceNow,
         );
         return Column(
@@ -684,13 +749,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required Set<String> favoriteIds,
     required bool showOnlyFavorites,
     required _OutfitWeatherContext? weatherContext,
+    required bool strictWeatherMode,
     required DateTime referenceNow,
   }) {
     final ranked = _rankOutfits(
       profile,
       events,
+      favoriteIds: favoriteIds,
       targetDay: targetDay,
       weatherContext: weatherContext,
+      strictWeatherMode: strictWeatherMode,
       referenceNow: referenceNow,
     );
     final visible = showOnlyFavorites
@@ -737,8 +805,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
   List<_RankedOutfit> _rankOutfits(
     UserProfile profile,
     List<AgendaEvent> events, {
+    required Set<String> favoriteIds,
     required DateTime targetDay,
     required _OutfitWeatherContext? weatherContext,
+    required bool strictWeatherMode,
     required DateTime referenceNow,
   }) {
     final allOutfits = [
@@ -849,6 +919,21 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       return ageOk && morphologyOk;
     }).toList();
 
+    // Hard constraints first: remove clearly unsuitable outfits for the
+    // immediate context to avoid noisy recommendations.
+    final strictCandidates = candidates.where((outfit) {
+      return _passesHardConstraints(
+        outfit: outfit,
+        weatherContext: weatherContext,
+        strictWeatherMode: strictWeatherMode,
+        planningSignals: planningSignals,
+        primaryContext: primaryContext,
+      );
+    }).toList();
+    if (strictCandidates.isNotEmpty) {
+      candidates = strictCandidates;
+    }
+
     final contextFiltered = candidates.where((outfit) {
       return _isContextCompatible(primaryContext, outfit.styles);
     }).toList();
@@ -861,34 +946,46 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
 
     final ranked = candidates.map((outfit) {
-      var score = 0;
-      final reasons = <String>[];
+      var score = 10;
+      final reasonScores = <String, int>{};
+
+      void addReason(String reason, int weight) {
+        final current = reasonScores[reason] ?? 0;
+        if (weight > current) {
+          reasonScores[reason] = weight;
+        }
+      }
+
+      if (favoriteIds.contains(outfit.id)) {
+        score += 22;
+        addReason('Historique favori', 80);
+      }
 
       if (outfit.styles.any(normalizedStyles.contains)) {
-        score += 52;
-        reasons.add('Correspond a vos styles');
+        score += 44;
+        addReason('Correspond a vos styles', 100);
       }
 
       // Bonus additionnel si le style principal utilisateur est couvert.
       if (profile.preferredStyles.isNotEmpty) {
         final topStyle = _normalizeStyle(profile.preferredStyles.first);
         if (outfit.styles.contains(topStyle)) {
-          score += 10;
-          reasons.add('Aligne avec votre style principal');
+          score += 18;
+          addReason('Aligne avec votre style principal', 110);
         }
       }
 
       if (profile.age >= outfit.minAge && profile.age <= outfit.maxAge) {
         score += 24;
-        reasons.add('Adapte a votre tranche d\'age');
+        addReason('Adapte a votre tranche d\'age', 40);
       }
 
       if (_matchesMorphology(
         profileMorphology: profile.morphology,
         compatibleMorphologies: outfit.compatibleMorphologies,
       )) {
-        score += 30;
-        reasons.add('Compatible avec votre morphologie');
+        score += 36;
+        addReason('Compatible avec votre morphologie', 95);
       }
 
       final isGenderMatch =
@@ -901,8 +998,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       }
 
       if (_isContextCompatible(primaryContext, outfit.styles)) {
-        score += 18;
-        reasons.add('Adapte a votre contexte principal');
+        score += 24;
+        addReason('Adapte a votre contexte principal', 90);
+      } else {
+        score -= 12;
       }
 
       if (isWeekend &&
@@ -912,7 +1011,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                 style == 'sport';
           })) {
         score += 12;
-        reasons.add('Adapte au rythme du week-end');
+        addReason('Adapte au rythme du week-end', 35);
       }
 
       if (!isWeekend &&
@@ -920,20 +1019,24 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             return style == 'business' || style == 'elegant';
           })) {
         score += 12;
-        reasons.add('Adapte a une journee de semaine');
+        addReason('Adapte a une journee de semaine', 35);
       }
 
       if (planningSignals.hasWorkEvent &&
           outfit.styles.any(
             (style) => style == 'business' || style == 'elegant',
           )) {
-        score += 24;
-        reasons.add('Compatible avec votre planning pro');
+        score += 30;
+        addReason('Compatible avec votre planning pro', 105);
+      } else if (planningSignals.hasWorkEvent) {
+        score -= 8;
       }
 
       if (planningSignals.hasSportEvent && outfit.styles.contains('sport')) {
-        score += 24;
-        reasons.add('Compatible avec vos activites sportives');
+        score += 30;
+        addReason('Compatible avec vos activites sportives', 105);
+      } else if (planningSignals.hasSportEvent) {
+        score -= 8;
       }
 
       if (planningSignals.hasEveningEvent &&
@@ -941,7 +1044,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             (style) => style == 'elegant' || style == 'streetwear',
           )) {
         score += 16;
-        reasons.add('Adapte a vos sorties du soir');
+        addReason('Adapte a vos sorties du soir', 65);
       }
 
       if (planningSignals.hasCasualEvent &&
@@ -951,29 +1054,43 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                 style == 'minimaliste';
           })) {
         score += 14;
-        reasons.add('Adapte a un planning detendu');
+        addReason('Adapte a un planning detendu', 60);
       }
 
       if (events.isNotEmpty &&
           planningSignals.hasOutdoorEvent &&
           outfit.styles.any((style) => style == 'sport' || style == 'casual')) {
         score += 10;
-        reasons.add('Confortable pour des deplacements exterieurs');
+        addReason('Confortable pour des deplacements exterieurs', 55);
       }
 
       final slotBoost = _slotScoreBoost(prioritySlot, outfit.styles);
       if (slotBoost > 0) {
         score += slotBoost;
-        reasons.add(
+        addReason(
           'Optimise pour le creneau ${_slotLabel(prioritySlot).toLowerCase()}',
+          50,
         );
       }
 
-      final weatherBoost = _weatherScoreBoost(weatherContext, outfit.styles);
+      final weatherBoost = _weatherScoreBoost(
+        weatherContext,
+        outfit.styles,
+        strictWeatherMode: strictWeatherMode,
+      );
       if (weatherBoost > 0) {
         score += weatherBoost;
-        reasons.add('Adapte aux conditions météo');
+        addReason('Adapte aux conditions meteo', 100);
+      } else if (weatherBoost < 0) {
+        score += weatherBoost;
+        addReason('Compromis meteo detecte', 25);
       }
+
+      if (score < 0) {
+        score = 0;
+      }
+
+      final reasons = _sortedReasons(reasonScores);
 
       return _RankedOutfit(outfit: outfit, score: score, reasons: reasons);
     }).toList()..sort((a, b) => b.score.compareTo(a.score));
@@ -1213,7 +1330,23 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
   }
 
-  int _weatherScoreBoost(_OutfitWeatherContext? weather, List<String> styles) {
+  List<String> _sortedReasons(Map<String, int> reasonScores) {
+    final entries = reasonScores.entries.toList()
+      ..sort((a, b) {
+        final byWeight = b.value.compareTo(a.value);
+        if (byWeight != 0) {
+          return byWeight;
+        }
+        return a.key.compareTo(b.key);
+      });
+    return entries.map((e) => e.key).toList();
+  }
+
+  int _weatherScoreBoost(
+    _OutfitWeatherContext? weather,
+    List<String> styles, {
+    required bool strictWeatherMode,
+  }) {
     if (weather == null) {
       return 0;
     }
@@ -1253,7 +1386,87 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       }
     }
 
+    if (strictWeatherMode) {
+      if (weather.temperature >= 31 &&
+          styles.contains('business') &&
+          !styles.contains('casual')) {
+        boost -= 12;
+      }
+
+      if (weather.temperature <= 8 &&
+          styles.length == 1 &&
+          styles.contains('sport')) {
+        boost -= 10;
+      }
+
+      final main = weather.main.toLowerCase();
+      final isRainy =
+          main.contains('rain') ||
+          main.contains('thunder') ||
+          main.contains('snow');
+      if (isRainy &&
+          styles.contains('streetwear') &&
+          !styles.contains('business')) {
+        boost -= 10;
+      }
+    }
+
     return boost;
+  }
+
+  bool _passesHardConstraints({
+    required _Outfit outfit,
+    required _OutfitWeatherContext? weatherContext,
+    required bool strictWeatherMode,
+    required _PlanningSignals planningSignals,
+    required _PlanningContext primaryContext,
+  }) {
+    final styles = outfit.styles;
+
+    // Work-first hard gate: if user has work context, keep at least one
+    // business/elegant direction in the candidate set.
+    if ((planningSignals.hasWorkEvent ||
+            primaryContext == _PlanningContext.work) &&
+        !styles.any((s) => s == 'business' || s == 'elegant')) {
+      return false;
+    }
+
+    if (weatherContext == null) {
+      return true;
+    }
+
+    if (!strictWeatherMode) {
+      return true;
+    }
+
+    final main = weatherContext.main.toLowerCase();
+    final isRainy =
+        main.contains('rain') ||
+        main.contains('thunder') ||
+        main.contains('snow');
+
+    // In rainy/snowy conditions, avoid highly exposed styles.
+    if (isRainy &&
+        styles.contains('streetwear') &&
+        !styles.contains('business')) {
+      return false;
+    }
+
+    // Very hot weather: avoid heavy formal-only outfits.
+    if (weatherContext.temperature >= 31 &&
+        styles.contains('business') &&
+        !styles.contains('casual')) {
+      return false;
+    }
+
+    // Very cold weather: avoid sport-only lightweight outfits.
+    if (weatherContext.temperature <= 8 &&
+        styles.length == 1 &&
+        styles.contains('sport')) {
+      return false;
+    }
+
+    return true;
   }
 
   bool _isMorphologyCompatible(String morphology, _Outfit outfit) {
