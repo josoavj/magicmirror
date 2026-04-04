@@ -68,7 +68,8 @@ final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
 class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   OutfitFavoritesNotifier(this._ref) : super(<String>{}) {
     _attachAuthListener();
-    _load();
+    // Defer initial load to avoid mutating other providers during build.
+    Future.microtask(_load);
   }
 
   final Ref _ref;
@@ -1493,8 +1494,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
     // Work-first hard gate: if user has work context, keep at least one
     // business/elegant direction in the candidate set.
-    if ((planningSignals.hasWorkEvent ||
+    final enforceWorkGate =
+        (planningSignals.hasWorkEvent ||
             primaryContext == _PlanningContext.work) &&
+        !planningSignals.hasSportEvent &&
+        primaryContext != _PlanningContext.mixed;
+    if (enforceWorkGate &&
         !styles.any((s) => s == 'business' || s == 'elegant')) {
       return false;
     }
