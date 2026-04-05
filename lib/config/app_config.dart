@@ -12,6 +12,9 @@ class AppConfig {
   static const bool enableWeatherIntegration = true;
   static const bool enableAgendaSync = true;
   static const bool enableOutfitSuggestions = true;
+  static const bool enableCloudFeedbackExport = true;
+  static const bool enableHybridMlRanking = true;
+  static const double hybridMlWeight = 0.4;
 
   // App Settings
   static const bool enableDarkMode = false;

@@ -130,6 +130,63 @@ create index if not exists idx_agenda_events_user_start
   on public.agenda_events(user_id, start_time);
 
 -- =========================
+-- TABLE OUTFIT FEEDBACK EVENTS
+-- =========================
+create table if not exists public.outfit_feedback_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  event_type text not null,
+  outfit_id text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_outfit_feedback_events_user_created
+  on public.outfit_feedback_events(user_id, created_at desc);
+
+alter table public.outfit_feedback_events enable row level security;
+
+drop policy if exists "outfit_feedback_select_own" on public.outfit_feedback_events;
+drop policy if exists "outfit_feedback_insert_own" on public.outfit_feedback_events;
+
+create policy "outfit_feedback_select_own"
+on public.outfit_feedback_events
+for select
+to authenticated
+using (user_id = auth.uid());
+
+create policy "outfit_feedback_insert_own"
+on public.outfit_feedback_events
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+-- =========================
+-- TABLE OUTFIT ML SCORES (OPTIONNEL)
+-- =========================
+create table if not exists public.outfit_ml_scores (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  outfit_id text not null,
+  score double precision not null check (score >= 0 and score <= 1),
+  updated_at timestamptz not null default now(),
+  unique (user_id, outfit_id)
+);
+
+create index if not exists idx_outfit_ml_scores_user
+  on public.outfit_ml_scores(user_id);
+
+alter table public.outfit_ml_scores enable row level security;
+
+drop policy if exists "outfit_ml_scores_select_own" on public.outfit_ml_scores;
+
+create policy "outfit_ml_scores_select_own"
+on public.outfit_ml_scores
+for select
+to authenticated
+using (user_id = auth.uid());
+
+-- =========================
 -- STORAGE AVATARS
 -- =========================
 insert into storage.buckets (id, name, public)
@@ -176,6 +233,8 @@ with check (
 3. Agenda cloud dans `public.agenda_events` (CRUD scope compte actif).
 4. Upload avatar dans `storage.objects` bucket `avatars`, dossier par user id.
 5. Favoris tenues cloud dans `profiles.favorite_outfit_ids` + fallback local SharedPreferences.
+6. Evenements feedback tenues dans `public.outfit_feedback_events` (instrumentation locale + export cloud).
+7. Scores ML optionnels dans `public.outfit_ml_scores` (lecture pour ranking hybride).
 
 ## 4) Vérification rapide (checklist)
 

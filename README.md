@@ -210,6 +210,7 @@ lib/features/weather/data/services/weather_service.dart
 - [GETTING_STARTED.md](docs/GETTING_STARTED.md) - Quick start guide
 - [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) - Support caméra par plateforme
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture de l'application
+- [OUTFIT_ML_PIPELINE.md](docs/OUTFIT_ML_PIPELINE.md) - Pipeline ML léger (LightGBM)
 - [CHANGELOG.md](CHANGELOG.md) - Historique des changements
 
 ---
