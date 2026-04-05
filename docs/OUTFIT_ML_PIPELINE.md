@@ -14,6 +14,7 @@ Puis scorer des candidates avec `ml_score` pour faire un ranking.
 
 - `ml/train_lightgbm_ranker.py`: entrainement + export modele
 - `ml/score_lightgbm_ranker.py`: inference batch
+- `ml/export_feedback_dataset.py`: extraction dataset depuis Supabase
 - `ml/requirements.txt`: dependances Python
 
 ## Installation
@@ -43,6 +44,18 @@ Exemple JSONL:
 ```
 
 ## Entrainement
+
+### 0) Exporter les evenements feedback depuis Supabase
+
+```bash
+python ml/export_feedback_dataset.py \
+  --url "$SUPABASE_URL" \
+  --key "$SUPABASE_SERVICE_ROLE_KEY" \
+  --output data/outfit_feedback_events.jsonl \
+  --days 90
+```
+
+Puis utiliser ce fichier en entree d'entrainement:
 
 ```bash
 python ml/train_lightgbm_ranker.py \
@@ -77,6 +90,14 @@ score_{final} = 0.6 \cdot score_{heuristique} + 0.4 \cdot score_{ml}
 $$
 
 Puis ajuster selon KPI reel.
+
+Dans l'app Flutter:
+- `AppConfig.enableHybridMlRanking` active le blend heuristique+ML.
+- `AppConfig.hybridMlWeight` controle le poids du score ML.
+- Le provider lit `public.outfit_ml_scores` (`user_id`, `outfit_id`, `score`).
+
+Feedback cloud:
+- `AppConfig.enableCloudFeedbackExport` exporte les interactions vers `public.outfit_feedback_events`.
 
 ## KPI de suivi
 
