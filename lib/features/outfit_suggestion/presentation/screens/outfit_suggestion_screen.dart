@@ -65,6 +65,143 @@ final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
   return true;
 });
 
+final outfitTelemetryProvider =
+    StateNotifierProvider<OutfitTelemetryNotifier, OutfitTelemetryState>((ref) {
+      return OutfitTelemetryNotifier();
+    });
+
+class OutfitTelemetryState {
+  final int likes;
+  final int dislikes;
+  final int seen;
+  final int favoriteAdds;
+  final int favoriteRemoves;
+
+  const OutfitTelemetryState({
+    required this.likes,
+    required this.dislikes,
+    required this.seen,
+    required this.favoriteAdds,
+    required this.favoriteRemoves,
+  });
+
+  const OutfitTelemetryState.initial()
+    : likes = 0,
+      dislikes = 0,
+      seen = 0,
+      favoriteAdds = 0,
+      favoriteRemoves = 0;
+
+  OutfitTelemetryState copyWith({
+    int? likes,
+    int? dislikes,
+    int? seen,
+    int? favoriteAdds,
+    int? favoriteRemoves,
+  }) {
+    return OutfitTelemetryState(
+      likes: likes ?? this.likes,
+      dislikes: dislikes ?? this.dislikes,
+      seen: seen ?? this.seen,
+      favoriteAdds: favoriteAdds ?? this.favoriteAdds,
+      favoriteRemoves: favoriteRemoves ?? this.favoriteRemoves,
+    );
+  }
+
+  int get feedbackTotal => likes + dislikes;
+
+  double get acceptanceRate {
+    if (feedbackTotal == 0) {
+      return 0;
+    }
+    return likes / feedbackTotal;
+  }
+
+  double get rejectionRate {
+    if (feedbackTotal == 0) {
+      return 0;
+    }
+    return dislikes / feedbackTotal;
+  }
+}
+
+class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
+  OutfitTelemetryNotifier() : super(const OutfitTelemetryState.initial()) {
+    Future.microtask(_load);
+  }
+
+  static const _prefsKey = 'outfit.telemetry.v1';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_prefsKey);
+    if (raw == null || raw.isEmpty) {
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+
+      int readInt(String key) {
+        final value = decoded[key];
+        return int.tryParse(value?.toString() ?? '') ?? 0;
+      }
+
+      state = OutfitTelemetryState(
+        likes: readInt('likes'),
+        dislikes: readInt('dislikes'),
+        seen: readInt('seen'),
+        favoriteAdds: readInt('favoriteAdds'),
+        favoriteRemoves: readInt('favoriteRemoves'),
+      );
+    } catch (_) {
+      // Ignore malformed telemetry cache.
+    }
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _prefsKey,
+      jsonEncode({
+        'likes': state.likes,
+        'dislikes': state.dislikes,
+        'seen': state.seen,
+        'favoriteAdds': state.favoriteAdds,
+        'favoriteRemoves': state.favoriteRemoves,
+      }),
+    );
+  }
+
+  Future<void> recordFeedback({required bool positive}) async {
+    state = positive
+        ? state.copyWith(likes: state.likes + 1)
+        : state.copyWith(dislikes: state.dislikes + 1);
+    await _save();
+  }
+
+  Future<void> recordSeen() async {
+    state = state.copyWith(seen: state.seen + 1);
+    await _save();
+  }
+
+  Future<void> recordFavoriteToggle({required bool added}) async {
+    state = added
+        ? state.copyWith(favoriteAdds: state.favoriteAdds + 1)
+        : state.copyWith(favoriteRemoves: state.favoriteRemoves + 1);
+    await _save();
+  }
+
+  Future<void> reset() async {
+    state = const OutfitTelemetryState.initial();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefsKey);
+  }
+}
+
 final outfitPersonalizationProvider =
     StateNotifierProvider<
       OutfitPersonalizationNotifier,
@@ -437,6 +574,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
     final personalization = ref.watch(outfitPersonalizationProvider);
+    final telemetry = ref.watch(outfitTelemetryProvider);
     final strictWeatherMode = ref.watch(outfitStrictWeatherModeProvider);
     final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
@@ -568,6 +706,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           context,
                           ref,
                           strictWeatherMode,
+                          telemetry,
                         ),
                         const SizedBox(height: 24),
                       ],
@@ -669,6 +808,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       tomorrowEvents,
       DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 8),
     );
+
     return SizedBox(
       width: double.infinity,
       child: GlassContainer(
@@ -681,7 +821,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           children: [
             Text(
               _tr(context, 'Profil applique', 'Applied profile'),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -737,48 +877,122 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     bool strictWeatherMode,
+    OutfitTelemetryState telemetry,
   ) {
     return GlassContainer(
       borderRadius: 16,
       blur: 20,
       opacity: 0.1,
       padding: const EdgeInsets.all(14),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _tr(context, 'Mode meteo strict', 'Strict weather mode'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _tr(context, 'Mode météo strict', 'Strict weather mode'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _tr(
+                        context,
+                        'Filtre fortement les tenues incompatibles avec la météo.',
+                        'Strongly filters outfits incompatible with weather.',
+                      ),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _tr(
-                    context,
-                    'Filtre fortement les tenues incompatibles avec la meteo.',
-                    'Strongly filters outfits incompatible with weather.',
-                  ),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              Switch.adaptive(
+                value: strictWeatherMode,
+                onChanged: (value) {
+                  ref.read(outfitStrictWeatherModeProvider.notifier).state =
+                      value;
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildMetricsRow(context, telemetry),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                ref.read(outfitTelemetryProvider.notifier).reset();
+              },
+              icon: const Icon(Icons.restart_alt, size: 16),
+              label: Text(
+                _tr(context, 'Reset metriques locales', 'Reset local metrics'),
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          Switch.adaptive(
-            value: strictWeatherMode,
-            onChanged: (value) {
-              ref.read(outfitStrictWeatherModeProvider.notifier).state = value;
-            },
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMetricsRow(
+    BuildContext context,
+    OutfitTelemetryState telemetry,
+  ) {
+    String pct(double value) => '${(value * 100).toStringAsFixed(0)}%';
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _metricChip(_tr(context, 'Likes', 'Likes'), telemetry.likes.toString()),
+        _metricChip(
+          _tr(context, 'Dislikes', 'Dislikes'),
+          telemetry.dislikes.toString(),
+        ),
+        _metricChip(
+          _tr(context, 'Taux acceptation', 'Acceptance rate'),
+          pct(telemetry.acceptanceRate),
+        ),
+        _metricChip(
+          _tr(context, 'Taux rejet', 'Rejection rate'),
+          pct(telemetry.rejectionRate),
+        ),
+        _metricChip(
+          _tr(context, 'Tenues vues', 'Outfits seen'),
+          telemetry.seen.toString(),
+        ),
+        _metricChip(
+          _tr(context, 'Ajouts favoris', 'Favorite adds'),
+          telemetry.favoriteAdds.toString(),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.8),
+          fontSize: 11,
+        ),
       ),
     );
   }
@@ -1987,6 +2201,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           ref
               .read(outfitPersonalizationProvider.notifier)
               .markOutfitSeen(rankedOutfit.outfit.id);
+          ref.read(outfitTelemetryProvider.notifier).recordSeen();
           _showOutfitDetailsSheet(
             ref,
             context,
@@ -2285,8 +2500,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                             .read(outfitPersonalizationProvider.notifier)
                             .markOutfitSeen(outfit.id);
                         await ref
+                            .read(outfitTelemetryProvider.notifier)
+                            .recordSeen();
+                        await ref
                             .read(outfitFavoritesProvider.notifier)
                             .toggleFavorite(outfit.id);
+                        await ref
+                            .read(outfitTelemetryProvider.notifier)
+                            .recordFavoriteToggle(added: !isFavorite);
                         if (sheetContext.mounted) {
                           Navigator.of(sheetContext).pop();
                         }
@@ -2362,6 +2583,9 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           styles: outfit.styles,
           positive: positive,
         );
+    await ref
+        .read(outfitTelemetryProvider.notifier)
+        .recordFeedback(positive: positive);
 
     if (!context.mounted) {
       return;
