@@ -25,6 +25,11 @@ source .venv/bin/activate
 pip install -r ml/requirements.txt
 ```
 
+## SQL Supabase (obligatoire)
+
+Avant le premier run batch, execute le script:
+- `docs/sql/001_ml_pipeline_supabase.sql`
+
 ## Format des donnees d'entrainement
 
 Le script accepte `CSV` ou `JSONL`.
