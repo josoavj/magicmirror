@@ -11,6 +11,9 @@ Ce guide deploie le pipeline ML batch sur Railway avec ecriture des scores dans 
   - `public.profiles`
 - Cle service role Supabase (server-side uniquement)
 
+Script SQL requis (a executer avant le premier run):
+- `docs/sql/001_ml_pipeline_supabase.sql`
+
 ## 2) Fichiers utilises
 
 - `ml/Dockerfile`
