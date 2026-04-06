@@ -596,7 +596,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   Widget build(BuildContext context) {
     final frontCameraAsync = ref.watch(frontCameraProvider);
     final morphology = ref.watch(currentMorphologyProvider);
-    final isMlProcessing = ref.watch(isMlProcessingProvider);
     final mlRuntimeError = ref.watch(mlRuntimeErrorProvider);
 
     return Scaffold(
@@ -608,7 +607,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
               context,
               null,
               morphology,
-              isMlProcessing: isMlProcessing,
               mlRuntimeError: mlRuntimeError,
             );
           }
@@ -618,12 +616,13 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             data: (controller) {
               if (controller != null) {
                 unawaited(_ensureMlStream(controller, camera));
-                unawaited(
-                  _applyCameraPreferences(
-                    controller,
-                    ref.read(appSettingsProvider),
-                  ),
-                );
+                final settings = ref.read(appSettingsProvider);
+                final needsPreferenceUpdate =
+                    _lastConfiguredController != controller ||
+                    _lastAppliedFlashMode != settings.cameraFlashMode;
+                if (needsPreferenceUpdate) {
+                  unawaited(_applyCameraPreferences(controller, settings));
+                }
               } else {
                 unawaited(_stopMlStream());
               }
@@ -631,7 +630,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                 context,
                 controller,
                 morphology,
-                isMlProcessing: isMlProcessing,
                 mlRuntimeError: mlRuntimeError,
               );
             },
@@ -639,14 +637,12 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
               context,
               null,
               morphology,
-              isMlProcessing: isMlProcessing,
               mlRuntimeError: mlRuntimeError,
             ),
             error: (error, stackTrace) => _buildMirrorLayout(
               context,
               null,
               morphology,
-              isMlProcessing: isMlProcessing,
               mlRuntimeError: mlRuntimeError,
             ),
           );
@@ -656,7 +652,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
           context,
           null,
           morphology,
-          isMlProcessing: isMlProcessing,
           mlRuntimeError: mlRuntimeError,
         ),
       ),
@@ -667,7 +662,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     BuildContext context,
     dynamic controller,
     dynamic morphology, {
-    required bool isMlProcessing,
     required String? mlRuntimeError,
   }) {
     final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
@@ -852,10 +846,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         Positioned(
           top: topInset + 4,
           right: rightInset + 58,
-          child: _buildRuntimeStatusBadge(
-            cameraReady: cameraReady,
-            isMlProcessing: isMlProcessing,
-          ),
+          child: _buildRuntimeStatusBadge(cameraReady: cameraReady),
         ),
 
         if (mlRuntimeError != null)
@@ -1284,22 +1275,15 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     );
   }
 
-  Widget _buildRuntimeStatusBadge({
-    required bool cameraReady,
-    required bool isMlProcessing,
-  }) {
+  Widget _buildRuntimeStatusBadge({required bool cameraReady}) {
     final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final statusText = !cameraReady
         ? (l10n?.runtimeCameraInactive ?? 'Camera inactive')
-        : isMlProcessing
-        ? (l10n?.runtimeAiAnalyzing ?? 'AI analyzing')
         : _mlStreamStarted
         ? (l10n?.runtimeAiActive ?? 'AI active')
         : (l10n?.runtimeAiWaiting ?? 'AI waiting');
     final statusColor = !cameraReady
         ? Colors.redAccent
-        : isMlProcessing
-        ? const Color(0xFF22C55E)
         : _mlStreamStarted
         ? const Color(0xFF38BDF8)
         : Colors.amberAccent;

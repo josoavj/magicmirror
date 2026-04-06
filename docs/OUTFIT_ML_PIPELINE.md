@@ -99,6 +99,50 @@ Dans l'app Flutter:
 Feedback cloud:
 - `AppConfig.enableCloudFeedbackExport` exporte les interactions vers `public.outfit_feedback_events`.
 
+## Cold-start (aucun feedback utilisateur)
+
+Ce n'est **pas** un bug si aucun score utilisateur n'existe au debut.
+
+Strategie recommandee:
+- l'app garde le ranking heuristique (toujours disponible)
+- des `priors` ML par tenue sont utilises tant que `outfit_ml_scores` est vide
+- des que des scores cloud existent, ils ecrasent les priors pour ce user
+
+Resultat: pas de "trou" de recommandation au premier lancement.
+
+## Pipeline continu (liaison dossier ml -> app)
+
+Nouveaux scripts:
+- `ml/generate_outfit_candidates.py`: genere les candidats `(user_id, outfit_id)` depuis `profiles`
+- `ml/publish_ml_scores.py`: publie les scores vers `public.outfit_ml_scores`
+- `ml/run_ml_pipeline_once.py`: enchaine export -> train/score -> publication
+
+Execution one-shot:
+
+```bash
+python ml/run_ml_pipeline_once.py \
+  --url "$SUPABASE_URL" \
+  --key "$SUPABASE_SERVICE_ROLE_KEY" \
+  --days 90 \
+  --min-samples 200
+```
+
+Comportement si peu de donnees:
+- si `samples >= min-samples`: train + score + publish
+- sinon si un modele existe deja: score + publish avec ce modele
+- sinon: publication de scores neutres `0.5` (cold-start backend)
+
+Boucle continue (cron toutes les 30 min):
+
+```bash
+*/30 * * * * cd /path/to/magicmirror && /path/to/.venv/bin/python ml/run_ml_pipeline_once.py --url "$SUPABASE_URL" --key "$SUPABASE_SERVICE_ROLE_KEY" --days 90 --min-samples 200 >> /var/log/magicmirror-ml.log 2>&1
+```
+
+Version systemd timer possible aussi si tu preferes une supervision native Linux.
+
+Option PaaS recommandee:
+- Railway + Supabase (runbook complet): voir `docs/RAILWAY_ML_SETUP.md`
+
 ## KPI de suivi
 
 - taux d'acceptation
@@ -109,4 +153,4 @@ Feedback cloud:
 ## Etat d'avancement
 
 - Point 1 (instrumentation feedback + metriques): termine
-- Point 2 (pipeline LightGBM/XGBoost): **scripts et doc en place, integration runtime a brancher**
+- Point 2 (pipeline LightGBM/XGBoost): scripts batch + publication Supabase en place

@@ -43,7 +43,6 @@ class MlFrameProcessor {
     }
 
     _isProcessing = true;
-    ref.read(isMlProcessingProvider.notifier).state = true;
     final frameStartTime = DateTime.now();
 
     try {
@@ -85,7 +84,6 @@ class MlFrameProcessor {
       // Applique le délai dynamique pour éviter saturer le CPU
       await Future.delayed(Duration(milliseconds: _dynamicDelayMs));
       _isProcessing = false;
-      ref.read(isMlProcessingProvider.notifier).state = false;
     }
   }
 

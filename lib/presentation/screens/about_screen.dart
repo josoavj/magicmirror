@@ -124,7 +124,7 @@ class AboutScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'v1.0.0 - Beta',
+          'v1.0.1 - Beta',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
             fontSize: 16,

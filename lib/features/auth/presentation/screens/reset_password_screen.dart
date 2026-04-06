@@ -49,14 +49,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(password: password),
       );
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _message = 'Mot de passe mis à jour. Vous pouvez continuer.';
       });
     } on AuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.message;
       });
     } catch (_) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = 'Erreur lors de la mise à jour du mot de passe.';
       });

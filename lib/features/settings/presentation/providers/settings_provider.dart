@@ -72,7 +72,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         ),
         mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
         mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
-        appVersion: prefs.getString('appVersion') ?? '1.0.0',
+        appVersion: prefs.getString('appVersion') ?? '1.0.1',
       );
 
       state = settings;

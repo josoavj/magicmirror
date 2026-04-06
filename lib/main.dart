@@ -14,6 +14,7 @@ import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
 import 'features/settings/presentation/screens/account_settings_screen.dart';
 import 'features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
+import 'features/weather/presentation/screens/weather_screen.dart';
 import 'features/user_profile/presentation/screens/user_profile_screen.dart';
 import 'features/auth/presentation/screens/auth_screen.dart';
 import 'features/auth/presentation/screens/verify_email_screen.dart';
@@ -179,6 +180,7 @@ class MagicMirrorApp extends ConsumerWidget {
         '/home': (context) => const HomeScreen(),
         '/mirror': (context) => const MirrorScreen(),
         '/agenda': (context) => const AgendaScreen(),
+        '/weather': (context) => const WeatherScreen(),
         '/outfit-suggestion': (context) => const OutfitSuggestionScreen(),
         '/outfit-favorites': (context) =>
             const OutfitSuggestionScreen(initialShowFavorites: true),
