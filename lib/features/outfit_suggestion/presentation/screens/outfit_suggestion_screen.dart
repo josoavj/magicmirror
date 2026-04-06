@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:magicmirror/config/app_config.dart';
+import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
@@ -15,11 +16,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../presentation/widgets/glass_container.dart';
 
+const Map<String, double> _defaultOutfitMlPriors = <String, double>{
+  // Priors cold-start: permettent un ranking ML non vide avant feedback user.
+  'business_smart': 0.62,
+  'elegant': 0.6,
+  'minimal_monochrome': 0.58,
+  'casual_moderne': 0.57,
+  'street_dynamics': 0.55,
+  'sport': 0.52,
+};
+
 final agendaEventsForDayProvider =
     FutureProvider.family<List<AgendaEvent>, DateTime>((ref, day) async {
       final service = ref.watch(agendaSupabaseServiceProvider);
       final normalizedDay = DateTime(day.year, day.month, day.day);
-      return service.fetchEventsForDay(normalizedDay);
+      try {
+        return await service.fetchEventsForDay(normalizedDay);
+      } catch (_) {
+        // Ne bloque pas les suggestions si le planning cloud est indisponible.
+        return const <AgendaEvent>[];
+      }
     });
 
 final outfitWeatherServiceProvider = Provider<WeatherService>((ref) {
@@ -50,19 +66,19 @@ final outfitMlScoreMapProvider = FutureProvider<Map<String, double>>((
   ref,
 ) async {
   if (!AppConfig.enableHybridMlRanking) {
-    return const <String, double>{};
+    return _defaultOutfitMlPriors;
   }
 
   SupabaseClient client;
   try {
     client = Supabase.instance.client;
   } catch (_) {
-    return const <String, double>{};
+    return _defaultOutfitMlPriors;
   }
 
   final userId = client.auth.currentUser?.id;
   if (userId == null || userId.isEmpty) {
-    return const <String, double>{};
+    return _defaultOutfitMlPriors;
   }
 
   try {
@@ -84,10 +100,86 @@ final outfitMlScoreMapProvider = FutureProvider<Map<String, double>>((
         }
       }
     }
-    return map;
+    if (map.isEmpty) {
+      return _defaultOutfitMlPriors;
+    }
+
+    return <String, double>{..._defaultOutfitMlPriors, ...map};
+  } on PostgrestException catch (error) {
+    // Table optionnelle: absence de schema ne doit pas casser l'UI.
+    if (error.code == '42P01') {
+      return _defaultOutfitMlPriors;
+    }
+    rethrow;
   } catch (_) {
-    // Optional table: return empty map if not configured yet.
-    return const <String, double>{};
+    return _defaultOutfitMlPriors;
+  }
+});
+
+final outfitCloudTelemetryProvider = FutureProvider<OutfitTelemetryState>((
+  ref,
+) async {
+  SupabaseClient client;
+  try {
+    client = Supabase.instance.client;
+  } catch (_) {
+    return const OutfitTelemetryState.initial();
+  }
+
+  final userId = client.auth.currentUser?.id;
+  if (userId == null || userId.isEmpty) {
+    return const OutfitTelemetryState.initial();
+  }
+
+  try {
+    final rows = await client
+        .from('outfit_feedback_events')
+        .select('event_type')
+        .eq('user_id', userId)
+        .limit(5000);
+
+    var likes = 0;
+    var dislikes = 0;
+    var seen = 0;
+    var favoriteAdds = 0;
+    var favoriteRemoves = 0;
+
+    for (final row in (rows as List<dynamic>)) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      final type = row['event_type']?.toString() ?? '';
+      switch (type) {
+        case 'like':
+          likes++;
+          break;
+        case 'dislike':
+          dislikes++;
+          break;
+        case 'seen':
+          seen++;
+          break;
+        case 'favorite_add':
+          favoriteAdds++;
+          break;
+        case 'favorite_remove':
+          favoriteRemoves++;
+          break;
+      }
+    }
+
+    return OutfitTelemetryState(
+      likes: likes,
+      dislikes: dislikes,
+      seen: seen,
+      favoriteAdds: favoriteAdds,
+      favoriteRemoves: favoriteRemoves,
+    );
+  } on PostgrestException catch (error) {
+    if (error.code == '42P01') {
+      return const OutfitTelemetryState.initial();
+    }
+    rethrow;
   }
 });
 
@@ -693,14 +785,18 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
     final personalization = ref.watch(outfitPersonalizationProvider);
-    final telemetry = ref.watch(outfitTelemetryProvider);
+    final localTelemetry = ref.watch(outfitTelemetryProvider);
+    final cloudTelemetryAsync = ref.watch(outfitCloudTelemetryProvider);
+    final telemetry = cloudTelemetryAsync.maybeWhen(
+      data: (cloud) => _mergeTelemetry(localTelemetry, cloud),
+      orElse: () => localTelemetry,
+    );
     final strictWeatherMode = ref.watch(outfitStrictWeatherModeProvider);
-    final mlScoreMap = ref
-        .watch(outfitMlScoreMapProvider)
-        .maybeWhen(
-          data: (value) => value,
-          orElse: () => const <String, double>{},
-        );
+    final mlScoreMapAsync = ref.watch(outfitMlScoreMapProvider);
+    final mlScoreMap = mlScoreMapAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => const <String, double>{},
+    );
     final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
     final activeEmail =
@@ -804,6 +900,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      _buildMlStatusRow(context, mlScoreMapAsync),
+                      const SizedBox(height: 4),
+                      _buildCloudStatsStatusRow(context, cloudTelemetryAsync),
                       const SizedBox(height: 4),
                       Text(
                         '${_tr(context, 'Compte actif', 'Active account')}: $activeEmail',
@@ -1104,6 +1204,157 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           telemetry.favoriteAdds.toString(),
         ),
       ],
+    );
+  }
+
+  OutfitTelemetryState _mergeTelemetry(
+    OutfitTelemetryState local,
+    OutfitTelemetryState cloud,
+  ) {
+    return OutfitTelemetryState(
+      likes: local.likes + cloud.likes,
+      dislikes: local.dislikes + cloud.dislikes,
+      seen: local.seen + cloud.seen,
+      favoriteAdds: local.favoriteAdds + cloud.favoriteAdds,
+      favoriteRemoves: local.favoriteRemoves + cloud.favoriteRemoves,
+    );
+  }
+
+  Widget _buildMlStatusRow(
+    BuildContext context,
+    AsyncValue<Map<String, double>> mlScoreMapAsync,
+  ) {
+    return mlScoreMapAsync.when(
+      data: (scores) {
+        final active = scores.isNotEmpty;
+        return Row(
+          children: [
+            Icon(
+              active ? Icons.psychology_alt : Icons.psychology,
+              size: 14,
+              color: active ? Colors.greenAccent : Colors.amberAccent,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                active
+                    ? _tr(
+                        context,
+                        'ML hybride actif (${scores.length} score(s) charges)',
+                        'Hybrid ML active (${scores.length} score(s) loaded)',
+                      )
+                    : _tr(
+                        context,
+                        'ML non alimente (scores cloud absents)',
+                        'ML not fed (cloud scores missing)',
+                      ),
+                style: TextStyle(
+                  color: active ? Colors.greenAccent : Colors.amberAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => Row(
+        children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _tr(context, 'Chargement des scores ML...', 'Loading ML scores...'),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+      error: (error, stackTrace) {
+        logger.error(
+          'Erreur chargement scores ML',
+          tag: 'OutfitSuggestion',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return Row(
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              size: 14,
+              color: Colors.redAccent,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _tr(
+                  context,
+                  'Erreur chargement ML (fallback heuristique actif)',
+                  'ML loading error (heuristic fallback active)',
+                ),
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCloudStatsStatusRow(
+    BuildContext context,
+    AsyncValue<OutfitTelemetryState> cloudTelemetryAsync,
+  ) {
+    return cloudTelemetryAsync.when(
+      data: (stats) {
+        final loaded = stats.feedbackTotal > 0 || stats.seen > 0;
+        return Text(
+          loaded
+              ? _tr(
+                  context,
+                  'Stats cloud chargees (${stats.feedbackTotal} feedbacks)',
+                  'Cloud stats loaded (${stats.feedbackTotal} feedbacks)',
+                )
+              : _tr(
+                  context,
+                  'Pas encore de stats cloud (les stats locales restent actives)',
+                  'No cloud stats yet (local stats remain active)',
+                ),
+          style: TextStyle(
+            color: loaded ? Colors.lightBlueAccent : Colors.white60,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      },
+      loading: () => Text(
+        _tr(context, 'Chargement stats cloud...', 'Loading cloud stats...'),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.62),
+          fontSize: 11,
+        ),
+      ),
+      error: (error, stackTrace) => Text(
+        _tr(
+          context,
+          'Stats cloud indisponibles (mode local)',
+          'Cloud stats unavailable (local mode)',
+        ),
+        style: const TextStyle(
+          color: Colors.amberAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 
