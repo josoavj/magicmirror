@@ -34,14 +34,23 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         type: OtpType.signup,
         email: email,
       );
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _message = 'Email de vérification renvoyé.';
       });
     } on AuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.message;
       });
     } catch (_) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = 'Impossible de renvoyer l\'email.';
       });
