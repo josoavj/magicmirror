@@ -480,6 +480,33 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         birthDate: profile.birthDate,
                         enabled: _isEditMode,
                       ),
+                      const SizedBox(height: 12),
+                      if (_isEditMode)
+                        _EditableTextRow(
+                          icon: Icons.height,
+                          label: _tr(context, 'Taille (cm)', 'Height (cm)'),
+                          value: profile.heightCm.toString(),
+                          hint: '170',
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (value) {
+                            final parsed = int.tryParse(value.trim());
+                            if (parsed == null ||
+                                parsed < 120 ||
+                                parsed > 230) {
+                              return;
+                            }
+                            ref
+                                .read(userProfileProvider.notifier)
+                                .setHeightCm(parsed);
+                          },
+                        )
+                      else
+                        _ReadOnlyInfoRow(
+                          icon: Icons.height,
+                          label: _tr(context, 'Taille', 'Height'),
+                          value:
+                              '${profile.heightCm} ${_tr(context, 'cm', 'cm')}',
+                        ),
                     ],
                   ),
                 ),
@@ -672,7 +699,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 _SectionCard(
                   title: _tr(context, 'Resume', 'Summary'),
                   child: Text(
-                    '${_tr(context, 'Profil', 'Profile')}: ${profile.displayName}, ${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.morphology} - ${_tr(context, 'styles', 'styles')}: ${profile.preferredStyles.join(', ')}',
+                    '${_tr(context, 'Profil', 'Profile')}: ${profile.displayName}, ${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.heightCm} cm, ${profile.morphology} - ${_tr(context, 'styles', 'styles')}: ${profile.preferredStyles.join(', ')}',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.88),
                       height: 1.4,
@@ -959,6 +986,7 @@ class _EditableTextRow extends StatefulWidget {
   final String label;
   final String value;
   final String hint;
+  final TextInputType? keyboardType;
   final ValueChanged<String> onSubmitted;
 
   const _EditableTextRow({
@@ -966,6 +994,7 @@ class _EditableTextRow extends StatefulWidget {
     required this.label,
     required this.value,
     required this.hint,
+    this.keyboardType,
     required this.onSubmitted,
   });
 
@@ -1005,6 +1034,7 @@ class _EditableTextRowState extends State<_EditableTextRow> {
         Expanded(
           child: TextField(
             controller: _controller,
+            keyboardType: widget.keyboardType,
             onSubmitted: widget.onSubmitted,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(

@@ -4,6 +4,7 @@ class UserProfile {
   final String avatarUrl;
   final String gender;
   final int age;
+  final int heightCm;
   final DateTime? birthDate;
   final String morphology;
   final List<String> preferredStyles;
@@ -14,6 +15,7 @@ class UserProfile {
     required this.avatarUrl,
     required this.gender,
     required this.age,
+    required this.heightCm,
     required this.birthDate,
     required this.morphology,
     required this.preferredStyles,
@@ -26,6 +28,7 @@ class UserProfile {
       avatarUrl: '',
       gender: 'Non precise',
       age: 25,
+      heightCm: 170,
       birthDate: null,
       morphology: 'Silhouette non definie',
       preferredStyles: ['Casual'],
@@ -45,6 +48,7 @@ class UserProfile {
       avatarUrl: json['avatarUrl'] as String? ?? '',
       gender: json['gender'] as String? ?? 'Non precise',
       age: json['age'] as int? ?? 25,
+      heightCm: json['heightCm'] as int? ?? 170,
       birthDate: birthDate,
       morphology: json['morphology'] as String? ?? 'Silhouette non definie',
       preferredStyles: (json['preferredStyles'] as List<dynamic>? ?? ['Casual'])
@@ -60,6 +64,7 @@ class UserProfile {
       'avatarUrl': avatarUrl,
       'gender': gender,
       'age': age,
+      'heightCm': heightCm,
       'birthDate': birthDate?.toIso8601String(),
       'morphology': morphology,
       'preferredStyles': preferredStyles,
@@ -72,6 +77,7 @@ class UserProfile {
     String? avatarUrl,
     String? gender,
     int? age,
+    int? heightCm,
     DateTime? birthDate,
     String? morphology,
     List<String>? preferredStyles,
@@ -82,6 +88,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       gender: gender ?? this.gender,
       age: age ?? this.age,
+      heightCm: heightCm ?? this.heightCm,
       birthDate: birthDate ?? this.birthDate,
       morphology: morphology ?? this.morphology,
       preferredStyles: preferredStyles ?? this.preferredStyles,

@@ -38,14 +38,14 @@ Champ obligatoire:
 - `label` (0/1)
 
 Features supportees (optionnelles mais recommandees):
-- numeriques: `age`, `weather_temp`, `weather_humidity`, `weather_wind`, `seen_7d_count`, `feedback_style_bias`, `feedback_outfit_bias`
+- numeriques: `age`, `height_cm`, `weather_temp`, `weather_humidity`, `weather_wind`, `seen_7d_count`, `feedback_style_bias`, `feedback_outfit_bias`
 - categorielles: `user_id`, `outfit_id`, `morphology`, `planning_context`, `weather_main`, `hour_slot`, `strict_weather_mode`, `is_weekend`, `styles`, `preferred_styles`
 
 Exemple JSONL:
 
 ```json
-{"label":1,"user_id":"u1","outfit_id":"business_smart","age":29,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"business|elegant","preferred_styles":"business|minimaliste","seen_7d_count":0,"feedback_style_bias":8,"feedback_outfit_bias":10}
-{"label":0,"user_id":"u1","outfit_id":"sport","age":29,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"sport","preferred_styles":"business|minimaliste","seen_7d_count":2,"feedback_style_bias":-4,"feedback_outfit_bias":-8}
+{"label":1,"user_id":"u1","outfit_id":"business_smart","age":29,"height_cm":172,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"business|elegant","preferred_styles":"business|minimaliste","seen_7d_count":0,"feedback_style_bias":8,"feedback_outfit_bias":10}
+{"label":0,"user_id":"u1","outfit_id":"sport","age":29,"height_cm":172,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"sport","preferred_styles":"business|minimaliste","seen_7d_count":2,"feedback_style_bias":-4,"feedback_outfit_bias":-8}
 ```
 
 ## Entrainement

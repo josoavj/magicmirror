@@ -48,6 +48,7 @@ class UserProfileSyncService {
         'avatarUrl': data['avatar_url'],
         'gender': data['gender'],
         'age': data['age'],
+        'heightCm': data['height_cm'],
         'birthDate': data['birth_date'],
         'morphology': data['morphology'],
         'preferredStyles': data['preferred_styles'] ?? <dynamic>[],
@@ -75,13 +76,28 @@ class UserProfileSyncService {
       'avatar_url': profile.avatarUrl,
       'gender': profile.gender,
       'age': profile.age,
+      'height_cm': profile.heightCm,
       'birth_date': profile.birthDate?.toIso8601String().split('T').first,
       'morphology': profile.morphology,
       'preferred_styles': profile.preferredStyles,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
-    await client.from('profiles').upsert(payload, onConflict: 'user_id');
+    try {
+      await client.from('profiles').upsert(payload, onConflict: 'user_id');
+    } on PostgrestException catch (error) {
+      // Retro-compat: certains environnements n'ont pas encore la colonne
+      // height_cm. On retente sans ce champ.
+      if (error.code == '42703') {
+        final fallbackPayload = Map<String, dynamic>.from(payload)
+          ..remove('height_cm');
+        await client
+            .from('profiles')
+            .upsert(fallbackPayload, onConflict: 'user_id');
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<String?> uploadAvatarBytes({

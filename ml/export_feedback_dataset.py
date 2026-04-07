@@ -79,6 +79,7 @@ def _row_to_sample(row: dict[str, Any]) -> dict[str, Any] | None:
         "is_weekend": payload.get("is_weekend", False),
         "hour_slot": payload.get("hour_slot", ""),
         "age": payload.get("age"),
+        "height_cm": payload.get("height_cm"),
         "seen_7d_count": payload.get("seen_7d_count", 0),
         "feedback_style_bias": payload.get("feedback_style_bias", 0),
         "feedback_outfit_bias": payload.get("feedback_outfit_bias", 0),

@@ -74,7 +74,7 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
     client = create_client(url, key)
     rows = (
         client.table("profiles")
-        .select("user_id,age,morphology,preferred_styles,gender")
+        .select("user_id,age,height_cm,morphology,preferred_styles,gender")
         .execute()
         .data
         or []
@@ -96,6 +96,13 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
             except Exception:
                 age = 25
 
+        height_cm = row.get("height_cm")
+        if not isinstance(height_cm, int):
+            try:
+                height_cm = int(str(height_cm))
+            except Exception:
+                height_cm = 170
+
         morphology = str(row.get("morphology") or "Silhouette non definie")
 
         for outfit_id, styles in _OUTFIT_STYLES.items():
@@ -107,6 +114,7 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
                     "preferred_styles": preferred_styles,
                     "morphology": morphology,
                     "age": age,
+                    "height_cm": height_cm,
                     **common,
                 }
             )

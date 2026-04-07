@@ -44,6 +44,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   static const _maxPersistedAvatarBytes = 500 * 1024;
 
   DateTime? _birthDate;
+  int _heightCm = 170;
   String _gender = 'Non precise';
   String _morphology = 'Silhouette non definie';
   final Set<String> _styles = {'Casual'};
@@ -205,6 +206,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     if (_signupStep == 1 && _birthDate == null) {
       _error = 'Veuillez renseigner votre date de naissance.';
+      return false;
+    }
+
+    if (_signupStep == 1 && (_heightCm < 120 || _heightCm > 230)) {
+      _error = 'Veuillez renseigner une taille valide (120-230 cm).';
       return false;
     }
 
@@ -546,6 +552,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         avatarUrl: _avatarUrlController.text.trim(),
         gender: _gender,
         birthDate: _birthDate!,
+        heightCm: _heightCm,
         morphology: _morphology,
         preferredStyles: _styles.toList(),
         syncIfConnected: response.session != null,
@@ -1149,6 +1156,40 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
           ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Taille: $_heightCm cm',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: Colors.cyanAccent,
+            thumbColor: Colors.cyanAccent,
+            inactiveTrackColor: Colors.white24,
+            overlayColor: Colors.cyanAccent.withValues(alpha: 0.2),
+          ),
+          child: Slider(
+            min: 120,
+            max: 230,
+            divisions: 110,
+            value: _heightCm.toDouble(),
+            label: '$_heightCm cm',
+            onChanged: _isLoading
+                ? null
+                : (value) {
+                    setState(() {
+                      _heightCm = value.round();
+                      _error = null;
+                    });
+                  },
+          ),
+        ),
       ],
     );
   }

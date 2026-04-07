@@ -1,0 +1,10 @@
+-- Deprecated: this file is kept only for backward compatibility.
+--
+-- Use the unified setup script instead:
+-- docs/sql/supabase_full_setup.sql
+--
+-- It includes:
+-- - profiles (with height_cm), agenda, feedback events, ML scores
+-- - RLS policies
+-- - storage bucket/policies for avatars
+-- - idempotent defensive migrations

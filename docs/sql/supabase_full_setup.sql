@@ -1,36 +1,14 @@
-# Supabase Setup Complet (MagicMirror)
+-- MagicMirror - Supabase full setup (idempotent)
+-- Safe to execute multiple times in Supabase SQL Editor.
 
-Ce document est un setup unique, complet et operable pour:
-- auth utilisateur,
-- profil cloud,
-- agenda cloud,
-- avatars storage,
-- favoris tenues cloud,
-- verification rapide de bon fonctionnement.
+begin;
 
-## 1) Variables d'environnement
-
-Dans `assets/.env`:
-
-```env
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=YOUR_ANON_KEY
-OPENWEATHERMAP_API_KEY=YOUR_OPENWEATHERMAP_API_KEY
-```
-
-Notes:
-- `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont obligatoires.
-- `OPENWEATHERMAP_API_KEY` est requis pour la météo réelle.
-
-## 2) SQL unique a executer (copier/coller dans SQL Editor)
-
-```sql
--- Extension utile pour gen_random_uuid()
+-- Extension for gen_random_uuid()
 create extension if not exists pgcrypto;
 
--- =========================
--- TABLE PROFILES
--- =========================
+-- --------------------------------------------------
+-- Profiles
+-- --------------------------------------------------
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null default 'Utilisateur',
@@ -45,14 +23,29 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
--- Migration défensive si la table existait déjà
+-- Defensive migrations for existing projects
 alter table public.profiles add column if not exists birth_date date;
-alter table public.profiles add column if not exists height_cm int not null default 170;
+alter table public.profiles add column if not exists height_cm int;
 alter table public.profiles add column if not exists favorite_outfit_ids text[] not null default '{}';
 alter table public.profiles alter column morphology set default 'Silhouette non definie';
 
+-- Backfill + constraints for height_cm
+update public.profiles
+set height_cm = 170
+where height_cm is null;
+
+alter table public.profiles alter column height_cm set default 170;
+alter table public.profiles alter column height_cm set not null;
+
+alter table public.profiles
+drop constraint if exists profiles_height_cm_check;
+
+alter table public.profiles
+add constraint profiles_height_cm_check
+check (height_cm between 120 and 230);
+
 create index if not exists profiles_favorite_outfit_ids_gin
-on public.profiles using gin (favorite_outfit_ids);
+  on public.profiles using gin (favorite_outfit_ids);
 
 alter table public.profiles enable row level security;
 
@@ -79,9 +72,9 @@ to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
--- =========================
--- TABLE AGENDA EVENTS
--- =========================
+-- --------------------------------------------------
+-- Agenda events
+-- --------------------------------------------------
 create table if not exists public.agenda_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -95,6 +88,9 @@ create table if not exists public.agenda_events (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index if not exists idx_agenda_events_user_start
+  on public.agenda_events(user_id, start_time);
 
 alter table public.agenda_events enable row level security;
 
@@ -128,12 +124,9 @@ for delete
 to authenticated
 using (user_id = auth.uid());
 
-create index if not exists idx_agenda_events_user_start
-  on public.agenda_events(user_id, start_time);
-
--- =========================
--- TABLE OUTFIT FEEDBACK EVENTS
--- =========================
+-- --------------------------------------------------
+-- Outfit feedback events
+-- --------------------------------------------------
 create table if not exists public.outfit_feedback_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -163,9 +156,9 @@ for insert
 to authenticated
 with check (user_id = auth.uid());
 
--- =========================
--- TABLE OUTFIT ML SCORES (OPTIONNEL)
--- =========================
+-- --------------------------------------------------
+-- Outfit ML scores (optional)
+-- --------------------------------------------------
 create table if not exists public.outfit_ml_scores (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -178,6 +171,25 @@ create table if not exists public.outfit_ml_scores (
 create index if not exists idx_outfit_ml_scores_user
   on public.outfit_ml_scores(user_id);
 
+create index if not exists idx_outfit_ml_scores_updated_at
+  on public.outfit_ml_scores(updated_at desc);
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_outfit_ml_scores_updated_at on public.outfit_ml_scores;
+create trigger trg_outfit_ml_scores_updated_at
+before update on public.outfit_ml_scores
+for each row
+execute function public.set_updated_at();
+
 alter table public.outfit_ml_scores enable row level security;
 
 drop policy if exists "outfit_ml_scores_select_own" on public.outfit_ml_scores;
@@ -188,9 +200,9 @@ for select
 to authenticated
 using (user_id = auth.uid());
 
--- =========================
--- STORAGE AVATARS
--- =========================
+-- --------------------------------------------------
+-- Storage bucket + policies for avatars
+-- --------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do nothing;
@@ -226,68 +238,10 @@ with check (
   bucket_id = 'avatars'
   and split_part(name, '/', 1) = auth.uid()::text
 );
-```
 
-## 3) Ce que Flutter fait avec ce schema
+commit;
 
-1. Auth email/password via Supabase Auth.
-2. Profil cloud dans `public.profiles` (upsert/select sur `user_id = auth.uid()`).
-3. Agenda cloud dans `public.agenda_events` (CRUD scope compte actif).
-4. Upload avatar dans `storage.objects` bucket `avatars`, dossier par user id.
-5. Favoris tenues cloud dans `profiles.favorite_outfit_ids` + fallback local SharedPreferences.
-6. Evenements feedback tenues dans `public.outfit_feedback_events` (instrumentation locale + export cloud).
-7. Scores ML optionnels dans `public.outfit_ml_scores` (lecture pour ranking hybride).
-
-## 4) Vérification rapide (checklist)
-
-1. Connexion avec un compte A.
-2. Modifier profil et vérifier la persistance après relance.
-3. Ajouter un événement agenda, relancer app, vérifier récupération.
-4. Ajouter une tenue en favori, déconnecter/reconnecter compte A, vérifier favoris.
-5. Changer de compte B, vérifier que favoris/profil/agenda sont différents.
-
-## 5) Requêtes de debug utiles
-
-```sql
--- Voir profils
-select user_id, display_name, favorite_outfit_ids, updated_at
-from public.profiles
-order by updated_at desc
-limit 20;
-
--- Voir agenda du compte connecte (dans SQL Editor avec role SQL, remplacer UUID)
-select user_id, title, start_time, end_time, event_type, is_completed
-from public.agenda_events
-where user_id = 'YOUR_USER_UUID'
-order by start_time asc;
-```
-
-## 6) Dépannage erreur 42703
-
-Si l'app affiche une erreur `42703`, cela signifie qu'une colonne référencée par le client n'existe pas encore en base.
-
-Pour le module favoris, executez cette migration minimale:
-
-```sql
-alter table public.profiles
-  add column if not exists favorite_outfit_ids text[] not null default '{}';
-```
-
-Vérification immédiate:
-
-```sql
-select column_name, data_type, is_nullable, column_default
-from information_schema.columns
-where table_schema = 'public'
-  and table_name = 'profiles'
-  and column_name = 'favorite_outfit_ids';
-```
-
-Puis relancez l'app et reconnectez-vous au compte pour relancer la synchronisation cloud.
-
-## 7) Bonnes pratiques
-
-- Garder RLS active sur `profiles` et `agenda_events`.
-- Ne jamais utiliser la service key dans le client Flutter.
-- Versionner les evolutions SQL (fichier migration).
-- Si un champ est ajoute en base, garder une migration `add column if not exists`.
+-- Notes:
+-- 1) The app reads/writes with anon key + RLS policies above.
+-- 2) The batch ML job should use SUPABASE_SERVICE_ROLE_KEY for upserts to
+--    public.outfit_ml_scores (service role bypasses RLS).
