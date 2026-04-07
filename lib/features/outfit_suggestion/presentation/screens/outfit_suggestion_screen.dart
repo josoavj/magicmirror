@@ -1056,7 +1056,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.morphology}',
+              '${profile.gender}, ${profile.age} ${_tr(context, 'ans', 'years')}, ${profile.heightCm} cm, ${profile.morphology}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 14,
@@ -2981,6 +2981,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     _Outfit outfit, {
     required bool positive,
   }) async {
+    final profile = ref.read(userProfileProvider);
     await ref
         .read(outfitPersonalizationProvider.notifier)
         .recordFeedback(
@@ -2993,7 +2994,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         .recordFeedback(
           positive: positive,
           outfitId: outfit.id,
-          metadata: {'styles': outfit.styles.join('|')},
+          metadata: {
+            'styles': outfit.styles.join('|'),
+            'preferred_styles': profile.preferredStyles.join('|'),
+            'morphology': profile.morphology,
+            'age': profile.age,
+            'height_cm': profile.heightCm,
+            'gender': profile.gender,
+          },
         );
 
     if (!context.mounted) {
