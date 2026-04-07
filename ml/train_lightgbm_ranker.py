@@ -61,6 +61,7 @@ REQUIRED_COLUMNS = {"label"}
 # or outfits. If you need entity embeddings, handle them separately.
 NUMERIC_CANDIDATES = [
     "age",
+    "height_cm",
     "weather_temp",
     "weather_humidity",
     "weather_wind",
