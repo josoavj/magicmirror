@@ -38,6 +38,7 @@ create table if not exists public.profiles (
   gender text not null default 'Non precise',
   birth_date date,
   age int not null default 25,
+  height_cm int not null default 170,
   morphology text not null default 'Silhouette non definie',
   preferred_styles text[] not null default array['Casual']::text[],
   favorite_outfit_ids text[] not null default '{}',
@@ -46,6 +47,7 @@ create table if not exists public.profiles (
 
 -- Migration défensive si la table existait déjà
 alter table public.profiles add column if not exists birth_date date;
+alter table public.profiles add column if not exists height_cm int not null default 170;
 alter table public.profiles add column if not exists favorite_outfit_ids text[] not null default '{}';
 alter table public.profiles alter column morphology set default 'Silhouette non definie';
 
