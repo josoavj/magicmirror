@@ -74,6 +74,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       avatarUrl: prefs.getString('profile.avatarUrl') ?? '',
       gender: prefs.getString('profile.gender') ?? 'Non precise',
       age: prefs.getInt('profile.age') ?? 25,
+      heightCm: (prefs.getInt('profile.heightCm') ?? 170).clamp(120, 230),
       birthDate: _readBirthDate(prefs.getString('profile.birthDate')),
       morphology:
           prefs.getString('profile.morphology') ?? 'Silhouette non definie',
@@ -120,6 +121,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     await prefs.setString('profile.avatarUrl', state.avatarUrl);
     await prefs.setString('profile.gender', state.gender);
     await prefs.setInt('profile.age', state.age);
+    await prefs.setInt('profile.heightCm', state.heightCm);
     await prefs.setString(
       'profile.birthDate',
       state.birthDate?.toIso8601String() ?? '',
@@ -194,6 +196,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     required String avatarUrl,
     required String gender,
     required DateTime birthDate,
+    required int heightCm,
     required String morphology,
     required List<String> preferredStyles,
     String? userId,
@@ -220,6 +223,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       avatarUrl: avatarUrl.trim(),
       gender: gender,
       age: _ageFromBirthDate(normalizedBirthDate),
+      heightCm: heightCm.clamp(120, 230),
       birthDate: normalizedBirthDate,
       morphology: morphology,
       preferredStyles: resolvedStyles,
@@ -254,6 +258,12 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       birthDate: normalizedBirthDate,
       age: _ageFromBirthDate(normalizedBirthDate),
     );
+    await _saveProfile();
+    await _syncToCloudSilently();
+  }
+
+  Future<void> setHeightCm(int heightCm) async {
+    state = state.copyWith(heightCm: heightCm.clamp(120, 230));
     await _saveProfile();
     await _syncToCloudSilently();
   }
