@@ -258,6 +258,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     final syncStatus = ref.watch(profileSyncStatusProvider);
     final syncMessage = ref.watch(profileSyncMessageProvider);
     final lastSyncAt = ref.watch(profileLastSyncAtProvider);
+    final schemaWarningAsync = ref.watch(profileSchemaWarningProvider);
     final activeUser = Supabase.instance.client.auth.currentUser;
     final activeEmail =
         activeUser?.email ?? _tr(context, 'Non connecte', 'Not connected');
@@ -288,6 +289,46 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                schemaWarningAsync.when(
+                  data: (warning) {
+                    if (warning == null || warning.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      children: [
+                        GlassContainer(
+                          borderRadius: 14,
+                          blur: 20,
+                          opacity: 0.12,
+                          tintColor: Colors.amber,
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.amberAccent,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  warning,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
                 if (syncStatus == ProfileSyncStatus.syncing) ...[
                   GlassContainer(
                     borderRadius: 14,

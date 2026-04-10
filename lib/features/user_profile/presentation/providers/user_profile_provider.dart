@@ -23,6 +23,11 @@ final userProfileSyncServiceProvider = Provider<UserProfileSyncService>((ref) {
   return UserProfileSyncService();
 });
 
+final profileSchemaWarningProvider = FutureProvider<String?>((ref) async {
+  final syncService = ref.watch(userProfileSyncServiceProvider);
+  return syncService.validateProfileSchema();
+});
+
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
       final syncService = ref.watch(userProfileSyncServiceProvider);

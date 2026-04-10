@@ -325,6 +325,7 @@ class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
   Future<void> recordFeedback({
     required bool positive,
     String? outfitId,
+    String? eventType,
     Map<String, dynamic>? metadata,
   }) async {
     state = positive
@@ -332,7 +333,7 @@ class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
         : state.copyWith(dislikes: state.dislikes + 1);
     await _save();
     await _exportCloudEvent(
-      eventType: positive ? 'like' : 'dislike',
+      eventType: eventType ?? (positive ? 'like' : 'dislike'),
       outfitId: outfitId,
       metadata: metadata,
     );
@@ -1652,6 +1653,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final isWeekend = _isWeekend(targetDay);
     final prioritySlot = _resolvePrioritySlot(events, referenceNow);
     final primaryContext = _resolvePrimaryContext(events, referenceNow);
+    final season = _seasonFromMonth(targetDay.month);
+    final localHourSlot = _localHourSlotLabel(referenceNow.hour);
 
     var candidates = allOutfits.where((outfit) {
       final ageOk =
@@ -1846,6 +1849,19 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       } else if (weatherBoost < 0) {
         score += weatherBoost;
         addReason('Compromis meteo detecte', 45);
+      }
+
+      final chronoBoost = _seasonRainHourBoost(
+        weather: weatherContext,
+        styles: outfit.styles,
+        season: season,
+        localHourSlot: localHourSlot,
+      );
+      if (chronoBoost > 0) {
+        score += chronoBoost;
+        addReason('Adapte a la saison et au moment de la journee', 72);
+      } else if (chronoBoost < 0) {
+        score += chronoBoost;
       }
 
       final styleBias = _styleBiasBoost(
@@ -2374,6 +2390,87 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
 
     return boost;
+  }
+
+  int _seasonRainHourBoost({
+    required _OutfitWeatherContext? weather,
+    required List<String> styles,
+    required String season,
+    required String localHourSlot,
+  }) {
+    var boost = 0;
+
+    if (season == 'summer' &&
+        styles.any(
+          (s) => s == 'casual' || s == 'sport' || s == 'minimaliste',
+        )) {
+      boost += 6;
+    }
+    if (season == 'winter' &&
+        styles.any(
+          (s) => s == 'business' || s == 'elegant' || s == 'minimaliste',
+        )) {
+      boost += 6;
+    }
+
+    if (localHourSlot == 'morning' &&
+        styles.any((s) => s == 'business' || s == 'minimaliste')) {
+      boost += 4;
+    }
+    if (localHourSlot == 'evening' &&
+        styles.any((s) => s == 'elegant' || s == 'streetwear')) {
+      boost += 4;
+    }
+
+    final rainLevel = _rainLevelFromMain(weather?.main);
+    if (rainLevel == 'rainy') {
+      if (styles.any(
+        (s) => s == 'business' || s == 'minimaliste' || s == 'casual',
+      )) {
+        boost += 5;
+      }
+      if (styles.contains('streetwear') && !styles.contains('business')) {
+        boost -= 4;
+      }
+    }
+
+    return boost;
+  }
+
+  String _seasonFromMonth(int month) {
+    if (month == 12 || month <= 2) {
+      return 'winter';
+    }
+    if (month >= 3 && month <= 5) {
+      return 'spring';
+    }
+    if (month >= 6 && month <= 8) {
+      return 'summer';
+    }
+    return 'autumn';
+  }
+
+  String _localHourSlotLabel(int hour) {
+    if (hour < 12) {
+      return 'morning';
+    }
+    if (hour < 18) {
+      return 'afternoon';
+    }
+    return 'evening';
+  }
+
+  String _rainLevelFromMain(String? main) {
+    final normalized = (main ?? '').toLowerCase();
+    if (normalized.contains('rain') ||
+        normalized.contains('thunder') ||
+        normalized.contains('snow')) {
+      return 'rainy';
+    }
+    if (normalized.contains('cloud')) {
+      return 'cloudy';
+    }
+    return 'clear';
   }
 
   bool _passesHardConstraints({
@@ -2958,6 +3055,57 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _feedbackTagChip(
+                        label: 'Trop chaud',
+                        icon: Icons.wb_sunny_outlined,
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          sheetContext,
+                          outfit,
+                          positive: false,
+                          feedbackTag: 'too_hot',
+                        ),
+                      ),
+                      _feedbackTagChip(
+                        label: 'Trop froid',
+                        icon: Icons.ac_unit,
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          sheetContext,
+                          outfit,
+                          positive: false,
+                          feedbackTag: 'too_cold',
+                        ),
+                      ),
+                      _feedbackTagChip(
+                        label: 'Trop formel',
+                        icon: Icons.work_outline,
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          sheetContext,
+                          outfit,
+                          positive: false,
+                          feedbackTag: 'too_formal',
+                        ),
+                      ),
+                      _feedbackTagChip(
+                        label: 'Trop sport',
+                        icon: Icons.sports_gymnastics,
+                        onTap: () => _handleOutfitFeedback(
+                          ref,
+                          sheetContext,
+                          outfit,
+                          positive: false,
+                          feedbackTag: 'too_sporty',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -2980,8 +3128,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     BuildContext context,
     _Outfit outfit, {
     required bool positive,
+    String? feedbackTag,
   }) async {
     final profile = ref.read(userProfileProvider);
+    final now = DateTime.now();
+    final season = _seasonFromMonth(now.month);
+    final hourSlot = _localHourSlotLabel(now.hour);
     await ref
         .read(outfitPersonalizationProvider.notifier)
         .recordFeedback(
@@ -2994,6 +3146,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         .recordFeedback(
           positive: positive,
           outfitId: outfit.id,
+          eventType: feedbackTag,
           metadata: {
             'styles': outfit.styles.join('|'),
             'preferred_styles': profile.preferredStyles.join('|'),
@@ -3001,6 +3154,11 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             'age': profile.age,
             'height_cm': profile.heightCm,
             'gender': profile.gender,
+            'season': season,
+            'hour_slot': hourSlot,
+            'local_hour': now.hour,
+            if (feedbackTag != null && feedbackTag.isNotEmpty)
+              'feedback_tag': feedbackTag,
           },
         );
 
@@ -3014,11 +3172,17 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             'Parfait, on va favoriser ce style.',
             'Great, we will prioritize this style.',
           )
-        : _tr(
-            context,
-            'Bien note, on va reduire ce style.',
-            'Noted, we will reduce this style.',
-          );
+        : (feedbackTag == null
+              ? _tr(
+                  context,
+                  'Bien note, on va reduire ce style.',
+                  'Noted, we will reduce this style.',
+                )
+              : _tr(
+                  context,
+                  'Merci, retour enregistre: ${_feedbackTagLabel(feedbackTag)}.',
+                  'Thanks, feedback captured: ${_feedbackTagLabel(feedbackTag)}.',
+                ));
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -3059,6 +3223,36 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _feedbackTagChip({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return ActionChip(
+      avatar: Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.9)),
+      label: Text(label),
+      onPressed: onTap,
+      backgroundColor: Colors.white.withValues(alpha: 0.1),
+      labelStyle: const TextStyle(color: Colors.white),
+      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+    );
+  }
+
+  String _feedbackTagLabel(String tag) {
+    switch (tag) {
+      case 'too_hot':
+        return 'trop chaud';
+      case 'too_cold':
+        return 'trop froid';
+      case 'too_formal':
+        return 'trop formel';
+      case 'too_sporty':
+        return 'trop sport';
+      default:
+        return tag;
+    }
   }
 
   Widget _buildFavoritesModeHeader(int favoritesCount) {
