@@ -100,6 +100,25 @@ class UserProfileSyncService {
     }
   }
 
+  Future<String?> validateProfileSchema() async {
+    final client = _client;
+    if (client == null) {
+      return null;
+    }
+
+    try {
+      await client.from('profiles').select('user_id,height_cm').limit(1);
+      return null;
+    } on PostgrestException catch (error) {
+      if (error.code == '42703') {
+        return 'Schema Supabase obsolete detecte: colonne profiles.height_cm manquante. Executez docs/sql/supabase_full_setup.sql';
+      }
+      return 'Verification schema Supabase indisponible (${error.code ?? 'unknown'}).';
+    } catch (_) {
+      return 'Verification schema Supabase indisponible.';
+    }
+  }
+
   Future<String?> uploadAvatarBytes({
     required Uint8List bytes,
     required String userId,
