@@ -27,7 +27,15 @@ from supabase import create_client
 
 
 POSITIVE_EVENTS = {"like", "favorite_add", "worn"}
-NEGATIVE_EVENTS = {"dislike", "favorite_remove", "not_adapted"}
+NEGATIVE_EVENTS = {
+    "dislike",
+    "favorite_remove",
+    "not_adapted",
+    "too_hot",
+    "too_cold",
+    "too_formal",
+    "too_sporty",
+}
 
 
 def _parse_iso(ts: str | None) -> datetime | None:
