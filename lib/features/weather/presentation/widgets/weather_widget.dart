@@ -30,6 +30,8 @@ final currentWeatherProvider = FutureProvider<WeatherResponse?>((ref) async {
       icon: '02d',
       pressure: 1015,
       visibility: 10.0,
+      observedAt: DateTime.now(),
+      isFallback: true,
     );
   }
 });
@@ -37,6 +39,22 @@ final currentWeatherProvider = FutureProvider<WeatherResponse?>((ref) async {
 /// Widget affichant la météo actuelle
 class WeatherWidget extends ConsumerWidget {
   const WeatherWidget({super.key});
+
+  String _freshnessLabel(WeatherResponse weather) {
+    final minutes = weather.minutesSinceObservation;
+    if (minutes == null) {
+      return weather.isFallback ? 'Source: fallback local' : 'Source: API';
+    }
+    final source = weather.isFallback ? 'fallback local' : 'API';
+    if (minutes < 1) {
+      return 'Mise a jour: a l\'instant ($source)';
+    }
+    if (minutes < 60) {
+      return 'Mise a jour: il y a $minutes min ($source)';
+    }
+    final hours = (minutes / 60).floor();
+    return 'Mise a jour: il y a $hours h ($source)';
+  }
 
   /// Obtenir l'emoji de la météo
   String _getWeatherEmoji(String condition) {
@@ -127,6 +145,18 @@ class WeatherWidget extends ConsumerWidget {
                               tablet: 12,
                             ),
                             fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _freshnessLabel(weather),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: ResponsiveHelper.resp(
+                              context,
+                              mobile: 10,
+                              tablet: 11,
+                            ),
                           ),
                         ),
                         Row(
