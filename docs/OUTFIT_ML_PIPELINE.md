@@ -28,7 +28,11 @@ pip install -r ml/requirements.txt
 ## SQL Supabase (obligatoire)
 
 Avant le premier run batch, execute le script:
-- `docs/sql/001_ml_pipeline_supabase.sql`
+- `docs/sql/supabase_full_setup.sql`
+
+Taxonomie feedback recommandee (event_type):
+- positifs: `like`, `favorite_add`, `worn`
+- negatifs: `dislike`, `not_adapted`, `too_hot`, `too_cold`, `too_formal`, `too_sporty`, `favorite_remove`
 
 ## Format des donnees d'entrainement
 
