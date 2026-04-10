@@ -33,6 +33,8 @@ class WeatherResponse {
   final double visibility;
   final DateTime? sunrise;
   final DateTime? sunset;
+  final DateTime? observedAt;
+  final bool isFallback;
 
   WeatherResponse({
     required this.cityName,
@@ -47,6 +49,8 @@ class WeatherResponse {
     required this.visibility,
     this.sunrise,
     this.sunset,
+    this.observedAt,
+    this.isFallback = false,
   });
 
   /// Créer à partir du JSON d'OpenWeatherMap
@@ -68,6 +72,9 @@ class WeatherResponse {
       sunset: json['sys']['sunset'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['sys']['sunset'] * 1000)
           : null,
+      observedAt: json['dt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['dt'] * 1000)
+          : DateTime.now(),
     );
   }
 
@@ -89,6 +96,13 @@ class WeatherResponse {
 
   String? get formattedSunset =>
       sunset != null ? DateFormat('HH:mm').format(sunset!) : null;
+
+  int? get minutesSinceObservation {
+    if (observedAt == null) {
+      return null;
+    }
+    return DateTime.now().difference(observedAt!).inMinutes;
+  }
 }
 
 /// Modèle pour une prévision unique
