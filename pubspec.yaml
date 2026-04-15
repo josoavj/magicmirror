@@ -37,9 +37,9 @@ dependencies:
   # Camera & Media
   camera: ^0.12.0
   image: ^4.1.3
-  file_picker: ^10.3.2
+  file_picker: ^11.0.2
   image_picker: ^1.1.2
-  image_cropper: ^9.1.0
+  image_cropper: ^12.2.1
 
   # Permissions
 
