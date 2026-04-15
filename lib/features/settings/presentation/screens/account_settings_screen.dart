@@ -95,7 +95,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     }
 
     Future<Uint8List?> pickWithFilePicker() async {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.image,
         withData: true,
       );
