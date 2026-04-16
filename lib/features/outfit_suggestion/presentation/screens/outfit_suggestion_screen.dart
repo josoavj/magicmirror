@@ -3220,12 +3220,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           : (feedbackTag == null
                 ? _tr(
                     context,
-                    'Bien note, on va reduire ce style.',
+                    'Bien noté, on va réduire ce style.',
                     'Noted, we will reduce this style.',
                   )
                 : _tr(
                     context,
-                    'Merci, retour enregistre: ${_feedbackTagLabel(feedbackTag)}.',
+                    'Merci, retour enregistré : ${_feedbackTagLabel(feedbackTag)}.',
                     'Thanks, feedback captured: ${_feedbackTagLabel(feedbackTag)}.',
                   ));
 
