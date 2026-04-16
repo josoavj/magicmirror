@@ -148,7 +148,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
             content: Text(
               _tr(
                 context,
-                'Echec de mise a jour de la photo.',
+                'Echec de mise à jour de la photo.',
                 'Failed to update profile photo.',
               ),
             ),
@@ -168,7 +168,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           content: Text(
             _tr(
               context,
-              'Photo de profil mise a jour.',
+              'Photo de profil mis à jour.',
               'Profile photo updated.',
             ),
           ),
@@ -289,7 +289,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             setLocalState(() {
                               localError = _tr(
                                 context,
-                                'Le mot de passe doit contenir au moins 6 caracteres.',
+                                'Le mot de passe doit contenir au moins 6 caractères.',
                                 'Password must be at least 6 characters.',
                               );
                             });
@@ -324,7 +324,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 content: Text(
                                   _tr(
                                     context,
-                                    'Mot de passe mis a jour.',
+                                    'Mot de passe mis à jour.',
                                     'Password updated.',
                                   ),
                                 ),
@@ -380,7 +380,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEnglish ? 'Account Settings' : 'Parametres du compte'),
+        title: Text(isEnglish ? 'Account Settings' : 'Paramètres du compte'),
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
@@ -509,7 +509,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         controller: _displayNameController,
                         style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration(
-                          _tr(context, 'Nom affiche', 'Display name'),
+                          _tr(context, 'Nom affiché', 'Display name'),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -559,7 +559,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _tr(context, 'Securite', 'Security'),
+                        _tr(context, 'Securité', 'Security'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -595,7 +595,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           },
                           icon: const Icon(Icons.logout),
                           label: Text(
-                            _tr(context, 'Se deconnecter', 'Sign out'),
+                            _tr(context, 'Se déconnecter', 'Sign out'),
                           ),
                         ),
                       ),
@@ -681,7 +681,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '${_tr(context, 'Derniere synchronisation', 'Last sync')}: ${_formatLastSync(lastSyncAt, context)}',
+                        '${_tr(context, 'Dernière synchronisation', 'Last sync')}: ${_formatLastSync(lastSyncAt, context)}',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.72),
                           fontSize: 12,
