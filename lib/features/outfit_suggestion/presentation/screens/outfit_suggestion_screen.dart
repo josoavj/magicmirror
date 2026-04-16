@@ -1904,7 +1904,25 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       );
       if (repetitionPenalty > 0) {
         score -= repetitionPenalty;
-        addReason('Rotation anti-repetition', 52);
+        addReason('Rotation anti-répétition', 52);
+      }
+
+      final freshnessBonus = _freshnessBonus(
+        outfitId: outfit.id,
+        lastSeenAtMsByOutfitId: personalization.lastSeenAtMsByOutfitId,
+      );
+      if (freshnessBonus > 0) {
+        score += freshnessBonus;
+        addReason('Favorise des tenues moins récentes', 58);
+      }
+
+      final dailyVarietyJitter = _dailyVarietyJitter(
+        outfitId: outfit.id,
+        targetDay: targetDay,
+      );
+      if (dailyVarietyJitter > 0) {
+        score += dailyVarietyJitter;
+        addReason('Rotation douce entre tenues proches', 36);
       }
 
       final mlScore = mlScoreMap[outfit.id];
@@ -1926,7 +1944,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       return _RankedOutfit(outfit: outfit, score: score, reasons: reasons);
     }).toList()..sort((a, b) => b.score.compareTo(a.score));
 
-    return _selectDiverseTopOutfits(ranked, maxCount: 4);
+    final diversePool = _selectDiverseTopOutfits(
+      ranked,
+      maxCount: ranked.length < 8 ? ranked.length : 8,
+    );
+
+    return _selectCreativeTopOutfits(
+      diversePool,
+      maxCount: 4,
+      targetDay: targetDay,
+    );
   }
 
   int _styleBiasBoost({
@@ -1953,11 +1980,194 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }
     final seenDate = DateTime.fromMillisecondsSinceEpoch(seenAt);
     final elapsedDays = DateTime.now().difference(seenDate).inDays;
-    if (elapsedDays >= 7) {
+    final cooldownDays = AppConfig.outfitRecentCooldownDays;
+    final windowDays = AppConfig.outfitRecentWindowDays;
+
+    if (elapsedDays < cooldownDays) {
+      final urgency = cooldownDays - elapsedDays;
+      return 22 + urgency * 8;
+    }
+
+    if (elapsedDays >= windowDays) {
       return 0;
     }
-    final decay = 7 - elapsedDays;
-    return 4 + decay * 3;
+
+    final decay = windowDays - elapsedDays;
+    return 8 + decay * 3;
+  }
+
+  int _freshnessBonus({
+    required String outfitId,
+    required Map<String, int> lastSeenAtMsByOutfitId,
+  }) {
+    final seenAt = lastSeenAtMsByOutfitId[outfitId];
+    if (seenAt == null) {
+      return 10;
+    }
+
+    final seenDate = DateTime.fromMillisecondsSinceEpoch(seenAt);
+    final elapsedDays = DateTime.now().difference(seenDate).inDays;
+    if (elapsedDays >= AppConfig.outfitRecentWindowDays) {
+      return 8;
+    }
+    if (elapsedDays >= AppConfig.outfitRecentCooldownDays) {
+      return 4;
+    }
+    return 0;
+  }
+
+  int _dailyVarietyJitter({
+    required String outfitId,
+    required DateTime targetDay,
+  }) {
+    final dayKey =
+        targetDay.year * 10000 + targetDay.month * 100 + targetDay.day;
+    final raw = _stableHash('$outfitId-$dayKey').abs();
+    final max = AppConfig.outfitDailyVarietyJitterMax;
+    if (max <= 0) {
+      return 0;
+    }
+    return raw % (max + 1);
+  }
+
+  int _stableHash(String value) {
+    var hash = 0;
+    for (final unit in value.codeUnits) {
+      hash = ((hash * 31) + unit) & 0x7fffffff;
+    }
+    return hash;
+  }
+
+  List<_RankedOutfit> _selectCreativeTopOutfits(
+    List<_RankedOutfit> ranked, {
+    required int maxCount,
+    required DateTime targetDay,
+  }) {
+    if (ranked.isEmpty) {
+      return const <_RankedOutfit>[];
+    }
+
+    if (!AppConfig.enableCreativeOutfitMix || ranked.length <= maxCount) {
+      return ranked.take(maxCount).toList();
+    }
+
+    final creativeAvailable = ranked
+        .where((item) => _creativePotential(item.outfit.styles) > 0)
+        .length;
+
+    var explorationTarget = 0;
+    if (creativeAvailable > 0) {
+      final rawTarget = (maxCount * AppConfig.outfitCreativeExplorationShare)
+          .round();
+      explorationTarget = _clampInt(rawTarget, 1, maxCount - 1);
+      if (explorationTarget > creativeAvailable) {
+        explorationTarget = creativeAvailable;
+      }
+    }
+
+    final remaining = List<_RankedOutfit>.from(ranked);
+    final selected = <_RankedOutfit>[];
+
+    while (selected.length < maxCount && remaining.isNotEmpty) {
+      final selectedCreative = selected
+          .where((item) => _creativePotential(item.outfit.styles) > 0)
+          .length;
+      final needCreative = selectedCreative < explorationTarget;
+
+      var bestIndex = 0;
+      var bestAdjustedScore = double.negativeInfinity;
+      var bestCreativePotential = 0;
+      var bestDiversityPenalty = 0;
+
+      for (var i = 0; i < remaining.length; i++) {
+        final candidate = remaining[i];
+        final creativePotential = _creativePotential(candidate.outfit.styles);
+        final diversityPenalty = _diversityPenalty(
+          candidate: candidate.outfit,
+          selected: selected,
+        );
+
+        var adjusted = candidate.score.toDouble() - diversityPenalty;
+
+        // Petit signal journalier pour casser les egalites de scores proches.
+        adjusted +=
+            _dailyVarietyJitter(
+              outfitId: candidate.outfit.id,
+              targetDay: targetDay,
+            ) *
+            0.2;
+
+        if (needCreative) {
+          adjusted += creativePotential * AppConfig.outfitCreativeBoost;
+        } else if (creativePotential > 0 &&
+            selectedCreative >= explorationTarget) {
+          adjusted -= AppConfig.outfitCreativeBoost * 0.5;
+        }
+
+        if (adjusted > bestAdjustedScore) {
+          bestAdjustedScore = adjusted;
+          bestIndex = i;
+          bestCreativePotential = creativePotential;
+          bestDiversityPenalty = diversityPenalty;
+        }
+      }
+
+      final chosen = remaining.removeAt(bestIndex);
+      final adjustedReasons = <String>[...chosen.reasons];
+      if (bestCreativePotential > 0 &&
+          selected
+                  .where((item) => _creativePotential(item.outfit.styles) > 0)
+                  .length <
+              explorationTarget) {
+        adjustedReasons.add('Ajoute une option plus audacieuse');
+      }
+      if (bestDiversityPenalty > 0) {
+        adjustedReasons.add('Preserve la variete globale');
+      }
+
+      final adjustedScore = bestAdjustedScore < 0
+          ? 0
+          : bestAdjustedScore.round();
+      selected.add(
+        _RankedOutfit(
+          outfit: chosen.outfit,
+          score: adjustedScore,
+          reasons: adjustedReasons,
+        ),
+      );
+    }
+
+    return selected;
+  }
+
+  int _creativePotential(List<String> styles) {
+    if (styles.isEmpty) {
+      return 0;
+    }
+
+    var score = 0;
+    for (final rawStyle in styles) {
+      final style = rawStyle.toLowerCase();
+      if (style == 'streetwear' || style == 'elegant') {
+        score += 2;
+      } else if (style == 'business' || style == 'sport') {
+        score += 1;
+      } else if (style == 'minimaliste' || style == 'casual') {
+        score -= 1;
+      }
+    }
+
+    return _clampInt(score, 0, 4);
+  }
+
+  int _clampInt(int value, int min, int max) {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
   }
 
   List<_RankedOutfit> _selectDiverseTopOutfits(
@@ -2020,14 +2230,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     var penalty = 0;
     for (final picked in selected) {
       final sim = _styleSimilarity(candidate.styles, picked.outfit.styles);
-      penalty += (sim * 14).round();
+      penalty += (sim * AppConfig.outfitDiversityPenaltyScale).round();
 
       final samePrimaryStyle =
           candidate.styles.isNotEmpty &&
           picked.outfit.styles.isNotEmpty &&
           candidate.styles.first == picked.outfit.styles.first;
       if (samePrimaryStyle) {
-        penalty += 5;
+        penalty += 9;
       }
     }
     return penalty;
