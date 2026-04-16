@@ -203,6 +203,10 @@ final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
   return true;
 });
 
+final outfitFeedbackSubmittingProvider = StateProvider<bool>((ref) {
+  return false;
+});
+
 final outfitTelemetryProvider =
     StateNotifierProvider<OutfitTelemetryNotifier, OutfitTelemetryState>((ref) {
       return OutfitTelemetryNotifier();
@@ -460,6 +464,7 @@ class OutfitPersonalizationNotifier
   }
 
   static const _prefsKey = 'outfit.personalization.v1';
+  Future<void> _saveChain = Future<void>.value();
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -499,14 +504,24 @@ class OutfitPersonalizationNotifier
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _persistSnapshot(OutfitPersonalizationState snapshot) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode({
-      'styleBiasByStyle': state.styleBiasByStyle,
-      'outfitBiasById': state.outfitBiasById,
-      'lastSeenAtMsByOutfitId': state.lastSeenAtMsByOutfitId,
+      'styleBiasByStyle': snapshot.styleBiasByStyle,
+      'outfitBiasById': snapshot.outfitBiasById,
+      'lastSeenAtMsByOutfitId': snapshot.lastSeenAtMsByOutfitId,
     });
     await prefs.setString(_prefsKey, raw);
+  }
+
+  Future<void> _save() {
+    final snapshot = state;
+    _saveChain = _saveChain
+        .catchError((_) {
+          // Keep chain alive even if a previous save failed.
+        })
+        .then((_) => _persistSnapshot(snapshot));
+    return _saveChain;
   }
 
   Future<void> recordFeedback({
@@ -2682,22 +2697,26 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required bool isFavorite,
   }) {
     final outfit = rankedOutfit.outfit;
+    final isFeedbackSubmitting = ref.watch(outfitFeedbackSubmittingProvider);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          ref
+        onTap: () async {
+          await ref
               .read(outfitPersonalizationProvider.notifier)
               .markOutfitSeen(rankedOutfit.outfit.id);
-          ref
+          await ref
               .read(outfitTelemetryProvider.notifier)
               .recordSeen(
                 outfitId: rankedOutfit.outfit.id,
                 metadata: {'styles': rankedOutfit.outfit.styles.join('|')},
               );
-          _showOutfitDetailsSheet(
+          if (!context.mounted) {
+            return;
+          }
+          await _showOutfitDetailsSheet(
             ref,
             context,
             rankedOutfit,
@@ -2822,12 +2841,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       InkWell(
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          context,
-                          outfit,
-                          positive: true,
-                        ),
+                        onTap: isFeedbackSubmitting
+                            ? null
+                            : () async {
+                                await _handleOutfitFeedback(
+                                  ref,
+                                  context,
+                                  outfit,
+                                  positive: true,
+                                );
+                              },
                         borderRadius: BorderRadius.circular(999),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
@@ -2840,12 +2863,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       InkWell(
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          context,
-                          outfit,
-                          positive: false,
-                        ),
+                        onTap: isFeedbackSubmitting
+                            ? null
+                            : () async {
+                                await _handleOutfitFeedback(
+                                  ref,
+                                  context,
+                                  outfit,
+                                  positive: false,
+                                );
+                              },
                         borderRadius: BorderRadius.circular(999),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
@@ -3029,12 +3056,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _handleOutfitFeedback(
-                            ref,
-                            sheetContext,
-                            outfit,
-                            positive: true,
-                          ),
+                          onPressed: () async {
+                            await _handleOutfitFeedback(
+                              ref,
+                              sheetContext,
+                              outfit,
+                              positive: true,
+                            );
+                          },
                           icon: const Icon(Icons.thumb_up_alt_outlined),
                           label: const Text('Plus comme ca'),
                         ),
@@ -3042,12 +3071,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _handleOutfitFeedback(
-                            ref,
-                            sheetContext,
-                            outfit,
-                            positive: false,
-                          ),
+                          onPressed: () async {
+                            await _handleOutfitFeedback(
+                              ref,
+                              sheetContext,
+                              outfit,
+                              positive: false,
+                            );
+                          },
                           icon: const Icon(Icons.thumb_down_alt_outlined),
                           label: const Text('Moins comme ca'),
                         ),
@@ -3062,46 +3093,54 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                       _feedbackTagChip(
                         label: 'Trop chaud',
                         icon: Icons.wb_sunny_outlined,
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          sheetContext,
-                          outfit,
-                          positive: false,
-                          feedbackTag: 'too_hot',
-                        ),
+                        onTap: () async {
+                          await _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: false,
+                            feedbackTag: 'too_hot',
+                          );
+                        },
                       ),
                       _feedbackTagChip(
                         label: 'Trop froid',
                         icon: Icons.ac_unit,
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          sheetContext,
-                          outfit,
-                          positive: false,
-                          feedbackTag: 'too_cold',
-                        ),
+                        onTap: () async {
+                          await _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: false,
+                            feedbackTag: 'too_cold',
+                          );
+                        },
                       ),
                       _feedbackTagChip(
                         label: 'Trop formel',
                         icon: Icons.work_outline,
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          sheetContext,
-                          outfit,
-                          positive: false,
-                          feedbackTag: 'too_formal',
-                        ),
+                        onTap: () async {
+                          await _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: false,
+                            feedbackTag: 'too_formal',
+                          );
+                        },
                       ),
                       _feedbackTagChip(
                         label: 'Trop sport',
                         icon: Icons.sports_gymnastics,
-                        onTap: () => _handleOutfitFeedback(
-                          ref,
-                          sheetContext,
-                          outfit,
-                          positive: false,
-                          feedbackTag: 'too_sporty',
-                        ),
+                        onTap: () async {
+                          await _handleOutfitFeedback(
+                            ref,
+                            sheetContext,
+                            outfit,
+                            positive: false,
+                            feedbackTag: 'too_sporty',
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -3130,63 +3169,72 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required bool positive,
     String? feedbackTag,
   }) async {
-    final profile = ref.read(userProfileProvider);
-    final now = DateTime.now();
-    final season = _seasonFromMonth(now.month);
-    final hourSlot = _localHourSlotLabel(now.hour);
-    await ref
-        .read(outfitPersonalizationProvider.notifier)
-        .recordFeedback(
-          outfitId: outfit.id,
-          styles: outfit.styles,
-          positive: positive,
-        );
-    await ref
-        .read(outfitTelemetryProvider.notifier)
-        .recordFeedback(
-          positive: positive,
-          outfitId: outfit.id,
-          eventType: feedbackTag,
-          metadata: {
-            'styles': outfit.styles.join('|'),
-            'preferred_styles': profile.preferredStyles.join('|'),
-            'morphology': profile.morphology,
-            'age': profile.age,
-            'height_cm': profile.heightCm,
-            'gender': profile.gender,
-            'season': season,
-            'hour_slot': hourSlot,
-            'local_hour': now.hour,
-            if (feedbackTag != null && feedbackTag.isNotEmpty)
-              'feedback_tag': feedbackTag,
-          },
-        );
-
-    if (!context.mounted) {
+    if (ref.read(outfitFeedbackSubmittingProvider)) {
       return;
     }
+    ref.read(outfitFeedbackSubmittingProvider.notifier).state = true;
 
-    final msg = positive
-        ? _tr(
-            context,
-            'Parfait, on va favoriser ce style.',
-            'Great, we will prioritize this style.',
-          )
-        : (feedbackTag == null
-              ? _tr(
-                  context,
-                  'Bien note, on va reduire ce style.',
-                  'Noted, we will reduce this style.',
-                )
-              : _tr(
-                  context,
-                  'Merci, retour enregistre: ${_feedbackTagLabel(feedbackTag)}.',
-                  'Thanks, feedback captured: ${_feedbackTagLabel(feedbackTag)}.',
-                ));
+    try {
+      final profile = ref.read(userProfileProvider);
+      final now = DateTime.now();
+      final season = _seasonFromMonth(now.month);
+      final hourSlot = _localHourSlotLabel(now.hour);
+      await ref
+          .read(outfitPersonalizationProvider.notifier)
+          .recordFeedback(
+            outfitId: outfit.id,
+            styles: outfit.styles,
+            positive: positive,
+          );
+      await ref
+          .read(outfitTelemetryProvider.notifier)
+          .recordFeedback(
+            positive: positive,
+            outfitId: outfit.id,
+            eventType: feedbackTag,
+            metadata: {
+              'styles': outfit.styles.join('|'),
+              'preferred_styles': profile.preferredStyles.join('|'),
+              'morphology': profile.morphology,
+              'age': profile.age,
+              'height_cm': profile.heightCm,
+              'gender': profile.gender,
+              'season': season,
+              'hour_slot': hourSlot,
+              'local_hour': now.hour,
+              if (feedbackTag != null && feedbackTag.isNotEmpty)
+                'feedback_tag': feedbackTag,
+            },
+          );
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(msg)));
+      if (!context.mounted) {
+        return;
+      }
+
+      final msg = positive
+          ? _tr(
+              context,
+              'Parfait, on va favoriser ce style.',
+              'Great, we will prioritize this style.',
+            )
+          : (feedbackTag == null
+                ? _tr(
+                    context,
+                    'Bien note, on va reduire ce style.',
+                    'Noted, we will reduce this style.',
+                  )
+                : _tr(
+                    context,
+                    'Merci, retour enregistre: ${_feedbackTagLabel(feedbackTag)}.',
+                    'Thanks, feedback captured: ${_feedbackTagLabel(feedbackTag)}.',
+                  ));
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      ref.read(outfitFeedbackSubmittingProvider.notifier).state = false;
+    }
   }
 
   Widget _buildDetailBlock({
