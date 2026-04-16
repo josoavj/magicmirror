@@ -15,6 +15,13 @@ class AppConfig {
   static const bool enableCloudFeedbackExport = true;
   static const bool enableHybridMlRanking = true;
   static const double hybridMlWeight = 0.4;
+  static const int outfitRecentCooldownDays = 3;
+  static const int outfitRecentWindowDays = 10;
+  static const int outfitDailyVarietyJitterMax = 8;
+  static const int outfitDiversityPenaltyScale = 22;
+  static const bool enableCreativeOutfitMix = true;
+  static const double outfitCreativeExplorationShare = 0.35;
+  static const int outfitCreativeBoost = 8;
 
   // App Settings
   static const bool enableDarkMode = false;
