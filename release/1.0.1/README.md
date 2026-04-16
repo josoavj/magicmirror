@@ -10,10 +10,10 @@ Type: Android APK + AAB (release)
 ## Artifacts
 - File: magicmirror-v1.0.1.apk
 - Path: release/1.0.1/magicmirror-v1.0.1.apk
-- SHA-256: 44d167de3e582a1ac828d395c824ac657985eb1b3ba6910d0ff89b8ecfbfd291
+- SHA-256: c12ed01767bdb3bb14dc57082612c7f46e3eb7c14ff97c7dd3d158bf722a7b91
 - File: magicmirror-v1.0.1.aab
 - Path: release/1.0.1/magicmirror-v1.0.1.aab
-- SHA-256: 17418bdddae95fa9df9d4339b0933fc49c575eaaae7824931f2bb30cabac2a73
+- SHA-256: 8c11506836513045401564b2f78ae5452a279808a60bd6b30b25ac68b0c33f90
 
 ## Build command used
 ```bash
