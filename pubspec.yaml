@@ -99,6 +99,11 @@ flutter:
     - assets/logo/
     - assets/.env
 
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-VariableFont_wght.ttf
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
