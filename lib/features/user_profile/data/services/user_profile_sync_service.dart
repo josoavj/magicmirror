@@ -111,7 +111,7 @@ class UserProfileSyncService {
       return null;
     } on PostgrestException catch (error) {
       if (error.code == '42703') {
-        return 'Schema Supabase obsolete detecte: colonne profiles.height_cm manquante. Executez docs/sql/supabase_full_setup.sql';
+        return 'Schéma Supabase obsolète détecté: colonne profiles.height_cm manquante. Exécutez docs/sql/supabase_full_setup.sql';
       }
       return 'Verification schema Supabase indisponible (${error.code ?? 'unknown'}).';
     } catch (_) {
