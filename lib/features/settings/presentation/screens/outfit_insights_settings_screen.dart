@@ -51,7 +51,7 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
     final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
     final activeEmail =
         Supabase.instance.client.auth.currentUser?.email ??
-        _tr(context, 'Non connecte', 'Not connected');
+        _tr(context, 'Non connecté', 'Not connected');
 
     String pct(double value) => '${(value * 100).toStringAsFixed(0)}%';
 
