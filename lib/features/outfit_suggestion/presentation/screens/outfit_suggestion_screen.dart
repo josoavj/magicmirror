@@ -3471,7 +3471,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     child: ListView(
                       children: [
                         _buildDetailBlock(
-                          title: 'Pourquoi cette tenue?A',
+                          title: 'Pourquoi cette tenue ?',
                           items: rankedOutfit.reasons,
                         ),
                         const SizedBox(height: 10),
