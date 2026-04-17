@@ -175,7 +175,7 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                           child: Text(
                             _tr(
                               context,
-                              'Mode creatif suggestions',
+                              'Mode créatif suggestions',
                               'Creative suggestion mode',
                             ),
                             style: TextStyle(
