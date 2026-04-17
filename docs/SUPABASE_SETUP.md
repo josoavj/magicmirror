@@ -189,6 +189,72 @@ to authenticated
 using (user_id = auth.uid());
 
 -- =========================
+-- TABLE OUTFIT LLM SCORES (OPTIONNEL)
+-- =========================
+create table if not exists public.outfit_llm_scores (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  outfit_id text not null,
+  score double precision not null check (score >= 0 and score <= 1),
+  model_tag text not null default 'secondary',
+  target_gender text,
+  target_styles text[],
+  target_morphology text,
+  profile_payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  unique (user_id, outfit_id, model_tag)
+);
+
+create index if not exists idx_outfit_llm_scores_user_model
+  on public.outfit_llm_scores(user_id, model_tag);
+
+alter table public.outfit_llm_scores enable row level security;
+
+drop policy if exists "outfit_llm_scores_select_own" on public.outfit_llm_scores;
+
+create policy "outfit_llm_scores_select_own"
+on public.outfit_llm_scores
+for select
+to authenticated
+using (user_id = auth.uid());
+
+-- =========================
+-- TABLE OUTFIT LLM DETAILS (OPTIONNEL)
+-- =========================
+create table if not exists public.outfit_llm_details (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  outfit_id text not null,
+  model_tag text not null default 'secondary',
+  type_label text,
+  summary text,
+  top_item text,
+  bottom_item text,
+  shoes_item text,
+  outerwear_item text,
+  accessories text[] not null default '{}'::text[],
+  target_gender text,
+  target_styles text[],
+  target_morphology text,
+  profile_payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  unique (user_id, outfit_id, model_tag)
+);
+
+create index if not exists idx_outfit_llm_details_user_model
+  on public.outfit_llm_details(user_id, model_tag);
+
+alter table public.outfit_llm_details enable row level security;
+
+drop policy if exists "outfit_llm_details_select_own" on public.outfit_llm_details;
+
+create policy "outfit_llm_details_select_own"
+on public.outfit_llm_details
+for select
+to authenticated
+using (user_id = auth.uid());
+
+-- =========================
 -- STORAGE AVATARS
 -- =========================
 insert into storage.buckets (id, name, public)
@@ -237,6 +303,54 @@ with check (
 5. Favoris tenues cloud dans `profiles.favorite_outfit_ids` + fallback local SharedPreferences.
 6. Evenements feedback tenues dans `public.outfit_feedback_events` (instrumentation locale + export cloud).
 7. Scores ML optionnels dans `public.outfit_ml_scores` (lecture pour ranking hybride).
+8. Scores/details Llama optionnels dans `public.outfit_llm_scores` et `public.outfit_llm_details` (lecture profil/genre/styles/morphologie).
+
+## 3.1) Upsert des sorties Llama (service role)
+
+Le script principal crée deux fonctions prêtes à l'emploi:
+
+1. `public.upsert_outfit_llm_scores(jsonb)`
+2. `public.upsert_outfit_llm_details(jsonb)`
+
+Exemples:
+
+```sql
+select public.upsert_outfit_llm_scores(
+  '[
+    {
+      "user_id":"00000000-0000-0000-0000-000000000000",
+      "outfit_id":"elegant",
+      "score":0.84,
+      "model_tag":"secondary",
+      "target_gender":"female",
+      "target_styles":["elegant","business"],
+      "target_morphology":"Hanches et epaules equilibrees",
+      "profile_payload":{"gender":"Femme","morphology":"Sablier (X)","preferredStyles":["elegant","business"]}
+    }
+  ]'::jsonb
+);
+
+select public.upsert_outfit_llm_details(
+  '[
+    {
+      "user_id":"00000000-0000-0000-0000-000000000000",
+      "outfit_id":"elegant",
+      "model_tag":"secondary",
+      "type_label":"Smart élégant",
+      "summary":"Chemise structurée + chino fuselé",
+      "top_item":"Chemise structurée",
+      "bottom_item":"Pantalon chino fuselé",
+      "shoes_item":"Derbies en cuir",
+      "outerwear_item":"Blazer léger",
+      "accessories":["Ceinture cuir"],
+      "target_gender":"female",
+      "target_styles":["elegant","business"],
+      "target_morphology":"Hanches et epaules equilibrees",
+      "profile_payload":{"gender":"Femme","morphology":"Sablier (X)","preferredStyles":["elegant","business"]}
+    }
+  ]'::jsonb
+);
+```
 
 ## 4) Vérification rapide (checklist)
 

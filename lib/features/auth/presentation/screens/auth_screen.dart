@@ -45,26 +45,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   DateTime? _birthDate;
   int _heightCm = 170;
-  String _gender = 'Non precise';
-  String _morphology = 'Silhouette non definie';
+  String _gender = 'Non précise';
+  String _morphology = 'Silhouette non définie';
   final Set<String> _styles = {'Casual'};
 
   static const List<String> _genders = [
     'Femme',
     'Homme',
     'Non binaire',
-    'Non precise',
+    'Non précise',
   ];
 
   static const List<String> _morphologies = [
-    'Silhouette non definie',
-    'Hanches et epaules equilibrees',
-    'Hanches plus marquees',
+    'Silhouette non définie',
+    'Hanches et épaules équilibrées',
+    'Hanches plus marquées',
     'Silhouette droite',
-    'Epaules plus larges',
-    'Epaules tres marquees',
-    'Taille tres marquee',
-    'Hanches tres marquees',
+    'Épaules plus larges',
+    'Épaules très marquées',
+    'Taille très marquée',
+    'Hanches très marquées',
   ];
 
   static const List<String> _availableStyles = [
@@ -173,7 +173,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       if (mounted) {
         setState(() {
           _selectedAvatarBytes = null;
-          _info = 'Photo de profil synchronisee apres connexion.';
+          _info = 'Photo de profil synchronisée après connexion.';
         });
       }
     }
@@ -190,7 +190,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         return false;
       }
       if (_passwordController.text.length < 6) {
-        _error = '6 caracteres minimum pour le mot de passe.';
+        _error = '6 caractères minimum pour le mot de passe.';
         return false;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
@@ -305,7 +305,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       Expanded(
                         child: Column(
                           children: [
-                            const Text('Apres'),
+                            const Text('Après'),
                             const SizedBox(height: 6),
                             AspectRatio(
                               aspectRatio: 1,
@@ -461,7 +461,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final picked = await cropAndSaveFromPath(path);
       if (!picked && mounted) {
         setState(() {
-          _error = 'Rognage annule ou photo invalide.';
+          _error = 'Rognage annulé ou photo invalide.';
         });
       }
     } on MissingPluginException {
@@ -469,7 +469,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       if (!picked && mounted) {
         setState(() {
           _error =
-              'Import indisponible: redemarrez l\'application puis reessayez.';
+              'Import indisponible: redémarrez l\'application puis réessayez.';
         });
       }
     } on PlatformException {
@@ -517,7 +517,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } on AuthException catch (e) {
       _error = e.message;
     } catch (_) {
-      _error = 'Une erreur est survenue, veuillez reessayer.';
+      _error = 'Une erreur est survenue, veuillez réessayer.';
     } finally {
       if (mounted) {
         setState(() {
@@ -757,7 +757,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   Text(
                                     _isLoginMode
                                         ? 'Connectez-vous avec votre compte existant'
-                                        : 'Etape ${_signupStep + 1}/3: compte, profil, preferences',
+                                        : 'Étape ${_signupStep + 1}/3: compte, profil, préférences',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Colors.white.withValues(
@@ -852,7 +852,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                           ? null
                                           : _sendPasswordReset,
                                       child: const Text(
-                                        'Mot de passe oublie ?',
+                                        'Mot de passe oublié ?',
                                       ),
                                     ),
                                   TextButton(
@@ -870,7 +870,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     child: Text(
                                       _isLoginMode
                                           ? 'Pas de compte ? Inscrivez-vous'
-                                          : 'Deja un compte ? Connectez-vous',
+                                          : 'Déjà un compte ? Connectez-vous',
                                     ),
                                   ),
                                 ],

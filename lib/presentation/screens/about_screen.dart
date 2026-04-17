@@ -12,7 +12,7 @@ class AboutScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEnglish ? 'About' : 'A propos'),
+        title: Text(isEnglish ? 'About' : 'À propos'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -145,7 +145,7 @@ class AboutScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEnglish ? 'About The App' : 'A propos de l\'application',
+            isEnglish ? 'About The App' : 'À propos de l\'application',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -157,7 +157,7 @@ class AboutScreen extends ConsumerWidget {
           Text(
             isEnglish
                 ? 'Magic Mirror is a complete smart app that turns your screen into a sophisticated mirror with advanced AI capabilities.'
-                : 'Magic Mirror est une application intelligente complete qui transforme votre ecran en miroir sophistique avec des capacites d\'intelligence artificielle avancees.',
+                : 'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec des capacités d\'intelligence artificielle avancées.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.8),
               fontSize: 16,
@@ -169,7 +169,7 @@ class AboutScreen extends ConsumerWidget {
           Text(
             isEnglish
                 ? 'It combines cutting-edge technology, clean design, and practical features for an exceptional user experience.'
-                : 'Combinant technologie de pointe, design epure et fonctionnalites pratiques pour une experience utilisateur exceptionnelle.',
+                : 'Combinant technologie de pointe, design épuré et fonctionnalités pratiques pour une expérience utilisateur exceptionnelle.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 14,
@@ -189,42 +189,42 @@ class AboutScreen extends ConsumerWidget {
         'title': isEnglish ? 'Smart Mirror' : 'Miroir Intelligent',
         'description': isEnglish
             ? 'Real-time camera with full-screen display'
-            : 'Camera temps reel avec affichage plein ecran',
+            : 'Caméra temps réel avec affichage plein écran',
       },
       {
         'icon': '🤖',
         'title': isEnglish ? 'Body Type AI' : 'Morphologie AI',
         'description': isEnglish
             ? 'Pose detection and body type classification'
-            : 'Detection de pose et classification de morphologie',
+            : 'Détection de pose et classification de morphologie',
       },
       {
         'icon': '👔',
-        'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions Tenue',
+        'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions de tenue',
         'description': isEnglish
             ? 'Personalized recommendations by body type'
-            : 'Recommandations personnalisees par morphologie',
+            : 'Recommandations personnalisées par morphologie',
       },
       {
         'icon': '📅',
         'title': isEnglish ? 'Calendar Sync' : 'Synchronisation Calendrier',
         'description': isEnglish
             ? 'Supabase cloud agenda linked to active account'
-            : 'Agenda cloud Supabase lie au compte actif',
+            : 'Agenda cloud Supabase lié au compte actif',
       },
       {
         'icon': '🌦️',
-        'title': isEnglish ? 'Live Weather' : 'Meteo en Temps Reel',
+        'title': isEnglish ? 'Live Weather' : 'Météo en temps réel',
         'description': isEnglish
             ? 'OpenWeatherMap API with geolocation'
-            : 'API OpenWeatherMap avec geolocalisation',
+            : 'API OpenWeatherMap avec géolocalisation',
       },
       {
         'icon': '🗣️',
-        'title': isEnglish ? 'Text To Speech' : 'Synthese Vocale',
+        'title': isEnglish ? 'Text To Speech' : 'Synthèse vocale',
         'description': isEnglish
             ? 'TTS support for spoken guidance'
-            : 'Synthese vocale pour tous les contenus',
+            : 'Synthèse vocale pour tous les contenus',
       },
     ];
 
@@ -232,7 +232,7 @@ class AboutScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isEnglish ? 'Features' : 'Fonctionnalites',
+          isEnglish ? 'Features' : 'Fonctionnalités',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -292,7 +292,7 @@ class AboutScreen extends ConsumerWidget {
     final techStack = [
       {'title': 'Framework', 'value': 'Flutter 3.1.0+'},
       {'title': isEnglish ? 'Language' : 'Langage', 'value': 'Dart 3.1.0+'},
-      {'title': isEnglish ? 'State' : 'Etat', 'value': 'Riverpod 3.2.1'},
+      {'title': isEnglish ? 'State' : 'État', 'value': 'Riverpod 3.2.1'},
       {'title': 'ML', 'value': 'Google ML Kit 0.21.0'},
       {'title': 'API', 'value': 'OpenWeatherMap + Supabase'},
       {'title': isEnglish ? 'Status' : 'Statut', 'value': '✅ Stable'},
@@ -366,7 +366,7 @@ class AboutScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEnglish ? 'About The Developer' : 'A propos du developpeur',
+            isEnglish ? 'About The Developer' : 'À propos du développeur',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -436,7 +436,7 @@ class AboutScreen extends ConsumerWidget {
           Text(
             isEnglish
                 ? 'Passionate about Flutter and creating innovative user experiences.'
-                : 'Passionne par Flutter et la creation d\'experiences utilisateur innovantes.',
+                : 'Passionné par Flutter et la création d\'expériences utilisateur innovantes.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
@@ -455,7 +455,7 @@ class AboutScreen extends ConsumerWidget {
                 'https://github.com/josoavj',
               ),
               _buildSocialButton(
-                isEnglish ? 'MagicMirror Repo' : 'Depot MagicMirror',
+                isEnglish ? 'MagicMirror Repo' : 'Dépôt MagicMirror',
                 Icons.source,
                 Colors.lightBlueAccent,
                 'https://github.com/josoavj/magicmirror',

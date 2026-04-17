@@ -23,14 +23,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   static const List<String> _genders = ['Femme', 'Homme', 'Non précise'];
 
   static const List<String> _morphologies = [
-    'Silhouette non definie',
-    'Hanches et epaules equilibrees',
-    'Hanches plus marquees',
+    'Silhouette non définie',
+    'Hanches et épaules équilibrées',
+    'Hanches plus marquées',
     'Silhouette droite',
-    'Epaules plus larges',
-    'Epaules tres marquees',
-    'Taille tres marquee',
-    'Hanches tres marquees',
+    'Épaules plus larges',
+    'Épaules très marquées',
+    'Taille très marquée',
+    'Hanches très marquées',
   ];
 
   static const List<String> _styles = [
@@ -85,7 +85,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Apres'),
+                      const Text('Après'),
                       const SizedBox(height: 6),
                       AspectRatio(
                         aspectRatio: 1,
@@ -443,7 +443,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                               _isAvatarUploading
                                   ? _tr(
                                       context,
-                                      'Mise a jour photo...',
+                                      'Mise à jour photo...',
                                       'Updating photo...',
                                     )
                                   : _tr(
@@ -583,7 +583,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                '${_tr(context, 'Detection IA', 'AI detection')}: ${detectedMorphology.bodyType}',
+                                '${_tr(context, 'Détection IA', 'AI detection')}: ${detectedMorphology.bodyType}',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontWeight: FontWeight.w500,
@@ -623,7 +623,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 _SectionCard(
                   title: _tr(
                     context,
-                    'Preferences vestimentaires',
+                    'Préférences vestimentaires',
                     'Style preferences',
                   ),
                   child: Wrap(
@@ -671,12 +671,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           _isEditMode
                               ? _tr(
                                   context,
-                                  'Terminer la mise a jour',
+                                  'Terminer la mise à jour',
                                   'Finish update',
                                 )
                               : _tr(
                                   context,
-                                  'Mettre a jour les infos et preferences',
+                                  'Mettre à jour les infos et préférences',
                                   'Update info and preferences',
                                 ),
                         ),

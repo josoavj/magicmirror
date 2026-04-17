@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:magicmirror/l10n/app_localizations.dart';
@@ -13,6 +12,7 @@ import 'features/mirror/presentation/screens/mirror_screen.dart';
 import 'features/agenda/presentation/screens/agenda_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
 import 'features/settings/presentation/screens/account_settings_screen.dart';
+import 'features/settings/presentation/screens/outfit_insights_settings_screen.dart';
 import 'features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
 import 'features/weather/presentation/screens/weather_screen.dart';
 import 'features/user_profile/presentation/screens/user_profile_screen.dart';
@@ -108,15 +108,15 @@ class MagicMirrorApp extends ConsumerWidget {
     );
 
     return MaterialApp(
-      title: 'Magic Mirror iOS 26',
+      title: 'Magic Mirror',
       debugShowCheckedModeBanner: false,
       locale: effectiveLocale,
       supportedLocales: supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: baseTheme.copyWith(
-        textTheme: GoogleFonts.lexendTextTheme(baseTheme.textTheme),
-        primaryTextTheme: GoogleFonts.lexendTextTheme(
-          baseTheme.primaryTextTheme,
+        textTheme: baseTheme.textTheme.apply(fontFamily: 'Lexend'),
+        primaryTextTheme: baseTheme.primaryTextTheme.apply(
+          fontFamily: 'Lexend',
         ),
         cardTheme: CardThemeData(
           color: Colors.white.withValues(alpha: 0.08),
@@ -187,6 +187,8 @@ class MagicMirrorApp extends ConsumerWidget {
         '/profile': (context) => const UserProfileScreen(),
         '/account-settings': (context) => const AccountSettingsScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/settings/outfit-insights': (context) =>
+            const OutfitInsightsSettingsScreen(),
         '/about': (context) => const AboutScreen(),
       },
     );
@@ -363,7 +365,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         _HomeTile(
                           icon: Icons.settings_rounded,
-                          label: isEnglish ? 'Settings' : 'Reglages',
+                          label: isEnglish ? 'Settings' : 'Réglages',
                           color: Colors.grey,
                           onTap: () =>
                               Navigator.pushNamed(context, '/settings'),

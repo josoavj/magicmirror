@@ -201,6 +201,280 @@ to authenticated
 using (user_id = auth.uid());
 
 -- --------------------------------------------------
+-- Outfit LLM scores (optional, secondary model / Llama)
+-- --------------------------------------------------
+create table if not exists public.outfit_llm_scores (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  outfit_id text not null,
+  score double precision not null check (score >= 0 and score <= 1),
+  model_tag text not null default 'secondary',
+  target_gender text,
+  target_styles text[],
+  target_morphology text,
+  profile_payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  unique (user_id, outfit_id, model_tag)
+);
+
+create index if not exists idx_outfit_llm_scores_user_model
+  on public.outfit_llm_scores(user_id, model_tag);
+
+create index if not exists idx_outfit_llm_scores_updated_at
+  on public.outfit_llm_scores(updated_at desc);
+
+drop trigger if exists trg_outfit_llm_scores_updated_at on public.outfit_llm_scores;
+create trigger trg_outfit_llm_scores_updated_at
+before update on public.outfit_llm_scores
+for each row
+execute function public.set_updated_at();
+
+alter table public.outfit_llm_scores enable row level security;
+
+drop policy if exists "outfit_llm_scores_select_own" on public.outfit_llm_scores;
+
+create policy "outfit_llm_scores_select_own"
+on public.outfit_llm_scores
+for select
+to authenticated
+using (user_id = auth.uid());
+
+-- --------------------------------------------------
+-- Outfit LLM details (optional, detailed composition)
+-- --------------------------------------------------
+create table if not exists public.outfit_llm_details (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  outfit_id text not null,
+  model_tag text not null default 'secondary',
+  type_label text,
+  summary text,
+  top_item text,
+  bottom_item text,
+  shoes_item text,
+  outerwear_item text,
+  accessories text[] not null default '{}'::text[],
+  target_gender text,
+  target_styles text[],
+  target_morphology text,
+  profile_payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  unique (user_id, outfit_id, model_tag)
+);
+
+create index if not exists idx_outfit_llm_details_user_model
+  on public.outfit_llm_details(user_id, model_tag);
+
+create index if not exists idx_outfit_llm_details_updated_at
+  on public.outfit_llm_details(updated_at desc);
+
+drop trigger if exists trg_outfit_llm_details_updated_at on public.outfit_llm_details;
+create trigger trg_outfit_llm_details_updated_at
+before update on public.outfit_llm_details
+for each row
+execute function public.set_updated_at();
+
+alter table public.outfit_llm_details enable row level security;
+
+drop policy if exists "outfit_llm_details_select_own" on public.outfit_llm_details;
+
+create policy "outfit_llm_details_select_own"
+on public.outfit_llm_details
+for select
+to authenticated
+using (user_id = auth.uid());
+
+-- --------------------------------------------------
+-- Helper functions for Llama output upserts (service role)
+-- --------------------------------------------------
+create or replace function public.upsert_outfit_llm_scores(
+  p_rows jsonb
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _count integer := 0;
+begin
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
+    raise exception 'p_rows must be a JSON array';
+  end if;
+
+  with parsed as (
+    select
+      r.user_id,
+      r.outfit_id,
+      r.score,
+      coalesce(nullif(r.model_tag, ''), 'secondary') as model_tag,
+      r.target_gender,
+      r.target_styles,
+      r.target_morphology,
+      coalesce(r.profile_payload, '{}'::jsonb) as profile_payload
+    from jsonb_to_recordset(p_rows) as r(
+      user_id uuid,
+      outfit_id text,
+      score double precision,
+      model_tag text,
+      target_gender text,
+      target_styles text[],
+      target_morphology text,
+      profile_payload jsonb
+    )
+    where r.user_id is not null
+      and r.outfit_id is not null
+      and r.outfit_id <> ''
+      and r.score is not null
+      and r.score between 0 and 1
+  ), upserted as (
+    insert into public.outfit_llm_scores (
+      user_id,
+      outfit_id,
+      score,
+      model_tag,
+      target_gender,
+      target_styles,
+      target_morphology,
+      profile_payload
+    )
+    select
+      user_id,
+      outfit_id,
+      score,
+      model_tag,
+      target_gender,
+      target_styles,
+      target_morphology,
+      profile_payload
+    from parsed
+    on conflict (user_id, outfit_id, model_tag)
+    do update
+      set score = excluded.score,
+          target_gender = excluded.target_gender,
+          target_styles = excluded.target_styles,
+          target_morphology = excluded.target_morphology,
+          profile_payload = excluded.profile_payload,
+          updated_at = now()
+    returning 1
+  )
+  select count(*) into _count from upserted;
+
+  return _count;
+end;
+$$;
+
+create or replace function public.upsert_outfit_llm_details(
+  p_rows jsonb
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _count integer := 0;
+begin
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
+    raise exception 'p_rows must be a JSON array';
+  end if;
+
+  with parsed as (
+    select
+      r.user_id,
+      r.outfit_id,
+      coalesce(nullif(r.model_tag, ''), 'secondary') as model_tag,
+      r.type_label,
+      r.summary,
+      r.top_item,
+      r.bottom_item,
+      r.shoes_item,
+      r.outerwear_item,
+      coalesce(r.accessories, '{}'::text[]) as accessories,
+      r.target_gender,
+      r.target_styles,
+      r.target_morphology,
+      coalesce(r.profile_payload, '{}'::jsonb) as profile_payload
+    from jsonb_to_recordset(p_rows) as r(
+      user_id uuid,
+      outfit_id text,
+      model_tag text,
+      type_label text,
+      summary text,
+      top_item text,
+      bottom_item text,
+      shoes_item text,
+      outerwear_item text,
+      accessories text[],
+      target_gender text,
+      target_styles text[],
+      target_morphology text,
+      profile_payload jsonb
+    )
+    where r.user_id is not null
+      and r.outfit_id is not null
+      and r.outfit_id <> ''
+  ), upserted as (
+    insert into public.outfit_llm_details (
+      user_id,
+      outfit_id,
+      model_tag,
+      type_label,
+      summary,
+      top_item,
+      bottom_item,
+      shoes_item,
+      outerwear_item,
+      accessories,
+      target_gender,
+      target_styles,
+      target_morphology,
+      profile_payload
+    )
+    select
+      user_id,
+      outfit_id,
+      model_tag,
+      type_label,
+      summary,
+      top_item,
+      bottom_item,
+      shoes_item,
+      outerwear_item,
+      accessories,
+      target_gender,
+      target_styles,
+      target_morphology,
+      profile_payload
+    from parsed
+    on conflict (user_id, outfit_id, model_tag)
+    do update
+      set type_label = excluded.type_label,
+          summary = excluded.summary,
+          top_item = excluded.top_item,
+          bottom_item = excluded.bottom_item,
+          shoes_item = excluded.shoes_item,
+          outerwear_item = excluded.outerwear_item,
+          accessories = excluded.accessories,
+          target_gender = excluded.target_gender,
+          target_styles = excluded.target_styles,
+          target_morphology = excluded.target_morphology,
+          profile_payload = excluded.profile_payload,
+          updated_at = now()
+    returning 1
+  )
+  select count(*) into _count from upserted;
+
+  return _count;
+end;
+$$;
+
+revoke all on function public.upsert_outfit_llm_scores(jsonb) from public;
+revoke all on function public.upsert_outfit_llm_details(jsonb) from public;
+grant execute on function public.upsert_outfit_llm_scores(jsonb) to service_role;
+grant execute on function public.upsert_outfit_llm_details(jsonb) to service_role;
+
+-- --------------------------------------------------
 -- Storage bucket + policies for avatars
 -- --------------------------------------------------
 insert into storage.buckets (id, name, public)
@@ -245,3 +519,8 @@ commit;
 -- 1) The app reads/writes with anon key + RLS policies above.
 -- 2) The batch ML job should use SUPABASE_SERVICE_ROLE_KEY for upserts to
 --    public.outfit_ml_scores (service role bypasses RLS).
+-- 3) Llama/secondary job should upsert into public.outfit_llm_scores and
+--    public.outfit_llm_details (service role bypasses RLS).
+-- 4) You can call:
+--    select public.upsert_outfit_llm_scores('[{"user_id":"...","outfit_id":"elegant","score":0.84}]'::jsonb);
+--    select public.upsert_outfit_llm_details('[{"user_id":"...","outfit_id":"elegant","summary":"Chemise + chino","top_item":"Chemise","bottom_item":"Chino"}]'::jsonb);

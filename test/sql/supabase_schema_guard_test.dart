@@ -27,10 +27,20 @@ void main() {
         sql,
         contains('create table if not exists public.outfit_ml_scores'),
       );
+      expect(
+        sql,
+        contains('create table if not exists public.outfit_llm_scores'),
+      );
+      expect(
+        sql,
+        contains('create table if not exists public.outfit_llm_details'),
+      );
 
       expect(sql, contains('create policy "profiles_select_own"'));
       expect(sql, contains('create policy "outfit_feedback_insert_own"'));
       expect(sql, contains('create policy "outfit_ml_scores_select_own"'));
+      expect(sql, contains('create policy "outfit_llm_scores_select_own"'));
+      expect(sql, contains('create policy "outfit_llm_details_select_own"'));
     },
   );
 }

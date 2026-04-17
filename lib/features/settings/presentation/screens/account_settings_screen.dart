@@ -77,7 +77,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_tr(context, 'Profil mis a jour.', 'Profile updated.')),
+          content: Text(_tr(context, 'Profil mis à jour.', 'Profile updated.')),
         ),
       );
     } finally {

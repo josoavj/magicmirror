@@ -125,7 +125,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     if (_flashUnsupported) unsupported.add(l10n?.unsupportedFlash ?? 'flash');
     if (unsupported.isEmpty) return null;
     return l10n?.unsupportedSettings(unsupported.join(', ')) ??
-        'Reglages non supportes: ${unsupported.join(', ')}';
+        'Réglages non supportés: ${unsupported.join(', ')}';
   }
 
   @override
@@ -191,7 +191,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         ? (l10n?.detectedBodyType(morphologyData.bodyType) ??
               (isEnglish
                   ? 'Detected body type: ${morphologyData.bodyType}. '
-                  : 'Morphologie detectee: ${morphologyData.bodyType}. '))
+                  : 'Morphologie détectée: ${morphologyData.bodyType}. '))
         : '';
 
     if (suggestions.isNotEmpty) {
@@ -204,7 +204,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
             ) ??
             (isEnglish
                 ? 'Full body detected. ${morphologyMessage}Recommended outfit: ${top.title}. ${top.reason}'
-                : 'Corps complet detecte. ${morphologyMessage}Tenue recommandee: ${top.title}. ${top.reason}'),
+                : 'Corps complet détecté. ${morphologyMessage}Tenue recommandée: ${top.title}. ${top.reason}'),
         enabled: settings.enableAudioFeedback && settings.ttsEnabled,
         interruptCurrent: settings.ttsInterruptCurrent,
         language: settings.ttsLanguage,
@@ -219,7 +219,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       l10n?.fullBodyDetectedWithoutOutfit(morphologyMessage) ??
           (isEnglish
               ? 'Full body detected. ${morphologyMessage}Your outfit suggestions are ready.'
-              : 'Corps complet detecte. ${morphologyMessage}Vos suggestions de tenues sont pretes.'),
+              : 'Corps complet détecté. ${morphologyMessage}Vos suggestions de tenues sont prêtes.'),
       enabled: settings.enableAudioFeedback && settings.ttsEnabled,
       interruptCurrent: settings.ttsInterruptCurrent,
       language: settings.ttsLanguage,

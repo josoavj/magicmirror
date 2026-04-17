@@ -15,6 +15,11 @@ class AppConfig {
   static const bool enableCloudFeedbackExport = true;
   static const bool enableHybridMlRanking = true;
   static const double hybridMlWeight = 0.4;
+  static const bool enableSecondaryLlmRanking = true;
+  static const double secondaryLlmWeight = 0.25;
+  static const String secondaryLlmModelTag = 'secondary';
+  static const bool enableLlamaProfileContext = true;
+  static const bool enableLlamaStrictGenderFilter = true;
   static const int outfitRecentCooldownDays = 3;
   static const int outfitRecentWindowDays = 10;
   static const int outfitDailyVarietyJitterMax = 8;
@@ -34,6 +39,10 @@ class AppConfig {
   // Timeouts
   static const Duration networkTimeout = Duration(seconds: 30);
   static const Duration cacheExpiry = Duration(hours: 24);
+  static const Duration weatherCurrentCacheTtl = Duration(minutes: 20);
+  static const Duration weatherForecastCacheTtl = Duration(minutes: 45);
+  static const Duration weatherStaleFallbackMaxAge = Duration(hours: 12);
+  static const int weatherCoordinatePrecision = 2;
 
   /// Affiche le statut de configuration de l'application
   static Future<void> printStartupInfo() async {
@@ -45,11 +54,15 @@ class AppConfig {
     logger.info('Agenda Supabase', tag: 'Calendrier');
     logger.info('AI: ${enableAIFeatures ? "ON" : "OFF"}', tag: 'Features');
     logger.info(
-      'Meteo: ${enableWeatherIntegration ? "ON" : "OFF"}',
+      'Météo: ${enableWeatherIntegration ? "ON" : "OFF"}',
       tag: 'Features',
     );
     logger.info(
       'Tenues: ${enableOutfitSuggestions ? "ON" : "OFF"}',
+      tag: 'Features',
+    );
+    logger.info(
+      'Second LLM: ${enableSecondaryLlmRanking ? "ON" : "OFF"} (w=${secondaryLlmWeight.toStringAsFixed(2)})',
       tag: 'Features',
     );
     logger.info('========== OK ==========', tag: 'MagicMirror');
