@@ -26,11 +26,11 @@ class UserProfile {
       userId: 'local-user',
       displayName: 'Utilisateur',
       avatarUrl: '',
-      gender: 'Non precise',
+      gender: 'Non précise',
       age: 25,
       heightCm: 170,
       birthDate: null,
-      morphology: 'Silhouette non definie',
+      morphology: 'Silhouette non définie',
       preferredStyles: ['Casual'],
     );
   }
@@ -46,11 +46,11 @@ class UserProfile {
       userId: json['userId'] as String? ?? 'local-user',
       displayName: json['displayName'] as String? ?? 'Utilisateur',
       avatarUrl: json['avatarUrl'] as String? ?? '',
-      gender: json['gender'] as String? ?? 'Non precise',
+      gender: json['gender'] as String? ?? 'Non précise',
       age: json['age'] as int? ?? 25,
       heightCm: json['heightCm'] as int? ?? 170,
       birthDate: birthDate,
-      morphology: json['morphology'] as String? ?? 'Silhouette non definie',
+      morphology: json['morphology'] as String? ?? 'Silhouette non définie',
       preferredStyles: (json['preferredStyles'] as List<dynamic>? ?? ['Casual'])
           .map((style) => style.toString())
           .toList(),
