@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:magicmirror/config/app_config.dart';
-import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
@@ -116,6 +115,327 @@ final outfitMlScoreMapProvider = FutureProvider<Map<String, double>>((
   }
 });
 
+final outfitSecondaryLlmScoreMapProvider = FutureProvider<Map<String, double>>((
+  ref,
+) async {
+  if (!AppConfig.enableSecondaryLlmRanking) {
+    return const <String, double>{};
+  }
+
+  SupabaseClient client;
+  try {
+    client = Supabase.instance.client;
+  } catch (_) {
+    return const <String, double>{};
+  }
+
+  final userId = client.auth.currentUser?.id;
+  if (userId == null || userId.isEmpty) {
+    return const <String, double>{};
+  }
+  final profile = ref.watch(userProfileProvider);
+  final useProfileContext = ref.watch(outfitLlamaUseProfileContextProvider);
+  final strictGenderFilter = ref.watch(outfitLlamaStrictGenderFilterProvider);
+
+  Future<List<dynamic>> fetchRowsWithModel() {
+    return client
+        .from('outfit_llm_scores')
+        .select(
+          'outfit_id,score,model_tag,target_gender,target_styles,target_morphology,profile_payload',
+        )
+        .eq('user_id', userId)
+        .eq('model_tag', AppConfig.secondaryLlmModelTag);
+  }
+
+  Future<List<dynamic>> fetchRowsWithoutModel() {
+    return client
+        .from('outfit_llm_scores')
+        .select('outfit_id,score')
+        .eq('user_id', userId);
+  }
+
+  try {
+    List<dynamic> rows;
+    try {
+      rows = await fetchRowsWithModel();
+    } on PostgrestException catch (error) {
+      // Colonne model_tag optionnelle.
+      if (error.code == '42703') {
+        rows = await fetchRowsWithoutModel();
+      } else {
+        rethrow;
+      }
+    }
+
+    final map = <String, double>{};
+    for (final row in rows) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      final outfitId = row['outfit_id']?.toString();
+      final scoreRaw = row['score'];
+      final score = scoreRaw is num
+          ? scoreRaw.toDouble()
+          : double.tryParse(scoreRaw?.toString() ?? '');
+      if (!_llamaRowMatchesProfile(
+        row,
+        profile: profile,
+        useProfileContext: useProfileContext,
+        strictGenderFilter: strictGenderFilter,
+      )) {
+        continue;
+      }
+      if (outfitId != null && outfitId.isNotEmpty && score != null) {
+        map[outfitId] = score.clamp(0, 1);
+      }
+    }
+
+    return map;
+  } on PostgrestException catch (error) {
+    // Table optionnelle: absence de schema ne doit pas casser l'UI.
+    if (error.code == '42P01') {
+      return const <String, double>{};
+    }
+    rethrow;
+  } catch (_) {
+    return const <String, double>{};
+  }
+});
+
+final outfitSecondaryLlmDetailsProvider =
+    FutureProvider<Map<String, _OutfitLlmDetails>>((ref) async {
+      if (!AppConfig.enableSecondaryLlmRanking) {
+        return const <String, _OutfitLlmDetails>{};
+      }
+
+      SupabaseClient client;
+      try {
+        client = Supabase.instance.client;
+      } catch (_) {
+        return const <String, _OutfitLlmDetails>{};
+      }
+
+      final userId = client.auth.currentUser?.id;
+      if (userId == null || userId.isEmpty) {
+        return const <String, _OutfitLlmDetails>{};
+      }
+      final profile = ref.watch(userProfileProvider);
+      final useProfileContext = ref.watch(outfitLlamaUseProfileContextProvider);
+      final strictGenderFilter = ref.watch(
+        outfitLlamaStrictGenderFilterProvider,
+      );
+
+      Future<List<dynamic>> fetchRowsWithModel() {
+        return client
+            .from('outfit_llm_details')
+            .select(
+              'outfit_id,top_item,bottom_item,shoes_item,outerwear_item,accessories,type_label,summary,model_tag,target_gender,target_styles,target_morphology,profile_payload',
+            )
+            .eq('user_id', userId)
+            .eq('model_tag', AppConfig.secondaryLlmModelTag);
+      }
+
+      Future<List<dynamic>> fetchRowsWithoutModel() {
+        return client
+            .from('outfit_llm_details')
+            .select(
+              'outfit_id,top_item,bottom_item,shoes_item,outerwear_item,accessories,type_label,summary',
+            )
+            .eq('user_id', userId);
+      }
+
+      try {
+        List<dynamic> rows;
+        try {
+          rows = await fetchRowsWithModel();
+        } on PostgrestException catch (error) {
+          if (error.code == '42703') {
+            rows = await fetchRowsWithoutModel();
+          } else {
+            rethrow;
+          }
+        }
+
+        final detailsByOutfitId = <String, _OutfitLlmDetails>{};
+        for (final row in rows) {
+          if (row is! Map<String, dynamic>) {
+            continue;
+          }
+          final outfitId = row['outfit_id']?.toString();
+          if (outfitId == null || outfitId.isEmpty) {
+            continue;
+          }
+          if (!_llamaRowMatchesProfile(
+            row,
+            profile: profile,
+            useProfileContext: useProfileContext,
+            strictGenderFilter: strictGenderFilter,
+          )) {
+            continue;
+          }
+
+          final details = _OutfitLlmDetails(
+            top: row['top_item']?.toString(),
+            bottom: row['bottom_item']?.toString(),
+            shoes: row['shoes_item']?.toString(),
+            outerwear: row['outerwear_item']?.toString(),
+            accessories: _parseAccessories(row['accessories']),
+            typeLabel: row['type_label']?.toString(),
+            summary: row['summary']?.toString(),
+          );
+
+          if (details.hasAnyDetail) {
+            detailsByOutfitId[outfitId] = details;
+          }
+        }
+
+        return detailsByOutfitId;
+      } on PostgrestException catch (error) {
+        if (error.code == '42P01') {
+          return const <String, _OutfitLlmDetails>{};
+        }
+        rethrow;
+      } catch (_) {
+        return const <String, _OutfitLlmDetails>{};
+      }
+    });
+
+List<String> _parseAccessories(dynamic raw) {
+  if (raw == null) {
+    return const <String>[];
+  }
+  if (raw is List) {
+    return raw
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  final value = raw.toString().trim();
+  if (value.isEmpty) {
+    return const <String>[];
+  }
+
+  final splitter = value.contains('|') ? '|' : ',';
+  return value
+      .split(splitter)
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
+}
+
+bool _llamaRowMatchesProfile(
+  Map<String, dynamic> row, {
+  required UserProfile profile,
+  required bool useProfileContext,
+  required bool strictGenderFilter,
+}) {
+  if (!useProfileContext) {
+    return true;
+  }
+
+  final payload = row['profile_payload'];
+  final payloadMap = payload is Map<String, dynamic>
+      ? payload
+      : <String, dynamic>{};
+
+  final rowGenderRaw =
+      row['target_gender'] ??
+      row['gender_target'] ??
+      row['profile_gender'] ??
+      payloadMap['gender'];
+  final rowGender = rowGenderRaw?.toString().trim() ?? '';
+  if (strictGenderFilter && rowGender.isNotEmpty) {
+    if (!_genderMatchesProfile(rowGender, profile.gender)) {
+      return false;
+    }
+  }
+
+  final rowStyles = _toNormalizedStringSet(
+    row['target_styles'] ??
+        payloadMap['preferredStyles'] ??
+        payloadMap['styles'],
+  );
+  final profileStyles = _toNormalizedStringSet(profile.preferredStyles);
+  if (rowStyles.isNotEmpty && profileStyles.isNotEmpty) {
+    final overlap = rowStyles.any(profileStyles.contains);
+    if (!overlap) {
+      return false;
+    }
+  }
+
+  final rowMorphologyRaw = row['target_morphology'] ?? payloadMap['morphology'];
+  final rowMorphology = rowMorphologyRaw?.toString().trim() ?? '';
+  if (rowMorphology.isNotEmpty &&
+      !_normalizeToken(
+        rowMorphology,
+      ).contains(_normalizeToken(profile.morphology)) &&
+      !_normalizeToken(
+        profile.morphology,
+      ).contains(_normalizeToken(rowMorphology))) {
+    return false;
+  }
+
+  return true;
+}
+
+bool _genderMatchesProfile(String targetGender, String profileGender) {
+  final target = _normalizeToken(targetGender);
+  final profile = _normalizeToken(profileGender);
+
+  if (target.isEmpty ||
+      target == 'all' ||
+      target == 'any' ||
+      target == 'unisex') {
+    return true;
+  }
+  if (target.contains('nonprecise') || target.contains('nonbinaire')) {
+    return true;
+  }
+  if (target.contains('femme') || target.contains('female') || target == 'f') {
+    return profile.contains('femme') ||
+        profile.contains('female') ||
+        profile == 'f';
+  }
+  if (target.contains('homme') || target.contains('male') || target == 'm') {
+    return profile.contains('homme') ||
+        profile.contains('male') ||
+        profile == 'm';
+  }
+  return true;
+}
+
+Set<String> _toNormalizedStringSet(dynamic raw) {
+  if (raw == null) {
+    return <String>{};
+  }
+
+  if (raw is List) {
+    return raw
+        .map((item) => _normalizeToken(item.toString()))
+        .where((item) => item.isNotEmpty)
+        .toSet();
+  }
+
+  final value = raw.toString().trim();
+  if (value.isEmpty) {
+    return <String>{};
+  }
+
+  final splitter = value.contains('|')
+      ? '|'
+      : (value.contains(',') ? ',' : ' ');
+  return value
+      .split(splitter)
+      .map(_normalizeToken)
+      .where((item) => item.isNotEmpty)
+      .toSet();
+}
+
+String _normalizeToken(String value) {
+  return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+}
+
 final outfitCloudTelemetryProvider = FutureProvider<OutfitTelemetryState>((
   ref,
 ) async {
@@ -201,6 +521,34 @@ final outfitFavoritesSyncMessageProvider = StateProvider<String>((ref) {
 
 final outfitStrictWeatherModeProvider = StateProvider<bool>((ref) {
   return true;
+});
+
+final outfitCreativeMixEnabledProvider = StateProvider<bool>((ref) {
+  return AppConfig.enableCreativeOutfitMix;
+});
+
+final outfitCreativeExplorationShareProvider = StateProvider<double>((ref) {
+  return AppConfig.outfitCreativeExplorationShare;
+});
+
+final outfitCreativeBoostProvider = StateProvider<int>((ref) {
+  return AppConfig.outfitCreativeBoost;
+});
+
+final outfitSecondaryLlmEnabledProvider = StateProvider<bool>((ref) {
+  return AppConfig.enableSecondaryLlmRanking;
+});
+
+final outfitSecondaryLlmWeightProvider = StateProvider<double>((ref) {
+  return AppConfig.secondaryLlmWeight;
+});
+
+final outfitLlamaUseProfileContextProvider = StateProvider<bool>((ref) {
+  return AppConfig.enableLlamaProfileContext;
+});
+
+final outfitLlamaStrictGenderFilterProvider = StateProvider<bool>((ref) {
+  return AppConfig.enableLlamaStrictGenderFilter;
 });
 
 final outfitFeedbackSubmittingProvider = StateProvider<bool>((ref) {
@@ -655,7 +1003,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
     final client = _client;
     if (client == null) {
       _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
-          'Supabase indisponible sur cet ecran';
+          'Supabase indisponible sur cet écran';
       return false;
     }
 
@@ -679,7 +1027,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
       return true;
     } catch (error) {
       _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
-          _syncErrorMessage('Sync cloud echouee', error);
+          _syncErrorMessage('Sync cloud échouée', error);
       return false;
     }
   }
@@ -708,7 +1056,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
         : OutfitFavoritesSyncStatus.localOnly;
     if (pushed) {
       _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
-          'Favoris synchronises avec le cloud';
+          'Favoris synchronisés avec le cloud';
     }
   }
 
@@ -741,7 +1089,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
       _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
           OutfitFavoritesSyncStatus.synced;
       _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
-          'Favoris synchronises avec le cloud';
+          'Favoris synchronisés avec le cloud';
       return;
     }
 
@@ -751,15 +1099,15 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
         ? OutfitFavoritesSyncStatus.synced
         : OutfitFavoritesSyncStatus.localOnly;
     _ref.read(outfitFavoritesSyncMessageProvider.notifier).state = pushed
-        ? 'Favoris synchronises avec le cloud'
-        : 'Mode local (sync cloud echouee)';
+        ? 'Favoris synchronisés avec le cloud'
+        : 'Mode local (sync cloud échouée)';
   }
 
   Future<void> toggleFavorite(String outfitId) async {
     _ref.read(outfitFavoritesSyncStatusProvider.notifier).state =
         OutfitFavoritesSyncStatus.syncing;
     _ref.read(outfitFavoritesSyncMessageProvider.notifier).state =
-        'Mise a jour des favoris...';
+        'Mise à jour des favoris...';
 
     final next = Set<String>.from(state);
     if (next.contains(outfitId)) {
@@ -774,8 +1122,8 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
         ? OutfitFavoritesSyncStatus.synced
         : OutfitFavoritesSyncStatus.localOnly;
     _ref.read(outfitFavoritesSyncMessageProvider.notifier).state = synced
-        ? 'Favoris synchronises avec le cloud'
-        : 'Mode local (sync cloud echouee)';
+        ? 'Favoris synchronisés avec le cloud'
+        : 'Mode local (sync cloud échouée)';
   }
 
   @override
@@ -794,6 +1142,50 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
+  Set<String> _computeDisplayedOutfitIds({
+    required UserProfile profile,
+    required List<AgendaEvent> events,
+    required Set<String> favoriteIds,
+    required bool showOnlyFavorites,
+    required OutfitPersonalizationState personalization,
+    required Map<String, double> mlScoreMap,
+    required Map<String, _OutfitLlmDetails> llmDetailsByOutfitId,
+    required _OutfitWeatherContext? weatherContext,
+    required bool strictWeatherMode,
+    required bool creativeMixEnabled,
+    required double creativeExplorationShare,
+    required int creativeBoost,
+    required DateTime referenceNow,
+  }) {
+    final targetDay = DateTime(
+      referenceNow.year,
+      referenceNow.month,
+      referenceNow.day,
+    );
+    final ranked = _rankOutfits(
+      profile,
+      events,
+      favoriteIds: favoriteIds,
+      personalization: personalization,
+      mlScoreMap: mlScoreMap,
+      llmDetailsByOutfitId: llmDetailsByOutfitId,
+      targetDay: targetDay,
+      weatherContext: weatherContext,
+      strictWeatherMode: strictWeatherMode,
+      creativeMixEnabled: creativeMixEnabled,
+      creativeExplorationShare: creativeExplorationShare,
+      creativeBoost: creativeBoost,
+      excludedOutfitIds: const <String>{},
+      referenceNow: referenceNow,
+    );
+
+    final visible = showOnlyFavorites
+        ? ranked.where((item) => favoriteIds.contains(item.outfit.id)).toList()
+        : ranked;
+
+    return visible.map((item) => item.outfit.id).toSet();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
@@ -801,23 +1193,39 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final profile = ref.watch(userProfileProvider);
     final favoriteIds = ref.watch(outfitFavoritesProvider);
     final personalization = ref.watch(outfitPersonalizationProvider);
-    final localTelemetry = ref.watch(outfitTelemetryProvider);
-    final cloudTelemetryAsync = ref.watch(outfitCloudTelemetryProvider);
-    final telemetry = cloudTelemetryAsync.maybeWhen(
-      data: (cloud) => _mergeTelemetry(localTelemetry, cloud),
-      orElse: () => localTelemetry,
-    );
     final strictWeatherMode = ref.watch(outfitStrictWeatherModeProvider);
+    final creativeMixEnabled = ref.watch(outfitCreativeMixEnabledProvider);
+    final creativeExplorationShare = ref.watch(
+      outfitCreativeExplorationShareProvider,
+    );
+    final creativeBoost = ref.watch(outfitCreativeBoostProvider);
+    final secondaryLlmEnabled = ref.watch(outfitSecondaryLlmEnabledProvider);
+    final secondaryLlmWeight = ref.watch(outfitSecondaryLlmWeightProvider);
     final mlScoreMapAsync = ref.watch(outfitMlScoreMapProvider);
+    final secondaryLlmScoreMapAsync = ref.watch(
+      outfitSecondaryLlmScoreMapProvider,
+    );
+    final secondaryLlmDetailsAsync = ref.watch(
+      outfitSecondaryLlmDetailsProvider,
+    );
     final mlScoreMap = mlScoreMapAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <String, double>{},
     );
-    final favoritesSyncStatus = ref.watch(outfitFavoritesSyncStatusProvider);
-    final favoritesSyncMessage = ref.watch(outfitFavoritesSyncMessageProvider);
-    final activeEmail =
-        Supabase.instance.client.auth.currentUser?.email ??
-        _tr(context, 'Non connecte', 'Not connected');
+    final secondaryLlmScoreMap = secondaryLlmScoreMapAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => const <String, double>{},
+    );
+    final effectiveMlScoreMap = _mergeModelScores(
+      primaryScores: mlScoreMap,
+      secondaryScores: secondaryLlmScoreMap,
+      enableSecondary: secondaryLlmEnabled,
+      secondaryWeight: secondaryLlmWeight,
+    );
+    final secondaryLlmDetailsByOutfitId = secondaryLlmDetailsAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => const <String, _OutfitLlmDetails>{},
+    );
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
@@ -832,6 +1240,25 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final tomorrowEvents = tomorrowEventsAsync.maybeWhen(
       data: (events) => events,
       orElse: () => const <AgendaEvent>[],
+    );
+    final todayWeatherContext = weatherBundleAsync.maybeWhen(
+      data: (bundle) => _weatherContextFromCurrent(bundle.currentWeather),
+      orElse: () => null,
+    );
+    final todayDisplayedOutfitIds = _computeDisplayedOutfitIds(
+      profile: profile,
+      events: todayEvents,
+      favoriteIds: favoriteIds,
+      showOnlyFavorites: initialShowFavorites,
+      personalization: personalization,
+      mlScoreMap: effectiveMlScoreMap,
+      llmDetailsByOutfitId: secondaryLlmDetailsByOutfitId,
+      weatherContext: todayWeatherContext,
+      strictWeatherMode: strictWeatherMode,
+      creativeMixEnabled: creativeMixEnabled,
+      creativeExplorationShare: creativeExplorationShare,
+      creativeBoost: creativeBoost,
+      referenceNow: now,
     );
 
     return Scaffold(
@@ -886,49 +1313,16 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         isFavoritesMode
                             ? (isEnglish
                                   ? 'Cloud collection of your saved outfits'
-                                  : 'Collection cloud de vos tenues enregistrees')
+                                  : 'Collection cloud de vos tenues enregistrées')
                             : (isEnglish
                                   ? 'Personalized suggestions based on your preferences'
-                                  : 'Suggestions personnalisees basees sur vos preferences'),
+                                  : 'Suggestions personnalisées basées sur vos préférences'),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            _favoritesSyncIcon(favoritesSyncStatus),
-                            size: 14,
-                            color: _favoritesSyncColor(favoritesSyncStatus),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              favoritesSyncMessage,
-                              style: TextStyle(
-                                color: _favoritesSyncColor(favoritesSyncStatus),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMlStatusRow(context, mlScoreMapAsync),
-                      const SizedBox(height: 4),
-                      _buildCloudStatsStatusRow(context, cloudTelemetryAsync),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_tr(context, 'Compte actif', 'Active account')}: $activeEmail',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       if (isFavoritesMode) ...[
                         _buildFavoritesModeHeader(favoriteIds.length),
@@ -941,13 +1335,6 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           profile,
                           todayEvents: todayEvents,
                           tomorrowEvents: tomorrowEvents,
-                        ),
-                        const SizedBox(height: 14),
-                        _buildRecommendationTuning(
-                          context,
-                          ref,
-                          strictWeatherMode,
-                          telemetry,
                         ),
                         const SizedBox(height: 24),
                       ],
@@ -971,7 +1358,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         favoriteIds: favoriteIds,
                         showOnlyFavorites: initialShowFavorites,
                         personalization: personalization,
-                        mlScoreMap: mlScoreMap,
+                        mlScoreMap: effectiveMlScoreMap,
+                        llmDetailsByOutfitId: secondaryLlmDetailsByOutfitId,
                         eventsAsync: todayEventsAsync,
                         weatherContext: weatherBundleAsync.maybeWhen(
                           data: (bundle) =>
@@ -979,6 +1367,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           orElse: () => null,
                         ),
                         strictWeatherMode: strictWeatherMode,
+                        creativeMixEnabled: creativeMixEnabled,
+                        creativeExplorationShare: creativeExplorationShare,
+                        creativeBoost: creativeBoost,
+                        excludedOutfitIds: const <String>{},
                         referenceNow: now,
                       ),
 
@@ -1003,7 +1395,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         favoriteIds: favoriteIds,
                         showOnlyFavorites: initialShowFavorites,
                         personalization: personalization,
-                        mlScoreMap: mlScoreMap,
+                        mlScoreMap: effectiveMlScoreMap,
+                        llmDetailsByOutfitId: secondaryLlmDetailsByOutfitId,
                         eventsAsync: tomorrowEventsAsync,
                         weatherContext: weatherBundleAsync.maybeWhen(
                           data: (bundle) => _weatherContextFromForecast(
@@ -1012,6 +1405,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                           orElse: () => null,
                         ),
                         strictWeatherMode: strictWeatherMode,
+                        creativeMixEnabled: creativeMixEnabled,
+                        creativeExplorationShare: creativeExplorationShare,
+                        creativeBoost: creativeBoost,
+                        excludedOutfitIds: todayDisplayedOutfitIds,
                         referenceNow: DateTime(
                           tomorrow.year,
                           tomorrow.month,
@@ -1063,7 +1460,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _tr(context, 'Profil applique', 'Applied profile'),
+              _tr(context, 'Profil appliqué', 'Applied profile'),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -1116,281 +1513,6 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecommendationTuning(
-    BuildContext context,
-    WidgetRef ref,
-    bool strictWeatherMode,
-    OutfitTelemetryState telemetry,
-  ) {
-    return GlassContainer(
-      borderRadius: 16,
-      blur: 20,
-      opacity: 0.1,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _tr(context, 'Mode météo strict', 'Strict weather mode'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _tr(
-                        context,
-                        'Filtre fortement les tenues incompatibles avec la météo.',
-                        'Strongly filters outfits incompatible with weather.',
-                      ),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Switch.adaptive(
-                value: strictWeatherMode,
-                onChanged: (value) {
-                  ref.read(outfitStrictWeatherModeProvider.notifier).state =
-                      value;
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildMetricsRow(context, telemetry),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () {
-                ref.read(outfitTelemetryProvider.notifier).reset();
-              },
-              icon: const Icon(Icons.restart_alt, size: 16),
-              label: Text(
-                _tr(context, 'Reset metriques locales', 'Reset local metrics'),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricsRow(
-    BuildContext context,
-    OutfitTelemetryState telemetry,
-  ) {
-    String pct(double value) => '${(value * 100).toStringAsFixed(0)}%';
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _metricChip(_tr(context, 'Likes', 'Likes'), telemetry.likes.toString()),
-        _metricChip(
-          _tr(context, 'Dislikes', 'Dislikes'),
-          telemetry.dislikes.toString(),
-        ),
-        _metricChip(
-          _tr(context, 'Taux acceptation', 'Acceptance rate'),
-          pct(telemetry.acceptanceRate),
-        ),
-        _metricChip(
-          _tr(context, 'Taux rejet', 'Rejection rate'),
-          pct(telemetry.rejectionRate),
-        ),
-        _metricChip(
-          _tr(context, 'Tenues vues', 'Outfits seen'),
-          telemetry.seen.toString(),
-        ),
-        _metricChip(
-          _tr(context, 'Ajouts favoris', 'Favorite adds'),
-          telemetry.favoriteAdds.toString(),
-        ),
-      ],
-    );
-  }
-
-  OutfitTelemetryState _mergeTelemetry(
-    OutfitTelemetryState local,
-    OutfitTelemetryState cloud,
-  ) {
-    return OutfitTelemetryState(
-      likes: local.likes + cloud.likes,
-      dislikes: local.dislikes + cloud.dislikes,
-      seen: local.seen + cloud.seen,
-      favoriteAdds: local.favoriteAdds + cloud.favoriteAdds,
-      favoriteRemoves: local.favoriteRemoves + cloud.favoriteRemoves,
-    );
-  }
-
-  Widget _buildMlStatusRow(
-    BuildContext context,
-    AsyncValue<Map<String, double>> mlScoreMapAsync,
-  ) {
-    return mlScoreMapAsync.when(
-      data: (scores) {
-        final active = scores.isNotEmpty;
-        return Row(
-          children: [
-            Icon(
-              active ? Icons.psychology_alt : Icons.psychology,
-              size: 14,
-              color: active ? Colors.greenAccent : Colors.amberAccent,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                active
-                    ? _tr(
-                        context,
-                        'ML hybride actif (${scores.length} score(s) charges)',
-                        'Hybrid ML active (${scores.length} score(s) loaded)',
-                      )
-                    : _tr(
-                        context,
-                        'ML non alimente (scores cloud absents)',
-                        'ML not fed (cloud scores missing)',
-                      ),
-                style: TextStyle(
-                  color: active ? Colors.greenAccent : Colors.amberAccent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => Row(
-        children: [
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _tr(context, 'Chargement des scores ML...', 'Loading ML scores...'),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-      error: (error, stackTrace) {
-        logger.error(
-          'Erreur chargement scores ML',
-          tag: 'OutfitSuggestion',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        return Row(
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              size: 14,
-              color: Colors.redAccent,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                _tr(
-                  context,
-                  'Erreur chargement ML (fallback heuristique actif)',
-                  'ML loading error (heuristic fallback active)',
-                ),
-                style: const TextStyle(
-                  color: Colors.redAccent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildCloudStatsStatusRow(
-    BuildContext context,
-    AsyncValue<OutfitTelemetryState> cloudTelemetryAsync,
-  ) {
-    return cloudTelemetryAsync.when(
-      data: (stats) {
-        final loaded = stats.feedbackTotal > 0 || stats.seen > 0;
-        return Text(
-          loaded
-              ? _tr(
-                  context,
-                  'Stats cloud chargees (${stats.feedbackTotal} feedbacks)',
-                  'Cloud stats loaded (${stats.feedbackTotal} feedbacks)',
-                )
-              : _tr(
-                  context,
-                  'Pas encore de stats cloud (les stats locales restent actives)',
-                  'No cloud stats yet (local stats remain active)',
-                ),
-          style: TextStyle(
-            color: loaded ? Colors.lightBlueAccent : Colors.white60,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      },
-      loading: () => Text(
-        _tr(context, 'Chargement stats cloud...', 'Loading cloud stats...'),
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.62),
-          fontSize: 11,
-        ),
-      ),
-      error: (error, stackTrace) => Text(
-        _tr(
-          context,
-          'Stats cloud indisponibles (mode local)',
-          'Cloud stats unavailable (local mode)',
-        ),
-        style: const TextStyle(
-          color: Colors.amberAccent,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _metricChip(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.8),
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-
   Widget _buildSuggestionSection({
     required WidgetRef ref,
     required BuildContext context,
@@ -1401,9 +1523,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required bool showOnlyFavorites,
     required OutfitPersonalizationState personalization,
     required Map<String, double> mlScoreMap,
+    required Map<String, _OutfitLlmDetails> llmDetailsByOutfitId,
     required AsyncValue<List<AgendaEvent>> eventsAsync,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
+    required bool creativeMixEnabled,
+    required double creativeExplorationShare,
+    required int creativeBoost,
+    required Set<String> excludedOutfitIds,
     required DateTime referenceNow,
   }) {
     return eventsAsync.when(
@@ -1418,8 +1545,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           showOnlyFavorites: showOnlyFavorites,
           personalization: personalization,
           mlScoreMap: mlScoreMap,
+          llmDetailsByOutfitId: llmDetailsByOutfitId,
           weatherContext: weatherContext,
           strictWeatherMode: strictWeatherMode,
+          creativeMixEnabled: creativeMixEnabled,
+          creativeExplorationShare: creativeExplorationShare,
+          creativeBoost: creativeBoost,
+          excludedOutfitIds: excludedOutfitIds,
           referenceNow: referenceNow,
         );
         return Column(
@@ -1436,7 +1568,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             if (weatherContext != null) ...[
               Text(
-                '${_tr(context, 'Meteo', 'Weather')}: ${weatherContext.label}',
+                '${_tr(context, 'Météo', 'Weather')}: ${weatherContext.label}',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: 13,
@@ -1501,8 +1633,13 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required bool showOnlyFavorites,
     required OutfitPersonalizationState personalization,
     required Map<String, double> mlScoreMap,
+    required Map<String, _OutfitLlmDetails> llmDetailsByOutfitId,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
+    required bool creativeMixEnabled,
+    required double creativeExplorationShare,
+    required int creativeBoost,
+    required Set<String> excludedOutfitIds,
     required DateTime referenceNow,
   }) {
     final ranked = _rankOutfits(
@@ -1511,9 +1648,14 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       favoriteIds: favoriteIds,
       personalization: personalization,
       mlScoreMap: mlScoreMap,
+      llmDetailsByOutfitId: llmDetailsByOutfitId,
       targetDay: targetDay,
       weatherContext: weatherContext,
       strictWeatherMode: strictWeatherMode,
+      creativeMixEnabled: creativeMixEnabled,
+      creativeExplorationShare: creativeExplorationShare,
+      creativeBoost: creativeBoost,
+      excludedOutfitIds: excludedOutfitIds,
       referenceNow: referenceNow,
     );
     final visible = showOnlyFavorites
@@ -1563,22 +1705,33 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required Set<String> favoriteIds,
     required OutfitPersonalizationState personalization,
     required Map<String, double> mlScoreMap,
+    required Map<String, _OutfitLlmDetails> llmDetailsByOutfitId,
     required DateTime targetDay,
     required _OutfitWeatherContext? weatherContext,
     required bool strictWeatherMode,
+    required bool creativeMixEnabled,
+    required double creativeExplorationShare,
+    required int creativeBoost,
+    required Set<String> excludedOutfitIds,
     required DateTime referenceNow,
   }) {
-    final allOutfits = [
+    final baseOutfits = [
       _Outfit(
         id: 'casual_moderne',
         title: 'Casual Moderne',
         description: 'Jeans + T-shirt léger',
+        topPiece: 'T-shirt léger uni',
+        bottomPiece: 'Jeans coupe droite',
+        shoesPiece: 'Sneakers blanches',
+        layerPiece: 'Surchemise légère',
+        accessoryPieces: const ['Montre minimaliste'],
+        outfitType: 'Casual quotidien',
         icon: Icons.checkroom,
         color: const Color(0xFF3B82F6),
         styles: const ['casual', 'minimaliste'],
         compatibleMorphologies: const [
           'Silhouette droite',
-          'Hanches et epaules equilibrees',
+          'Hanches et épaules équilibrées',
         ],
         genderTargets: const ['all'],
         minAge: 16,
@@ -1588,12 +1741,18 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         id: 'elegant',
         title: 'Élégant',
         description: 'Chemise + Pantalon chino',
+        topPiece: 'Chemise structurée',
+        bottomPiece: 'Pantalon chino fuselé',
+        shoesPiece: 'Derbies en cuir',
+        layerPiece: 'Blazer léger',
+        accessoryPieces: const ['Ceinture cuir'],
+        outfitType: 'Smart élégant',
         icon: Icons.style,
         color: const Color(0xFF8B5CF6),
         styles: const ['elegant', 'business'],
         compatibleMorphologies: const [
-          'Hanches et epaules equilibrees',
-          'Epaules plus larges',
+          'Hanches et épaules équilibrées',
+          'Épaules plus larges',
         ],
         genderTargets: const ['all'],
         minAge: 20,
@@ -1603,12 +1762,18 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         id: 'sport',
         title: 'Sport',
         description: 'Legging + Hoodie',
+        topPiece: 'Hoodie respirant',
+        bottomPiece: 'Legging technique',
+        shoesPiece: 'Running trainers',
+        layerPiece: 'Coupe-vent fin',
+        accessoryPieces: const ['Casquette'],
+        outfitType: 'Sport actif',
         icon: Icons.sports,
         color: const Color(0xFF10B981),
         styles: const ['sport'],
         compatibleMorphologies: const [
-          'Hanches plus marquees',
-          'Taille tres marquee',
+          'Hanches plus marquées',
+          'Taille très marquée',
           'Silhouette droite',
         ],
         genderTargets: const ['all'],
@@ -1619,11 +1784,17 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         id: 'street_dynamics',
         title: 'Street Dynamics',
         description: 'Cargo + bomber oversize',
+        topPiece: 'T-shirt graphique',
+        bottomPiece: 'Cargo ample',
+        shoesPiece: 'Sneakers chunky',
+        layerPiece: 'Bomber oversize',
+        accessoryPieces: const ['Chaîne discrète'],
+        outfitType: 'Streetwear urbain',
         icon: Icons.local_fire_department,
         color: const Color(0xFFEC4899),
         styles: const ['streetwear', 'casual'],
         compatibleMorphologies: const [
-          'Epaules tres marquees',
+          'Épaules très marquées',
           'Silhouette droite',
         ],
         genderTargets: const ['all'],
@@ -1634,13 +1805,19 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         id: 'business_smart',
         title: 'Business Smart',
         description: 'Blazer + pantalon taille haute',
+        topPiece: 'Top soyeux sobre',
+        bottomPiece: 'Pantalon taille haute',
+        shoesPiece: 'Mocassins premium',
+        layerPiece: 'Blazer structuré',
+        accessoryPieces: const ['Sac structuré'],
+        outfitType: 'Business smart',
         icon: Icons.business_center,
         color: const Color(0xFFF59E0B),
         styles: const ['business', 'elegant'],
         compatibleMorphologies: const [
-          'Hanches tres marquees',
-          'Hanches et epaules equilibrees',
-          'Epaules plus larges',
+          'Hanches très marquées',
+          'Hanches et épaules équilibrées',
+          'Épaules plus larges',
         ],
         genderTargets: const ['all'],
         minAge: 24,
@@ -1650,6 +1827,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         id: 'minimal_monochrome',
         title: 'Minimal Monochrome',
         description: 'Palette neutre + coupe clean',
+        topPiece: 'Pull fin monochrome',
+        bottomPiece: 'Pantalon droit neutre',
+        shoesPiece: 'Baskets épurées',
+        layerPiece: 'Manteau droit léger',
+        accessoryPieces: const ['Sac crossbody'],
+        outfitType: 'Minimal contemporain',
         icon: Icons.layers,
         color: const Color(0xFF14B8A6),
         styles: const ['minimaliste', 'casual'],
@@ -1659,6 +1842,12 @@ class OutfitSuggestionScreen extends ConsumerWidget {
         maxAge: 80,
       ),
     ];
+
+    final allOutfits = _applyLlmDetails(
+      baseOutfits,
+      llmDetailsByOutfitId,
+      preferLlm: AppConfig.enableSecondaryLlmRanking,
+    );
 
     final normalizedStyles = profile.preferredStyles
         .map(_normalizeStyle)
@@ -1698,6 +1887,22 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     }).toList();
     if (contextFiltered.isNotEmpty) {
       candidates = contextFiltered;
+    }
+
+    if (excludedOutfitIds.isNotEmpty) {
+      final noRepeatCandidates = candidates
+          .where((outfit) => !excludedOutfitIds.contains(outfit.id))
+          .toList();
+      if (noRepeatCandidates.isNotEmpty) {
+        candidates = noRepeatCandidates;
+      } else {
+        final noRepeatFallback = allOutfits
+            .where((outfit) => !excludedOutfitIds.contains(outfit.id))
+            .toList();
+        if (noRepeatFallback.isNotEmpty) {
+          candidates = noRepeatFallback;
+        }
+      }
     }
 
     if (candidates.isEmpty) {
@@ -1745,7 +1950,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
       if (profile.age >= outfit.minAge && profile.age <= outfit.maxAge) {
         score += 24;
-        addReason('Adapte a votre tranche d\'age', 40);
+        addReason('Adapté à votre tranche d\'âge', 40);
       }
 
       if (_matchesMorphology(
@@ -1767,7 +1972,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
       if (contextCompatible) {
         score += 24;
-        addReason('Adapte a votre contexte principal', 90);
+        addReason('Adapté à votre contexte principal', 90);
       } else {
         score -= 12;
       }
@@ -1779,7 +1984,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       );
       if (planningCoherence > 0) {
         score += planningCoherence;
-        addReason('Cohérence avec vos priorites du jour', 88);
+        addReason('Cohérence avec vos priorités du jour', 88);
       } else if (planningCoherence < 0) {
         score += planningCoherence;
       }
@@ -1791,7 +1996,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                 style == 'sport';
           })) {
         score += 12;
-        addReason('Adapte au rythme du week-end', 35);
+        addReason('Adapté au rythme du week-end', 35);
       }
 
       if (!isWeekend &&
@@ -1799,7 +2004,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             return style == 'business' || style == 'elegant';
           })) {
         score += 12;
-        addReason('Adapte a une journee de semaine', 35);
+        addReason('Adapté à une journée de semaine', 35);
       }
 
       if (planningSignals.hasWorkEvent &&
@@ -1814,7 +2019,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
       if (planningSignals.hasSportEvent && outfit.styles.contains('sport')) {
         score += 30;
-        addReason('Compatible avec vos activites sportives', 105);
+        addReason('Compatible avec vos activités sportives', 105);
       } else if (planningSignals.hasSportEvent) {
         score -= 8;
       }
@@ -1824,7 +2029,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             (style) => style == 'elegant' || style == 'streetwear',
           )) {
         score += 16;
-        addReason('Adapte a vos sorties du soir', 65);
+        addReason('Adapté à vos sorties du soir', 65);
       }
 
       if (planningSignals.hasCasualEvent &&
@@ -1834,21 +2039,21 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                 style == 'minimaliste';
           })) {
         score += 14;
-        addReason('Adapte a un planning detendu', 60);
+        addReason('Adapté à un planning détendu', 60);
       }
 
       if (events.isNotEmpty &&
           planningSignals.hasOutdoorEvent &&
           outfit.styles.any((style) => style == 'sport' || style == 'casual')) {
         score += 10;
-        addReason('Confortable pour des deplacements exterieurs', 55);
+        addReason('Confortable pour des déplacements extérieurs', 55);
       }
 
       final slotBoost = _slotScoreBoost(prioritySlot, outfit.styles);
       if (slotBoost > 0) {
         score += slotBoost;
         addReason(
-          'Optimise pour le creneau ${_slotLabel(prioritySlot).toLowerCase()}',
+          'Optimisé pour le créneau ${_slotLabel(prioritySlot).toLowerCase()}',
           50,
         );
       }
@@ -1860,10 +2065,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       );
       if (weatherBoost > 0) {
         score += weatherBoost;
-        addReason('Adapte aux conditions meteo', 100);
+        addReason('Adapté aux conditions météo', 100);
       } else if (weatherBoost < 0) {
         score += weatherBoost;
-        addReason('Compromis meteo detecte', 45);
+        addReason('Compromis météo détecté', 45);
       }
 
       final chronoBoost = _seasonRainHourBoost(
@@ -1874,7 +2079,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       );
       if (chronoBoost > 0) {
         score += chronoBoost;
-        addReason('Adapte a la saison et au moment de la journee', 72);
+        addReason('Adapté à la saison et au moment de la journée', 72);
       } else if (chronoBoost < 0) {
         score += chronoBoost;
       }
@@ -1953,6 +2158,9 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       diversePool,
       maxCount: 4,
       targetDay: targetDay,
+      creativeMixEnabled: creativeMixEnabled,
+      creativeExplorationShare: creativeExplorationShare,
+      creativeBoost: creativeBoost,
     );
   }
 
@@ -2038,16 +2246,45 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     return hash;
   }
 
+  Map<String, double> _mergeModelScores({
+    required Map<String, double> primaryScores,
+    required Map<String, double> secondaryScores,
+    required bool enableSecondary,
+    required double secondaryWeight,
+  }) {
+    if (!enableSecondary || secondaryScores.isEmpty) {
+      return primaryScores;
+    }
+
+    final safeSecondaryWeight = secondaryWeight.clamp(0.0, 0.7);
+    final primaryWeight = 1 - safeSecondaryWeight;
+
+    final merged = <String, double>{...primaryScores};
+    for (final entry in secondaryScores.entries) {
+      final primary = primaryScores[entry.key];
+      final secondary = entry.value;
+      final blended = primary == null
+          ? secondary
+          : (primary * primaryWeight) + (secondary * safeSecondaryWeight);
+      merged[entry.key] = blended.clamp(0, 1);
+    }
+
+    return merged;
+  }
+
   List<_RankedOutfit> _selectCreativeTopOutfits(
     List<_RankedOutfit> ranked, {
     required int maxCount,
     required DateTime targetDay,
+    required bool creativeMixEnabled,
+    required double creativeExplorationShare,
+    required int creativeBoost,
   }) {
     if (ranked.isEmpty) {
       return const <_RankedOutfit>[];
     }
 
-    if (!AppConfig.enableCreativeOutfitMix || ranked.length <= maxCount) {
+    if (!creativeMixEnabled || ranked.length <= maxCount) {
       return ranked.take(maxCount).toList();
     }
 
@@ -2057,8 +2294,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
     var explorationTarget = 0;
     if (creativeAvailable > 0) {
-      final rawTarget = (maxCount * AppConfig.outfitCreativeExplorationShare)
-          .round();
+      final safeShare = creativeExplorationShare.clamp(0.0, 1.0);
+      final rawTarget = (maxCount * safeShare).round();
       explorationTarget = _clampInt(rawTarget, 1, maxCount - 1);
       if (explorationTarget > creativeAvailable) {
         explorationTarget = creativeAvailable;
@@ -2098,10 +2335,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
             0.2;
 
         if (needCreative) {
-          adjusted += creativePotential * AppConfig.outfitCreativeBoost;
+          adjusted += creativePotential * creativeBoost;
         } else if (creativePotential > 0 &&
             selectedCreative >= explorationTarget) {
-          adjusted -= AppConfig.outfitCreativeBoost * 0.5;
+          adjusted -= creativeBoost * 0.5;
         }
 
         if (adjusted > bestAdjustedScore) {
@@ -2414,9 +2651,9 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       case _DayTimeSlot.morning:
         return 'Matin';
       case _DayTimeSlot.afternoon:
-        return 'Apres-midi';
+        return 'Après-midi';
       case _DayTimeSlot.evening:
-        return 'Soiree';
+        return 'Soirée';
     }
   }
 
@@ -2426,9 +2663,9 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       case _DayTimeSlot.morning:
         return isEnglish ? 'Morning' : 'Matin';
       case _DayTimeSlot.afternoon:
-        return isEnglish ? 'Afternoon' : 'Apres-midi';
+        return isEnglish ? 'Afternoon' : 'Après-midi';
       case _DayTimeSlot.evening:
-        return isEnglish ? 'Evening' : 'Soiree';
+        return isEnglish ? 'Evening' : 'Soirée';
     }
   }
 
@@ -2759,7 +2996,10 @@ class OutfitSuggestionScreen extends ConsumerWidget {
 
   bool _isMorphologyCompatible(String morphology, _Outfit outfit) {
     final normalized = morphology.trim().toLowerCase();
-    if (normalized == 'silhouette non definie' || normalized == 'non definie') {
+    if (normalized == 'silhouette non definie' ||
+        normalized == 'silhouette non définie' ||
+        normalized == 'non definie' ||
+        normalized == 'non définie') {
       return true;
     }
     return _matchesMorphology(
@@ -2872,29 +3112,58 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     final normalized = value.trim();
     switch (normalized) {
       case 'Sablier (X)':
+      case 'Hanches et épaules équilibrées':
       case 'Hanches et epaules equilibrees':
-        return {'Sablier (X)', 'Hanches et epaules equilibrees'};
+        return {
+          'Sablier (X)',
+          'Hanches et épaules équilibrées',
+          'Hanches et epaules equilibrees',
+        };
       case 'Poire (A)':
+      case 'Hanches plus marquées':
       case 'Hanches plus marquees':
-        return {'Poire (A)', 'Hanches plus marquees'};
+        return {'Poire (A)', 'Hanches plus marquées', 'Hanches plus marquees'};
       case 'Rectangulaire (H)':
       case 'Silhouette droite':
         return {'Rectangulaire (H)', 'Silhouette droite'};
       case 'Triangle Inverse (V)':
+      case 'Épaules plus larges':
       case 'Epaules plus larges':
-        return {'Triangle Inverse (V)', 'Epaules plus larges'};
+        return {
+          'Triangle Inverse (V)',
+          'Épaules plus larges',
+          'Epaules plus larges',
+        };
       case 'Triangle Inverse+ (V+)':
+      case 'Épaules très marquées':
       case 'Epaules tres marquees':
-        return {'Triangle Inverse+ (V+)', 'Epaules tres marquees'};
+        return {
+          'Triangle Inverse+ (V+)',
+          'Épaules très marquées',
+          'Epaules tres marquees',
+        };
       case 'Sablier+ (X+)':
+      case 'Taille très marquée':
       case 'Taille tres marquee':
-        return {'Sablier+ (X+)', 'Taille tres marquee'};
+        return {'Sablier+ (X+)', 'Taille très marquée', 'Taille tres marquee'};
       case 'Poire+ (A+)':
+      case 'Hanches très marquées':
       case 'Hanches tres marquees':
-        return {'Poire+ (A+)', 'Hanches tres marquees'};
+        return {
+          'Poire+ (A+)',
+          'Hanches très marquées',
+          'Hanches tres marquees',
+        };
+      case 'Non définie':
+      case 'Silhouette non définie':
       case 'Non definie':
       case 'Silhouette non definie':
-        return {'Non definie', 'Silhouette non definie'};
+        return {
+          'Non définie',
+          'Silhouette non définie',
+          'Non definie',
+          'Silhouette non definie',
+        };
       default:
         return {normalized};
     }
@@ -2968,7 +3237,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      outfit.description,
+                      outfit.quickSummary,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 13,
@@ -3170,7 +3439,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              outfit.description,
+                              outfit.quickSummary,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.75),
                               ),
@@ -3202,12 +3471,17 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                     child: ListView(
                       children: [
                         _buildDetailBlock(
-                          title: 'Pourquoi cette tenue',
+                          title: 'Pourquoi cette tenue?A',
                           items: rankedOutfit.reasons,
                         ),
                         const SizedBox(height: 10),
                         _buildDetailBlock(
-                          title: 'Styles associes',
+                          title: 'Tenue complète suggérée',
+                          items: _outfitCompositionItems(outfit),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDetailBlock(
+                          title: 'Styles associés',
                           items: outfit.styles,
                         ),
                         const SizedBox(height: 10),
@@ -3217,7 +3491,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 10),
                         _buildDetailBlock(
-                          title: 'Tranche d\'age cible',
+                          title: 'Tranche d\'âge cible',
                           items: ['${outfit.minAge} a ${outfit.maxAge} ans'],
                         ),
                       ],
@@ -3483,6 +3757,23 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     );
   }
 
+  List<String> _outfitCompositionItems(_Outfit outfit) {
+    final items = <String>[
+      if (outfit.outfitType.trim().isNotEmpty) 'Type: ${outfit.outfitType}',
+      if (outfit.topPiece.trim().isNotEmpty) 'Haut: ${outfit.topPiece}',
+      if (outfit.bottomPiece.trim().isNotEmpty) 'Bas: ${outfit.bottomPiece}',
+      if (outfit.shoesPiece.trim().isNotEmpty)
+        'Chaussures: ${outfit.shoesPiece}',
+      if (outfit.layerPiece.trim().isNotEmpty) 'Couche: ${outfit.layerPiece}',
+      if (outfit.accessoryPieces.isNotEmpty)
+        'Accessoires: ${outfit.accessoryPieces.join(', ')}',
+    ];
+    if (items.isNotEmpty) {
+      return items;
+    }
+    return <String>[outfit.description];
+  }
+
   Widget _feedbackTagChip({
     required String label,
     required IconData icon,
@@ -3682,42 +3973,18 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       ],
     );
   }
-
-  Color _favoritesSyncColor(OutfitFavoritesSyncStatus status) {
-    switch (status) {
-      case OutfitFavoritesSyncStatus.synced:
-        return Colors.greenAccent;
-      case OutfitFavoritesSyncStatus.localOnly:
-        return Colors.amberAccent;
-      case OutfitFavoritesSyncStatus.error:
-        return Colors.redAccent;
-      case OutfitFavoritesSyncStatus.syncing:
-        return Colors.lightBlueAccent;
-      case OutfitFavoritesSyncStatus.idle:
-        return Colors.white70;
-    }
-  }
-
-  IconData _favoritesSyncIcon(OutfitFavoritesSyncStatus status) {
-    switch (status) {
-      case OutfitFavoritesSyncStatus.synced:
-        return Icons.cloud_done;
-      case OutfitFavoritesSyncStatus.localOnly:
-        return Icons.cloud_off;
-      case OutfitFavoritesSyncStatus.error:
-        return Icons.error_outline;
-      case OutfitFavoritesSyncStatus.syncing:
-        return Icons.cloud_sync;
-      case OutfitFavoritesSyncStatus.idle:
-        return Icons.cloud_queue;
-    }
-  }
 }
 
 class _Outfit {
   final String id;
   final String title;
   final String description;
+  final String topPiece;
+  final String bottomPiece;
+  final String shoesPiece;
+  final String layerPiece;
+  final List<String> accessoryPieces;
+  final String outfitType;
   final IconData icon;
   final Color color;
   final List<String> styles;
@@ -3730,6 +3997,12 @@ class _Outfit {
     required this.id,
     required this.title,
     required this.description,
+    required this.topPiece,
+    required this.bottomPiece,
+    required this.shoesPiece,
+    required this.layerPiece,
+    required this.accessoryPieces,
+    required this.outfitType,
     required this.icon,
     required this.color,
     required this.styles,
@@ -3738,6 +4011,117 @@ class _Outfit {
     required this.minAge,
     required this.maxAge,
   });
+
+  String get quickSummary {
+    final parts = <String>[
+      topPiece,
+      bottomPiece,
+    ].where((item) => item.trim().isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      return parts.join(' + ');
+    }
+    return description;
+  }
+
+  _Outfit copyWith({
+    String? description,
+    String? topPiece,
+    String? bottomPiece,
+    String? shoesPiece,
+    String? layerPiece,
+    List<String>? accessoryPieces,
+    String? outfitType,
+  }) {
+    return _Outfit(
+      id: id,
+      title: title,
+      description: description ?? this.description,
+      topPiece: topPiece ?? this.topPiece,
+      bottomPiece: bottomPiece ?? this.bottomPiece,
+      shoesPiece: shoesPiece ?? this.shoesPiece,
+      layerPiece: layerPiece ?? this.layerPiece,
+      accessoryPieces: accessoryPieces ?? this.accessoryPieces,
+      outfitType: outfitType ?? this.outfitType,
+      icon: icon,
+      color: color,
+      styles: styles,
+      compatibleMorphologies: compatibleMorphologies,
+      genderTargets: genderTargets,
+      minAge: minAge,
+      maxAge: maxAge,
+    );
+  }
+}
+
+class _OutfitLlmDetails {
+  final String? top;
+  final String? bottom;
+  final String? shoes;
+  final String? outerwear;
+  final List<String> accessories;
+  final String? typeLabel;
+  final String? summary;
+
+  const _OutfitLlmDetails({
+    required this.top,
+    required this.bottom,
+    required this.shoes,
+    required this.outerwear,
+    required this.accessories,
+    required this.typeLabel,
+    required this.summary,
+  });
+
+  bool get hasAnyDetail {
+    return (top?.trim().isNotEmpty ?? false) ||
+        (bottom?.trim().isNotEmpty ?? false) ||
+        (shoes?.trim().isNotEmpty ?? false) ||
+        (outerwear?.trim().isNotEmpty ?? false) ||
+        accessories.isNotEmpty ||
+        (typeLabel?.trim().isNotEmpty ?? false) ||
+        (summary?.trim().isNotEmpty ?? false);
+  }
+}
+
+List<_Outfit> _applyLlmDetails(
+  List<_Outfit> baseOutfits,
+  Map<String, _OutfitLlmDetails> detailsByOutfitId, {
+  required bool preferLlm,
+}) {
+  if (!preferLlm || detailsByOutfitId.isEmpty) {
+    return baseOutfits;
+  }
+
+  return baseOutfits.map((outfit) {
+    final details = detailsByOutfitId[outfit.id];
+    if (details == null || !details.hasAnyDetail) {
+      return outfit;
+    }
+
+    return outfit.copyWith(
+      description: details.summary?.trim().isNotEmpty == true
+          ? details.summary!.trim()
+          : outfit.description,
+      topPiece: details.top?.trim().isNotEmpty == true
+          ? details.top!.trim()
+          : outfit.topPiece,
+      bottomPiece: details.bottom?.trim().isNotEmpty == true
+          ? details.bottom!.trim()
+          : outfit.bottomPiece,
+      shoesPiece: details.shoes?.trim().isNotEmpty == true
+          ? details.shoes!.trim()
+          : outfit.shoesPiece,
+      layerPiece: details.outerwear?.trim().isNotEmpty == true
+          ? details.outerwear!.trim()
+          : outfit.layerPiece,
+      accessoryPieces: details.accessories.isNotEmpty
+          ? details.accessories
+          : outfit.accessoryPieces,
+      outfitType: details.typeLabel?.trim().isNotEmpty == true
+          ? details.typeLabel!.trim()
+          : outfit.outfitType,
+    );
+  }).toList();
 }
 
 class _RankedOutfit {
