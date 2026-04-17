@@ -77,12 +77,12 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       userId: resolvedUserId ?? localUserId,
       displayName: prefs.getString('profile.displayName') ?? 'Utilisateur',
       avatarUrl: prefs.getString('profile.avatarUrl') ?? '',
-      gender: prefs.getString('profile.gender') ?? 'Non precise',
+      gender: prefs.getString('profile.gender') ?? 'Non précise',
       age: prefs.getInt('profile.age') ?? 25,
       heightCm: (prefs.getInt('profile.heightCm') ?? 170).clamp(120, 230),
       birthDate: _readBirthDate(prefs.getString('profile.birthDate')),
       morphology:
-          prefs.getString('profile.morphology') ?? 'Silhouette non definie',
+          prefs.getString('profile.morphology') ?? 'Silhouette non définie',
       preferredStyles:
           prefs.getStringList('profile.preferredStyles') ?? ['Casual'],
     );
