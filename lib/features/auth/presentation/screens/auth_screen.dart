@@ -964,58 +964,60 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Widget _buildSignupAccountStep() {
-    return Column(
-      children: [
-        const SizedBox(height: 6),
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: Colors.white),
-          decoration: _decoration('Email'),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _passwordController,
-          obscureText: !_showSignupPassword,
-          style: const TextStyle(color: Colors.white),
-          decoration: _decoration(
-            'Mot de passe',
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() {
-                  _showSignupPassword = !_showSignupPassword;
-                });
-              },
-              icon: Icon(
-                _showSignupPassword ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white70,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 6),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white),
+            decoration: _decoration('Email'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _passwordController,
+            obscureText: !_showSignupPassword,
+            style: const TextStyle(color: Colors.white),
+            decoration: _decoration(
+              'Mot de passe',
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _showSignupPassword = !_showSignupPassword;
+                  });
+                },
+                icon: Icon(
+                  _showSignupPassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white70,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _confirmPasswordController,
-          obscureText: !_showSignupConfirmPassword,
-          style: const TextStyle(color: Colors.white),
-          decoration: _decoration(
-            'Confirmer mot de passe',
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() {
-                  _showSignupConfirmPassword = !_showSignupConfirmPassword;
-                });
-              },
-              icon: Icon(
-                _showSignupConfirmPassword
-                    ? Icons.visibility_off
-                    : Icons.visibility,
-                color: Colors.white70,
+          const SizedBox(height: 12),
+          TextField(
+            controller: _confirmPasswordController,
+            obscureText: !_showSignupConfirmPassword,
+            style: const TextStyle(color: Colors.white),
+            decoration: _decoration(
+              'Confirmer mot de passe',
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _showSignupConfirmPassword = !_showSignupConfirmPassword;
+                  });
+                },
+                icon: Icon(
+                  _showSignupConfirmPassword
+                      ? Icons.visibility_off
+                      : Icons.visibility,
+                  color: Colors.white70,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1029,173 +1031,175 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         : '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}';
     final computedAge = _birthDate == null ? null : _computeAge(_birthDate!);
 
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 34,
-          backgroundColor: Colors.white.withValues(alpha: 0.14),
-          backgroundImage: _selectedAvatarBytes != null
-              ? MemoryImage(_selectedAvatarBytes!)
-              : (hasNetworkAvatar
-                    ? NetworkImage(_avatarUrlController.text)
-                    : null),
-          child: _selectedAvatarBytes != null || hasNetworkAvatar
-              ? null
-              : Text(
-                  _displayNameController.text.trim().isEmpty
-                      ? 'U'
-                      : _displayNameController.text.trim()[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _isLoading ? null : _pickAvatarImage,
-            icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('Importer une photo'),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _displayNameController,
-          style: const TextStyle(color: Colors.white),
-          decoration: _decoration('Nom affiche'),
-          onChanged: (_) => setState(() {}),
-        ),
-        if (!hasImportedAvatar) ...[
-          const SizedBox(height: 12),
-          TextField(
-            controller: _avatarUrlController,
-            style: const TextStyle(color: Colors.white),
-            decoration: _decoration('Photo (URL)'),
-            onChanged: (_) => setState(() {}),
-          ),
-        ] else ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.greenAccent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Photo importee: le champ URL est masque.',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            backgroundImage: _selectedAvatarBytes != null
+                ? MemoryImage(_selectedAvatarBytes!)
+                : (hasNetworkAvatar
+                      ? NetworkImage(_avatarUrlController.text)
+                      : null),
+            child: _selectedAvatarBytes != null || hasNetworkAvatar
+                ? null
+                : Text(
+                    _displayNameController.text.trim().isEmpty
+                        ? 'U'
+                        : _displayNameController.text.trim()[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedAvatarBytes = null;
-                    });
-                    _clearPendingAvatarStorage();
-                  },
-                  child: const Text('Retirer'),
-                ),
-              ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isLoading ? null : _pickAvatarImage,
+              icon: const Icon(Icons.photo_library_outlined),
+              label: const Text('Importer une photo'),
             ),
           ),
-        ],
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _gender,
-          dropdownColor: const Color(0xFF1A1A1A),
-          style: const TextStyle(color: Colors.white),
-          decoration: _decoration('Sexe'),
-          items: _genders
-              .map(
-                (value) => DropdownMenuItem(value: value, child: Text(value)),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _gender = value;
-              });
-            }
-          },
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Date de naissance',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 10),
+          TextField(
+            controller: _displayNameController,
+            style: const TextStyle(color: Colors.white),
+            decoration: _decoration('Nom affiche'),
+            onChanged: (_) => setState(() {}),
+          ),
+          if (!hasImportedAvatar) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _avatarUrlController,
+              style: const TextStyle(color: Colors.white),
+              decoration: _decoration('Photo (URL)'),
+              onChanged: (_) => setState(() {}),
             ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.greenAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Photo importee: le champ URL est masque.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedAvatarBytes = null;
+                      });
+                      _clearPendingAvatarStorage();
+                    },
+                    child: const Text('Retirer'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _gender,
+            dropdownColor: const Color(0xFF1A1A1A),
+            style: const TextStyle(color: Colors.white),
+            decoration: _decoration('Sexe'),
+            items: _genders
+                .map(
+                  (value) => DropdownMenuItem(value: value, child: Text(value)),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _gender = value;
+                });
+              }
+            },
           ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _isLoading ? null : _pickBirthDate,
-            icon: const Icon(Icons.cake_outlined),
-            label: Text(birthDateLabel),
-          ),
-        ),
-        if (computedAge != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Age calcule: $computedAge ans',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Date de naissance',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Taille: $_heightCm cm',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isLoading ? null : _pickBirthDate,
+              icon: const Icon(Icons.cake_outlined),
+              label: Text(birthDateLabel),
             ),
           ),
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: Colors.cyanAccent,
-            thumbColor: Colors.cyanAccent,
-            inactiveTrackColor: Colors.white24,
-            overlayColor: Colors.cyanAccent.withValues(alpha: 0.2),
+          if (computedAge != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Age calcule: $computedAge ans',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Taille: $_heightCm cm',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          child: Slider(
-            min: 120,
-            max: 230,
-            divisions: 110,
-            value: _heightCm.toDouble(),
-            label: '$_heightCm cm',
-            onChanged: _isLoading
-                ? null
-                : (value) {
-                    setState(() {
-                      _heightCm = value.round();
-                      _error = null;
-                    });
-                  },
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Colors.cyanAccent,
+              thumbColor: Colors.cyanAccent,
+              inactiveTrackColor: Colors.white24,
+              overlayColor: Colors.cyanAccent.withValues(alpha: 0.2),
+            ),
+            child: Slider(
+              min: 120,
+              max: 230,
+              divisions: 110,
+              value: _heightCm.toDouble(),
+              label: '$_heightCm cm',
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _heightCm = value.round();
+                        _error = null;
+                      });
+                    },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
