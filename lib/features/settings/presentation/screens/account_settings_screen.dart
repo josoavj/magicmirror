@@ -79,10 +79,13 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     final minDate = DateTime(now.year - 100, now.month, now.day);
     final initialDate =
         _birthDate ?? DateTime(now.year - 25, now.month, now.day);
+    final clampedInitialDate = initialDate.isBefore(minDate)
+        ? minDate
+        : (initialDate.isAfter(maxDate) ? maxDate : initialDate);
 
     final selected = await showDatePicker(
       context: context,
-      initialDate: initialDate.isAfter(maxDate) ? maxDate : initialDate,
+      initialDate: clampedInitialDate,
       firstDate: minDate,
       lastDate: maxDate,
     );
