@@ -47,6 +47,8 @@
   "mirrorHudEveryLabel": "HUD miroir toutes les",
   "accountSection": "Compte",
   "accountSettingsLabel": "Paramètres du compte",
+  "outfitSuggestionsSection": "Suggestions de tenue",
+  "outfitSuggestionsSettingsLabel": "Paramètres et diagnostics des suggestions",
   "informationSection": "Informations",
   "versionLabel": "Version",
   "appVersionDialogTitle": "Version de l'application",
