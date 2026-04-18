@@ -153,7 +153,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         await notifier.togglePreferredStyle(style);
       }
 
-      await notifier.syncToCloud();
       if (!mounted) {
         return;
       }
