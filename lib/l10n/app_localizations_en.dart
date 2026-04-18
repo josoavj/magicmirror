@@ -154,6 +154,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountSettingsLabel => 'Account settings';
 
   @override
+  String get outfitSuggestionsSection => 'Outfit Suggestions';
+
+  @override
+  String get outfitSuggestionsSettingsLabel =>
+      'Suggestion settings and diagnostics';
+
+  @override
   String get informationSection => 'Information';
 
   @override
