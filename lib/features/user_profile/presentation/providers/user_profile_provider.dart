@@ -46,6 +46,72 @@ int _ageFromBirthDate(DateTime birthDate) {
   return years.clamp(12, 100);
 }
 
+String _foldDiacritics(String value) {
+  const diacriticsMap = <String, String>{
+    'à': 'a',
+    'á': 'a',
+    'â': 'a',
+    'ã': 'a',
+    'ä': 'a',
+    'å': 'a',
+    'ç': 'c',
+    'è': 'e',
+    'é': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'ì': 'i',
+    'í': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ñ': 'n',
+    'ò': 'o',
+    'ó': 'o',
+    'ô': 'o',
+    'õ': 'o',
+    'ö': 'o',
+    'ù': 'u',
+    'ú': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ý': 'y',
+    'ÿ': 'y',
+  };
+
+  final buffer = StringBuffer();
+  for (final rune in value.runes) {
+    final char = String.fromCharCode(rune);
+    buffer.write(diacriticsMap[char] ?? char);
+  }
+  return buffer.toString();
+}
+
+String _normalizeMorphologyKey(String value) {
+  final lowered = value.trim().toLowerCase();
+  final folded = _foldDiacritics(lowered);
+  return folded.replaceAll(RegExp(r'[^a-z0-9]'), '');
+}
+
+String _canonicalizeMorphology(String raw) {
+  const fallback = 'Silhouette non définie';
+  final value = raw.trim();
+  if (value.isEmpty) {
+    return fallback;
+  }
+
+  const canonicalByKey = <String, String>{
+    'silhouettenondefinie': 'Silhouette non définie',
+    'hanchesetepaulesequilibrees': 'Hanches et épaules équilibrées',
+    'hanchesplusmarquees': 'Hanches plus marquées',
+    'silhouettedroite': 'Silhouette droite',
+    'epaulespluslarges': 'Épaules plus larges',
+    'epaulestresmarquees': 'Épaules très marquées',
+    'tailletresmarquee': 'Taille très marquée',
+    'hanchestresmarquees': 'Hanches très marquées',
+  };
+
+  return canonicalByKey[_normalizeMorphologyKey(value)] ?? fallback;
+}
+
 class UserProfileNotifier extends StateNotifier<UserProfile> {
   UserProfileNotifier({
     required Ref ref,
@@ -60,10 +126,17 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   final UserProfileSyncService _syncService;
 
   UserProfile _normalizeDerivedFields(UserProfile profile) {
+    final normalizedMorphology = _canonicalizeMorphology(profile.morphology);
+    final normalizedProfile = profile.copyWith(
+      morphology: normalizedMorphology,
+    );
+
     if (profile.birthDate == null) {
-      return profile;
+      return normalizedProfile;
     }
-    return profile.copyWith(age: _ageFromBirthDate(profile.birthDate!));
+    return normalizedProfile.copyWith(
+      age: _ageFromBirthDate(normalizedProfile.birthDate!),
+    );
   }
 
   Future<void> _loadProfile() async {
@@ -88,7 +161,8 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     );
 
     final normalizedLocal = _normalizeDerivedFields(state);
-    if (normalizedLocal.age != state.age) {
+    if (normalizedLocal.age != state.age ||
+        normalizedLocal.morphology != state.morphology) {
       state = normalizedLocal;
       await _saveProfile();
     }
@@ -230,7 +304,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       age: _ageFromBirthDate(normalizedBirthDate),
       heightCm: heightCm.clamp(120, 230),
       birthDate: normalizedBirthDate,
-      morphology: morphology,
+      morphology: _canonicalizeMorphology(morphology),
       preferredStyles: resolvedStyles,
     );
 
@@ -274,7 +348,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> setMorphology(String morphology) async {
-    state = state.copyWith(morphology: morphology);
+    state = state.copyWith(morphology: _canonicalizeMorphology(morphology));
     await _saveProfile();
     await _syncToCloudSilently();
   }
