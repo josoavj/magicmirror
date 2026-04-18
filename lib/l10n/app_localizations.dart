@@ -380,6 +380,18 @@ abstract class AppLocalizations {
   /// **'Paramètres du compte'**
   String get accountSettingsLabel;
 
+  /// No description provided for @outfitSuggestionsSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suggestions de tenue'**
+  String get outfitSuggestionsSection;
+
+  /// No description provided for @outfitSuggestionsSettingsLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres et diagnostics des suggestions'**
+  String get outfitSuggestionsSettingsLabel;
+
   /// No description provided for @informationSection.
   ///
   /// In fr, this message translates to:
