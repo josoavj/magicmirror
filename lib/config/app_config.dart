@@ -44,6 +44,11 @@ class AppConfig {
   static const Duration weatherStaleFallbackMaxAge = Duration(hours: 12);
   static const int weatherCoordinatePrecision = 2;
 
+  // Supabase Auth redirects
+  // Replace with your hosted confirmation page URL configured in Supabase.
+  static const String supabaseAuthEmailRedirectUrl =
+      'https://josoavj.github.io/magicmirrorverifauth/';
+
   /// Affiche le statut de configuration de l'application
   static Future<void> printStartupInfo() async {
     logger.info('========== START ==========', tag: 'MagicMirror');
