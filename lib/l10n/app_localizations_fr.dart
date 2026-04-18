@@ -156,6 +156,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountSettingsLabel => 'Paramètres du compte';
 
   @override
+  String get outfitSuggestionsSection => 'Suggestions de tenue';
+
+  @override
+  String get outfitSuggestionsSettingsLabel =>
+      'Paramètres et diagnostics des suggestions';
+
+  @override
   String get informationSection => 'Informations';
 
   @override
