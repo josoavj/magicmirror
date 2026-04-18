@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -543,6 +544,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final response = await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        emailRedirectTo: AppConfig.supabaseAuthEmailRedirectUrl,
       );
 
       final profileNotifier = ref.read(userProfileProvider.notifier);
@@ -608,7 +610,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: AppConfig.supabaseAuthEmailRedirectUrl,
+      );
       setState(() {
         _info = 'Email de réinitialisation envoyé.';
       });
