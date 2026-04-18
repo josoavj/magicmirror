@@ -60,17 +60,49 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
+  String _normalizeSingleChoice(
+    String? value,
+    List<String> allowedValues,
+    String fallback,
+  ) {
+    if (value != null && allowedValues.contains(value)) {
+      return value;
+    }
+    return fallback;
+  }
+
+  Set<String> _normalizeMultiChoice(
+    Iterable<String> values,
+    List<String> allowedValues,
+    Set<String> fallback,
+  ) {
+    final normalized = values.where(allowedValues.contains).toSet();
+    if (normalized.isEmpty) {
+      return fallback;
+    }
+    return normalized;
+  }
+
   void _applyProfileToControllers(UserProfile profile) {
     _displayNameController.text = profile.displayName;
     _avatarUrlController.text = profile.avatarUrl;
     _birthDate = profile.birthDate;
     _heightCm = profile.heightCm;
-    _gender = profile.gender;
-    _morphology = profile.morphology;
-    _selectedStyles = profile.preferredStyles.toSet();
-    if (_selectedStyles.isEmpty) {
-      _selectedStyles = {'Casual'};
-    }
+    _gender = _normalizeSingleChoice(
+      profile.gender,
+      _genders,
+      'Non précise',
+    );
+    _morphology = _normalizeSingleChoice(
+      profile.morphology,
+      _morphologies,
+      'Silhouette non définie',
+    );
+    _selectedStyles = _normalizeMultiChoice(
+      profile.preferredStyles,
+      _styles,
+      {'Casual'},
+    );
   }
 
   Future<void> _pickBirthDate() async {
