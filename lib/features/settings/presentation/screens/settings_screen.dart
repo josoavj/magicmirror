@@ -497,16 +497,11 @@ class SettingsScreen extends ConsumerWidget {
                 ),
 
                 SettingsSection(
-                  title: Localizations.localeOf(context).languageCode == 'en'
-                      ? 'Outfit Suggestions'
-                      : 'Suggestions de tenue',
+                  title: l10n.outfitSuggestionsSection,
                   children: [
                     SettingsActionTile(
                       icon: Icons.tune,
-                      label:
-                          Localizations.localeOf(context).languageCode == 'en'
-                          ? 'Suggestion settings and diagnostics'
-                          : 'Paramètres et diagnostics des suggestions',
+                      label: l10n.outfitSuggestionsSettingsLabel,
                       iconColor: Colors.lightBlueAccent,
                       onTap: () => Navigator.pushNamed(
                         context,

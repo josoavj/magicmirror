@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
-import 'package:magicmirror/features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_shared_providers.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 
 class OutfitInsightsSettingsScreen extends ConsumerWidget {

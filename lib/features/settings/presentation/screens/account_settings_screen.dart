@@ -20,6 +20,39 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   final _displayNameController = TextEditingController();
   final _avatarUrlController = TextEditingController();
 
+  static const List<String> _genders = [
+    'Femme',
+    'Homme',
+    'Non binaire',
+    'Non précise',
+  ];
+
+  static const List<String> _morphologies = [
+    'Silhouette non définie',
+    'Hanches et épaules équilibrées',
+    'Hanches plus marquées',
+    'Silhouette droite',
+    'Épaules plus larges',
+    'Épaules très marquées',
+    'Taille très marquée',
+    'Hanches très marquées',
+  ];
+
+  static const List<String> _styles = [
+    'Casual',
+    'Elegant',
+    'Sport',
+    'Streetwear',
+    'Business',
+    'Minimaliste',
+  ];
+
+  DateTime? _birthDate;
+  int _heightCm = 170;
+  String _gender = 'Non précise';
+  String _morphology = 'Silhouette non définie';
+  Set<String> _selectedStyles = {'Casual'};
+
   bool _isUploadingAvatar = false;
   bool _isSavingProfile = false;
 
@@ -27,9 +60,75 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
+  String _normalizeSingleChoice(
+    String? value,
+    List<String> allowedValues,
+    String fallback,
+  ) {
+    if (value != null && allowedValues.contains(value)) {
+      return value;
+    }
+    return fallback;
+  }
+
+  Set<String> _normalizeMultiChoice(
+    Iterable<String> values,
+    List<String> allowedValues,
+    Set<String> fallback,
+  ) {
+    final normalized = values.where(allowedValues.contains).toSet();
+    if (normalized.isEmpty) {
+      return fallback;
+    }
+    return normalized;
+  }
+
   void _applyProfileToControllers(UserProfile profile) {
     _displayNameController.text = profile.displayName;
     _avatarUrlController.text = profile.avatarUrl;
+    _birthDate = profile.birthDate;
+    _heightCm = profile.heightCm;
+    _gender = _normalizeSingleChoice(
+      profile.gender,
+      _genders,
+      'Non précise',
+    );
+    _morphology = _normalizeSingleChoice(
+      profile.morphology,
+      _morphologies,
+      'Silhouette non définie',
+    );
+    _selectedStyles = _normalizeMultiChoice(
+      profile.preferredStyles,
+      _styles,
+      {'Casual'},
+    );
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 12, now.month, now.day);
+    final minDate = DateTime(now.year - 100, now.month, now.day);
+    final initialDate =
+        _birthDate ?? DateTime(now.year - 25, now.month, now.day);
+    final clampedInitialDate = initialDate.isBefore(minDate)
+        ? minDate
+        : (initialDate.isAfter(maxDate) ? maxDate : initialDate);
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: clampedInitialDate,
+      firstDate: minDate,
+      lastDate: maxDate,
+    );
+
+    if (selected == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _birthDate = DateTime(selected.year, selected.month, selected.day);
+    });
   }
 
   Future<void> _refreshProfileFromCloud() async {
@@ -69,9 +168,26 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     });
     try {
       final notifier = ref.read(userProfileProvider.notifier);
+      final previousProfile = ref.read(userProfileProvider);
+
       await notifier.setDisplayName(_displayNameController.text);
       await notifier.setAvatarUrl(_avatarUrlController.text);
-      await notifier.syncToCloud();
+      await notifier.setGender(_gender);
+      await notifier.setHeightCm(_heightCm);
+      await notifier.setMorphology(_morphology);
+      if (_birthDate != null) {
+        await notifier.setBirthDate(_birthDate!);
+      }
+
+      final previousStyles = previousProfile.preferredStyles.toSet();
+      final toggles = _styles.where(
+        (style) =>
+            previousStyles.contains(style) != _selectedStyles.contains(style),
+      );
+      for (final style in toggles) {
+        await notifier.togglePreferredStyle(style);
+      }
+
       if (!mounted) {
         return;
       }
@@ -519,6 +635,162 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                         decoration: _inputDecoration(
                           _tr(context, 'Photo (URL)', 'Photo (URL)'),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _gender,
+                        dropdownColor: const Color(0xFF1A1A1A),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(
+                          _tr(context, 'Sexe', 'Gender'),
+                        ),
+                        items: _genders
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _gender = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.cake_outlined,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _birthDate == null
+                                  ? _tr(
+                                      context,
+                                      'Date de naissance non renseignée',
+                                      'Birth date not set',
+                                    )
+                                  : _tr(
+                                      context,
+                                      'Date de naissance: ${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
+                                      'Birth date: ${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
+                                    ),
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          OutlinedButton(
+                            onPressed: _pickBirthDate,
+                            child: Text(_tr(context, 'Modifier', 'Edit')),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${_tr(context, 'Taille', 'Height')}: $_heightCm cm',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: Colors.cyanAccent,
+                          thumbColor: Colors.cyanAccent,
+                          inactiveTrackColor: Colors.white24,
+                          overlayColor: Colors.cyanAccent.withValues(
+                            alpha: 0.2,
+                          ),
+                        ),
+                        child: Slider(
+                          min: 120,
+                          max: 230,
+                          divisions: 110,
+                          value: _heightCm.toDouble(),
+                          label: '$_heightCm cm',
+                          onChanged: (value) {
+                            setState(() {
+                              _heightCm = value.round();
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _morphology,
+                        dropdownColor: const Color(0xFF1A1A1A),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(
+                          _tr(context, 'Morphologie', 'Body type'),
+                        ),
+                        items: _morphologies
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _morphology = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _tr(
+                            context,
+                            'Styles vestimentaires',
+                            'Style preferences',
+                          ),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _styles.map((style) {
+                          final selected = _selectedStyles.contains(style);
+                          return FilterChip(
+                            label: Text(style),
+                            selected: selected,
+                            selectedColor: Colors.cyan.withValues(alpha: 0.45),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.08,
+                            ),
+                            labelStyle: const TextStyle(color: Colors.white),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                            onSelected: (_) {
+                              setState(() {
+                                if (selected) {
+                                  if (_selectedStyles.length > 1) {
+                                    _selectedStyles.remove(style);
+                                  }
+                                } else {
+                                  _selectedStyles.add(style);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(

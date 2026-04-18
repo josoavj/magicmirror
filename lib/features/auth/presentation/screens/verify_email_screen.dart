@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:magicmirror/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       await Supabase.instance.client.auth.resend(
         type: OtpType.signup,
         email: email,
+        emailRedirectTo: AppConfig.supabaseAuthEmailRedirectUrl,
       );
       if (!mounted) {
         return;
