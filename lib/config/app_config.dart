@@ -45,9 +45,14 @@ class AppConfig {
   static const int weatherCoordinatePrecision = 2;
 
   // Supabase Auth redirects
-  // Replace with your hosted confirmation page URL configured in Supabase.
-  static const String supabaseAuthEmailRedirectUrl =
-      'https://josoavj.github.io/magicmirrorverifauth/';
+  // Configure with:
+  // --dart-define=SUPABASE_AUTH_EMAIL_REDIRECT_URL=https://your-app.example.com/auth/callback
+  // Keep the source default neutral so other environments/forks do not inherit
+  // a project-specific hosted URL by accident.
+  static const String supabaseAuthEmailRedirectUrl = String.fromEnvironment(
+    'SUPABASE_AUTH_EMAIL_REDIRECT_URL',
+    defaultValue: 'https://example.com/auth/callback',
+  );
 
   /// Affiche le statut de configuration de l'application
   static Future<void> printStartupInfo() async {
