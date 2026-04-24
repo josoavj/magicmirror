@@ -1,54 +1,59 @@
-# 📋 Configuration Production - Magic Mirror
+# Configuration production — Magic Mirror
 
-## 🔧 Configuration complète pour la production
+> Guide complet pour configurer et déployer Magic Mirror en environnement de production.
 
-Ce guide couvre toutes les étapes nécessaires pour configurer Magic Mirror en environnement production.
+---
 
-### Table des matières
+## Table des matières
+
 1. [Prérequis](#prérequis)
 2. [Configuration API](#configuration-api)
-3. [Build & Déploiement](#build--déploiement)
+3. [Build & déploiement](#build--déploiement)
 4. [Checklist finale](#checklist-finale)
 
 ---
 
 ## Prérequis
 
-- ✅ Flutter >= 3.1.0
-- ✅ Dart >= 3.1.0
-- ✅ Xcode (pour iOS)
-- ✅ Android Studio (pour Android)
-- ✅ Comptes API configurés (voir sections suivantes)
+| Outil | Version minimale |
+|---|---|
+| Flutter | ≥ 3.1.0 |
+| Dart | ≥ 3.1.0 |
+| Xcode | Dernière version stable *(iOS uniquement)* |
+| Android Studio | Dernière version stable *(Android uniquement)* |
+
+Les comptes API (Supabase, OpenWeatherMap) doivent également être configurés — voir les sections suivantes.
 
 ---
 
 ## Configuration API
 
-### 1. Supabase (Auth + Profil + Agenda)
+### 1. Supabase — Auth, profil & agenda
 
-Configurer les variables dans votre `.env`:
+Renseigner les variables dans `.env` :
 
 ```env
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
-Puis executer les scripts SQL documentes dans [SUPABASE_SETUP.md](SUPABASE_SETUP.md):
-- table `profiles` + politiques RLS
-- bucket `avatars` + politiques storage
-- table `agenda_events` + politiques RLS
+Puis exécuter les scripts SQL documentés dans [SUPABASE_SETUP.md](SUPABASE_SETUP.md) :
 
-### 2. OpenWeatherMap API (Météo)
+- Table `profiles` + politiques RLS
+- Bucket `avatars` + politiques de stockage
+- Table `agenda_events` + politiques RLS
 
-Voir: [WEATHER_SETUP.md](WEATHER_SETUP.md) pour détails complets.
+### 2. OpenWeatherMap — Météo
 
 ```env
 OPENWEATHERMAP_API_KEY=your_production_key
 ```
 
+Voir [WEATHER_SETUP.md](WEATHER_SETUP.md) pour le guide complet et les options de configuration.
+
 ---
 
-## Build & Déploiement
+## Build & déploiement
 
 ### Android
 
@@ -56,67 +61,77 @@ OPENWEATHERMAP_API_KEY=your_production_key
 # Build APK
 flutter build apk --release
 
-# Build App Bundle (Play Store)
+# Build App Bundle (recommandé pour le Play Store)
 flutter build appbundle --release
+```
 
-# Localiser build
-cd build/app/outputs/flutter-apk/
-# ou
-cd build/app/outputs/bundle/release/
+Fichiers générés :
+
+```
+build/app/outputs/flutter-apk/       # APK
+build/app/outputs/bundle/release/    # App Bundle
 ```
 
 ### iOS
 
 ```bash
-# Build
+# Build release
 flutter build ios --release
 
-# Archive pour App Store
+# Ouvrir le workspace Xcode pour archiver
 open ios/Runner.xcworkspace
-# Xcode > Product > Archive
-
-# Export IPA
-# Dans Organizer > Distribute App > App Store Connect
+# Xcode → Product → Archive
+# Puis : Organizer → Distribute App → App Store Connect
 ```
 
 ### Web
 
 ```bash
 flutter build web --release
-
-# Output: build/web/
-# Déployer sur votre hosting (Netlify, Firebase, etc)
+# Fichiers générés dans : build/web/
+# Déployer sur Netlify, Firebase Hosting, ou tout autre hébergeur statique
 ```
 
 ### Linux
 
 ```bash
 flutter build linux --release
-
-# Output: build/linux/x64/release/bundle/
+# Fichiers générés dans : build/linux/x64/release/bundle/
 ```
 
 ### Windows
 
 ```bash
 flutter build windows --release
-
-# Output: build/windows/runner/Release/
+# Fichiers générés dans : build/windows/runner/Release/
 ```
 
 ---
 
 ## Checklist finale
 
-- [ ] Variables d'environnement configurées (`.env`)
-- [ ] Keys/Certificates pour toutes les platefomes
-- [ ] Tous les tests passent (`flutter test`)
-- [ ] `flutter analyze` sans erreurs
-- [ ] Permissions Android/iOS configurées
-- [ ] Icons et splash screens en place
-- [ ] Version/build numbers à jour
-- [ ] Privacy policy et terms of service ready
-- [ ] Comptes app store/play store créés
-- [ ] Receipt signing certificates configured
+### Configuration
 
-Voir aussi: [ARCHITECTURE.md](ARCHITECTURE.md) pour la structure interne du code
+- [ ] Variables d'environnement renseignées dans `.env`
+- [ ] Clés et certificats configurés pour toutes les plateformes cibles
+- [ ] Permissions Android et iOS déclarées
+
+### Qualité
+
+- [ ] `flutter analyze` sans erreurs
+- [ ] Tous les tests passent (`flutter test`)
+
+### Apparence
+
+- [ ] Icônes et écrans de démarrage (*splash screens*) en place
+- [ ] Numéros de version et de build à jour
+
+### Légal & distribution
+
+- [ ] Politique de confidentialité et conditions d'utilisation rédigées
+- [ ] Comptes App Store et Play Store créés
+- [ ] Certificats de signature configurés
+
+---
+
+Voir aussi [ARCHITECTURE.md](ARCHITECTURE.md) pour la structure interne du code.
