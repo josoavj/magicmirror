@@ -1,98 +1,163 @@
+# Pipeline ML — Ranking de tenues (LightGBM)
 
-# Pipeline ML pour le Ranking de Tenues (LightGBM)
+Ce document décrit le pipeline de Machine Learning utilisé pour scorer et classer les tenues dans MagicMirror. Il s'appuie sur LightGBM (compatible XGBoost) et remplace progressivement le scoring heuristique pour des recommandations plus personnalisées et adaptatives.
 
-Ce document décrit le pipeline de Machine Learning utilisé pour scorer et classer les tenues dans MagicMirror, en s’appuyant sur LightGBM (et compatible XGBoost). Il remplace ou complète progressivement le scoring heuristique, pour des recommandations plus personnalisées et adaptatives.
+**Public visé :** développeurs, data scientists, ops, contributeurs.
 
-**Public visé** : développeurs, data scientists, ops, contributeurs.
+---
 
-**Points clés** :
-- Pipeline batch, automatisable (cron, Railway, etc.)
-- Intégration cloud (Supabase) et app Flutter (hybride ML/heuristique)
-- Sécurité et reproductibilité
+## Sommaire
 
-## Objectif
+1. [Objectif](#1-objectif)
+2. [Scripts du pipeline](#2-scripts-du-pipeline)
+3. [Installation](#3-installation)
+4. [Initialisation Supabase](#4-initialisation-supabase)
+5. [Format des données d'entraînement](#5-format-des-données-dentraînement)
+6. [Entraînement du modèle](#6-entraînement-du-modèle)
+7. [Inférence et scoring batch](#7-inférence-et-scoring-batch)
+8. [Intégration Flutter — ranking hybride](#8-intégration-flutter--ranking-hybride)
+9. [Gestion du cold-start](#9-gestion-du-cold-start)
+10. [Pipeline continu et automatisation](#10-pipeline-continu-et-automatisation)
+11. [Suivi et monitoring](#11-suivi-et-monitoring)
+12. [Bonnes pratiques](#12-bonnes-pratiques)
+13. [Dépannage](#13-dépannage)
+14. [Références](#14-références)
 
-Entraîner un modèle de **classification binaire** :
+---
 
-- `label = 1` : tenue pertinente (like, choisie, portée)
-- `label = 0` : tenue non pertinente (dislike, non adaptée)
+## 1. Objectif
 
-Le modèle prédit un score de pertinence (`ml_score`) pour chaque tenue candidate, permettant un **ranking personnalisé**.
+Le modèle effectue une **classification binaire** sur les tenues candidates :
 
-**Pourquoi LightGBM ?**
-- Rapide, efficace sur petits jeux de données
-- Gère bien les features mixtes (numériques, catégorielles)
-- Facile à exporter et intégrer côté backend/app
+| Label | Signification | Exemples d'événements |
+|-------|---------------|----------------------|
+| `1` | Tenue pertinente | like, favorite_add, worn |
+| `0` | Tenue non pertinente | dislike, not_adapted, too_hot, too_cold |
 
-## Scripts principaux
+Le modèle prédit un `ml_score` (probabilité de pertinence) pour chaque tenue candidate, utilisé pour construire un **ranking personnalisé**.
 
-- `ml/train_lightgbm_ranker.py` : entraînement + export du modèle (joblib)
-- `ml/score_lightgbm_ranker.py` : inférence batch sur des candidats
-- `ml/export_feedback_dataset.py` : extraction du dataset depuis Supabase
-- `ml/generate_outfit_candidates.py` : génération des couples (user, tenue)
-- `ml/publish_ml_scores.py` : publication des scores dans Supabase
-- `ml/run_ml_pipeline_once.py` : pipeline complet (export → train/score → publish)
-- `ml/requirements.txt` : dépendances Python
+### Pourquoi LightGBM ?
 
-## Installation & Pré-requis
+- Entraînement rapide, même sur de petits jeux de données
+- Gestion native des features mixtes (numériques et catégorielles)
+- Export simple via `joblib`, facile à intégrer côté backend ou app
 
-**Prérequis** :
-- Python 3.10+ recommandé
-- Accès à Supabase (URL + service role key)
+---
 
-**Installation rapide** :
+## 2. Scripts du pipeline
+
+| Script | Rôle |
+|--------|------|
+| `ml/train_lightgbm_ranker.py` | Entraînement et export du modèle (`joblib`) |
+| `ml/score_lightgbm_ranker.py` | Inférence batch sur les candidats |
+| `ml/export_feedback_dataset.py` | Extraction du dataset depuis Supabase |
+| `ml/generate_outfit_candidates.py` | Génération des couples `(user, tenue)` |
+| `ml/publish_ml_scores.py` | Publication des scores dans Supabase |
+| `ml/run_ml_pipeline_once.py` | Pipeline complet : export → train/score → publish |
+| `ml/requirements.txt` | Dépendances Python |
+
+---
+
+## 3. Installation
+
+**Prérequis :**
+
+- Python 3.10 ou supérieur
+- Accès Supabase (URL + service role key)
+
 ```bash
+# Créer et activer l'environnement virtuel
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate         # Windows
+
+# Installer les dépendances
 pip install -r ml/requirements.txt
-# Vérifier l’installation
-python -c "import lightgbm, pandas, supabase"
+
+# Vérifier l'installation
+python -c "import lightgbm, pandas, supabase; print('OK')"
 ```
 
-**Dépendances principales** :
-- lightgbm, pandas, scikit-learn, joblib, numpy, supabase
+**Dépendances principales :**
 
-## Initialisation Supabase (obligatoire)
+| Package | Rôle |
+|---------|------|
+| `lightgbm` | Modèle de gradient boosting |
+| `pandas` | Manipulation des données |
+| `scikit-learn` | Métriques, prétraitement, cross-validation |
+| `joblib` | Sérialisation du modèle |
+| `numpy` | Calcul numérique |
+| `supabase` | Client Python pour Supabase |
 
-Avant tout, exécute le script SQL :
-- `docs/sql/supabase_full_setup.sql`
+---
 
-Cela crée :
-- Table `public.outfit_feedback_events` (feedback)
-- Table `public.outfit_ml_scores` (scores ML)
-- Table `public.profiles` (profils utilisateurs)
-- Politiques RLS, index, contraintes, etc.
+## 4. Initialisation Supabase
 
-**Taxonomie feedback recommandée (`event_type`)** :
-- **positifs** : `like`, `favorite_add`, `worn`
-- **négatifs** : `dislike`, `not_adapted`, `too_hot`, `too_cold`, `too_formal`, `too_sporty`, `favorite_remove`
+Avant d'exécuter le pipeline, le schéma Supabase doit être en place. Exécuter le script SQL :
 
-## Format des données d’entraînement
+```
+docs/sql/supabase_full_setup.sql
+```
 
-Le script accepte : **CSV** ou **JSONL**
+Ce script crée les tables suivantes (idempotent, sans risque de doublon) :
 
-**Champ obligatoire** :
-- `label` (0/1)
+| Table | Rôle |
+|-------|------|
+| `public.outfit_feedback_events` | Stockage des feedbacks utilisateurs |
+| `public.outfit_ml_scores` | Scores ML publiés par le pipeline |
+| `public.profiles` | Profils utilisateurs (morphologie, styles, etc.) |
 
-**Features supportées (optionnelles mais recommandées)** :
-- **Numériques** : `age`, `height_cm`, `weather_temp`, `weather_humidity`, `weather_wind`, `seen_7d_count`, `feedback_style_bias`, `feedback_outfit_bias`
-- **Catégorielles** : `morphology`, `planning_context`, `weather_main`, `hour_slot`, `strict_weather_mode`, `is_weekend`, `styles`, `preferred_styles`
-- **Identifiants** : `user_id`, `outfit_id` (utilisés pour le suivi, pas comme features)
+Il configure également les politiques RLS, les index et les contraintes nécessaires.
 
-**Exemple JSONL** :
-```json
+### Taxonomie des feedbacks (`event_type`)
+
+Les feedbacks sont classés en deux catégories, qui servent de signal d'entraînement :
+
+| Catégorie | Valeurs acceptées |
+|-----------|-------------------|
+| Positifs (`label = 1`) | `like`, `favorite_add`, `worn` |
+| Négatifs (`label = 0`) | `dislike`, `not_adapted`, `too_hot`, `too_cold`, `too_formal`, `too_sporty`, `favorite_remove` |
+
+---
+
+## 5. Format des données d'entraînement
+
+Le pipeline accepte deux formats en entrée : **CSV** ou **JSONL** (une ligne JSON par exemple).
+
+### Champ obligatoire
+
+- `label` : `1` (pertinent) ou `0` (non pertinent)
+
+### Features supportées
+
+| Catégorie | Colonnes |
+|-----------|----------|
+| Numériques | `age`, `height_cm`, `weather_temp`, `weather_humidity`, `weather_wind`, `seen_7d_count`, `feedback_style_bias`, `feedback_outfit_bias` |
+| Catégorielles | `morphology`, `planning_context`, `weather_main`, `hour_slot`, `strict_weather_mode`, `is_weekend`, `styles`, `preferred_styles` |
+| Identifiants (non utilisés comme features) | `user_id`, `outfit_id` |
+
+> **Note :** `user_id` et `outfit_id` sont présents pour le suivi et la publication, mais **exclus des features** pour éviter le data leakage.
+
+### Exemple JSONL
+
+```jsonl
 {"label":1,"user_id":"u1","outfit_id":"business_smart","age":29,"height_cm":172,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"business|elegant","preferred_styles":"business|minimaliste","seen_7d_count":0,"feedback_style_bias":8,"feedback_outfit_bias":10}
 {"label":0,"user_id":"u1","outfit_id":"sport","age":29,"height_cm":172,"morphology":"Sablier (X)","planning_context":"work","weather_temp":24.5,"weather_humidity":68,"weather_wind":4.2,"weather_main":"Clear","strict_weather_mode":true,"is_weekend":false,"styles":"sport","preferred_styles":"business|minimaliste","seen_7d_count":2,"feedback_style_bias":-4,"feedback_outfit_bias":-8}
 ```
 
-**Conseils** :
-- Les colonnes booléennes sont converties en 0/1 automatiquement.
-- Les listes (`styles`, `preferred_styles`) sont encodées en chaînes séparées par `|`.
-- Les IDs (`user_id`, `outfit_id`) ne sont **pas** utilisés comme features pour éviter le data leakage.
+### Conventions d'encodage
 
-## Entraînement du modèle
+- Les colonnes booléennes (`strict_weather_mode`, `is_weekend`) sont automatiquement converties en `0`/`1`
+- Les listes (`styles`, `preferred_styles`) sont encodées en chaînes séparées par `|` (ex : `"business|elegant"`)
 
-### 1) Exporter les feedbacks depuis Supabase
+---
+
+## 6. Entraînement du modèle
+
+Le processus d'entraînement se déroule en deux étapes : export des feedbacks, puis entraînement.
+
+### Étape 1 — Exporter les feedbacks depuis Supabase
+
 ```bash
 python ml/export_feedback_dataset.py \
   --url "$SUPABASE_URL" \
@@ -101,7 +166,10 @@ python ml/export_feedback_dataset.py \
   --days 90
 ```
 
-### 2) Entraîner le modèle LightGBM
+Ce script extrait les `outfit_feedback_events` des 90 derniers jours et les formate en JSONL prêt pour l'entraînement. Ajuster `--days` selon le volume de données disponible.
+
+### Étape 2 — Entraîner le modèle LightGBM
+
 ```bash
 python ml/train_lightgbm_ranker.py \
   --input data/outfit_feedback_events.jsonl \
@@ -109,21 +177,36 @@ python ml/train_lightgbm_ranker.py \
   --metrics-out ml/artifacts/metrics.json
 ```
 
-**Sorties** :
-- Modèle : `ml/artifacts/outfit_ranker.joblib`
-- Métriques : `ml/artifacts/metrics.json` (`accuracy`, `log_loss`, `auc`, etc.)
+**Fichiers produits :**
 
-**Hyperparamètres ajustables** :
-- `--n-estimators`, `--learning-rate`, `--num-leaves`, `--early-stopping-rounds`, `--cv-folds`, etc.
+| Fichier | Contenu |
+|---------|---------|
+| `ml/artifacts/outfit_ranker.joblib` | Modèle sérialisé, prêt pour l'inférence |
+| `ml/artifacts/metrics.json` | Métriques d'évaluation : `accuracy`, `log_loss`, `auc`, etc. |
 
-**Conseils** :
-- Vérifier la distribution des labels (éviter les datasets trop déséquilibrés)
-- Utiliser la cross-validation pour évaluer la robustesse
-- Les logs affichent les features utilisées, le temps d’entraînement, et les scores
+**Hyperparamètres ajustables :**
 
-## Inférence / Scoring batch
+| Paramètre | Description |
+|-----------|-------------|
+| `--n-estimators` | Nombre d'arbres |
+| `--learning-rate` | Taux d'apprentissage |
+| `--num-leaves` | Nombre de feuilles par arbre |
+| `--early-stopping-rounds` | Arrêt anticipé si pas d'amélioration |
+| `--cv-folds` | Nombre de folds pour la cross-validation |
+| `--seed` | Graine aléatoire pour la reproductibilité |
 
-### 1) Générer les candidats (user, tenue)
+**Recommandations avant d'entraîner :**
+
+- Vérifier la distribution des labels : un dataset trop déséquilibré (ex : 95% de `0`) dégrade les performances
+- Utiliser la cross-validation (`--cv-folds`) pour évaluer la robustesse sur des données non vues
+- Consulter les logs : ils affichent les features retenues, le temps d'entraînement et les scores par fold
+
+---
+
+## 7. Inférence et scoring batch
+
+### Étape 1 — Générer les candidats
+
 ```bash
 python ml/generate_outfit_candidates.py \
   --url "$SUPABASE_URL" \
@@ -131,7 +214,10 @@ python ml/generate_outfit_candidates.py \
   --output data/outfit_candidates.jsonl
 ```
 
-### 2) Scorer les candidats
+Ce script génère tous les couples `(user_id, outfit_id)` à scorer pour chaque utilisateur actif.
+
+### Étape 2 — Scorer les candidats
+
 ```bash
 python ml/score_lightgbm_ranker.py \
   --model ml/artifacts/outfit_ranker.joblib \
@@ -139,44 +225,69 @@ python ml/score_lightgbm_ranker.py \
   --output ml/artifacts/scored_candidates.csv
 ```
 
-**Sorties** :
-- `ml_score` : score de pertinence prédit (proba)
-- `ml_label` : prédiction binaire (selon le threshold optimal)
-- `ml_rank` : rang de recommandation (1 = meilleur)
+**Colonnes produites dans le CSV de sortie :**
 
-## Intégration app Flutter (ranking hybride)
+| Colonne | Description |
+|---------|-------------|
+| `ml_score` | Score de pertinence prédit (probabilité entre 0 et 1) |
+| `ml_label` | Prédiction binaire selon le seuil optimal (`0` ou `1`) |
+| `ml_rank` | Rang de recommandation (`1` = meilleur score) |
 
-**Principe** : le score final combine heuristique et ML :
-$$
-score_{final} = (1-w) \cdot score_{heuristique} + w \cdot score_{ml}
-$$
-avec $w$ contrôlé par `AppConfig.hybridMlWeight` (ex : 0.4 au début).
+### Étape 3 — Publier les scores dans Supabase
 
-**Activation côté app** :
-- `AppConfig.enableHybridMlRanking` : active le blend heuristique+ML
-- `AppConfig.hybridMlWeight` : poids du score ML
-- Le provider lit `public.outfit_ml_scores` (`user_id`, `outfit_id`, `score`)
+```bash
+python ml/publish_ml_scores.py \
+  --url "$SUPABASE_URL" \
+  --key "$SUPABASE_SERVICE_ROLE_KEY" \
+  --input ml/artifacts/scored_candidates.csv
+```
 
-**Feedback cloud** :
-- `AppConfig.enableCloudFeedbackExport` : exporte les interactions vers `public.outfit_feedback_events`
+Les scores sont écrits dans `public.outfit_ml_scores` via un upsert (insert ou mise à jour si le couple `(user_id, outfit_id)` existe déjà).
 
-## Cold-start (aucun feedback utilisateur)
+---
 
-**Comportement attendu** :
-- Si aucun score ML n’existe pour un utilisateur, l’app utilise :
-  - le ranking heuristique (toujours disponible)
-  - des scores “priors” ML par tenue (backend : score neutre 0.5)
-- Dès que des feedbacks sont collectés, le pipeline ML publie des scores personnalisés qui écrasent les priors.
+## 8. Intégration Flutter — ranking hybride
 
-**Résultat** : pas de “trou” de recommandation au premier lancement, expérience fluide dès le début.
+Le score final affiché dans l'app combine le score heuristique (règles métier) et le score ML :
 
-## Pipeline continu (batch automatisé)
+$$score_{final} = (1 - w) \times score_{heuristique} + w \times score_{ML}$$
 
-**Scripts clés** :
-- `ml/run_ml_pipeline_once.py` : exécute tout le pipeline (export → train/score → publish)
-- Peut être appelé en cron, Railway, ou manuellement
+où `w` est contrôlé par `AppConfig.hybridMlWeight` (valeur conseillée : `0.4` en début de déploiement).
 
-**Exécution one-shot** :
+### Configuration dans `AppConfig`
+
+| Paramètre | Rôle |
+|-----------|------|
+| `enableHybridMlRanking` | Active le blend heuristique + ML |
+| `hybridMlWeight` | Poids du score ML dans le score final (`0.0` à `1.0`) |
+| `enableCloudFeedbackExport` | Exporte les interactions vers `outfit_feedback_events` |
+
+### Lecture des scores
+
+Le provider Flutter lit la table `public.outfit_ml_scores` (colonnes `user_id`, `outfit_id`, `score`) via la clé `anon` avec le RLS actif. Chaque utilisateur ne voit que ses propres scores.
+
+---
+
+## 9. Gestion du cold-start
+
+Le cold-start survient lorsqu'un utilisateur ne dispose d'aucun feedback enregistré et qu'aucun score ML n'a encore été calculé pour lui.
+
+### Comportement par palier
+
+| Situation | Comportement |
+|-----------|--------------|
+| Aucun feedback, aucun score ML | Ranking heuristique seul + scores neutres (0.5) publiés par le backend |
+| Feedbacks collectés, modèle disponible | Pipeline publie des scores personnalisés qui écrasent les neutres |
+| Feedbacks insuffisants (< `min-samples`) | Scoring avec le modèle existant si disponible, sinon scores neutres |
+
+Ce mécanisme garantit qu'aucun utilisateur ne se retrouve sans recommandation au premier lancement. L'expérience est fluide dès le départ, puis s'améliore à mesure que les feedbacks sont collectés.
+
+---
+
+## 10. Pipeline continu et automatisation
+
+### Exécution manuelle (one-shot)
+
 ```bash
 python ml/run_ml_pipeline_once.py \
   --url "$SUPABASE_URL" \
@@ -185,50 +296,124 @@ python ml/run_ml_pipeline_once.py \
   --min-samples 200
 ```
 
-**Comportement si peu de données** :
-- Si `samples >= min-samples` : train + score + publish
-- Sinon, si un modèle existe déjà : score + publish avec ce modèle
-- Sinon : publication de scores neutres (0.5, cold-start backend)
+Ce script enchaîne automatiquement : export des feedbacks → entraînement (si assez de données) → scoring → publication.
 
-**Automatisation (cron toutes les 30 min)** :
-```bash
-*/30 * * * * cd /path/to/magicmirror && /path/to/.venv/bin/python ml/run_ml_pipeline_once.py --url "$SUPABASE_URL" --key "$SUPABASE_SERVICE_ROLE_KEY" --days 90 --min-samples 200 >> /var/log/magicmirror-ml.log 2>&1
+### Logique de décision selon le volume de données
+
+```
+données >= min-samples  →  train + score + publish
+données < min-samples et modèle existant  →  score + publish (modèle existant)
+données < min-samples et aucun modèle  →  publish scores neutres (0.5)
 ```
 
-**Déploiement PaaS recommandé** :
-- Railway + Supabase (voir `docs/RAILWAY_ML_SETUP.md` pour le runbook complet)
+### Automatisation par cron (toutes les 30 minutes)
 
-## Suivi & Monitoring (KPI)
+```bash
+*/30 * * * * cd /path/to/magicmirror && \
+  /path/to/.venv/bin/python ml/run_ml_pipeline_once.py \
+  --url "$SUPABASE_URL" \
+  --key "$SUPABASE_SERVICE_ROLE_KEY" \
+  --days 90 \
+  --min-samples 200 \
+  >> /var/log/magicmirror-ml.log 2>&1
+```
 
-**Indicateurs à suivre** :
-- Taux d’acceptation (feedbacks positifs)
-- Taux de rejet (feedbacks négatifs)
-- Diversité du top 4 (nombre de styles différents)
-- Répétition à 7 jours (éviter la monotonie)
+### Déploiement PaaS
 
-## Bonnes pratiques & conseils
-
-- **Sécurité** : ne jamais exposer la clé service role côté client/app
-- **Reproductibilité** : fixer le seed (`--seed`), versionner les artefacts
-- **Qualité data** : surveiller les valeurs manquantes, la distribution des labels, la cohérence des features
-- **Logs** : toujours vérifier les logs en cas d’erreur (voir logs Railway, ou console locale)
-- **Tuning** : ajuster les hyperparamètres selon les métriques, utiliser la cross-validation
-- **Documentation** : garder ce document à jour, commenter les scripts si modifiés
-
-## FAQ & Troubleshooting
-
-- **Erreur “Missing required columns”** : vérifier le schéma Supabase et la génération des candidats
-- **Erreur “permission denied”** : vérifier la clé Supabase et les droits
-- **Table `outfit_ml_scores` vide** : vérifier que le cron ou le service Railway tourne bien, et qu’il n’y a pas d’erreur dans les logs
-- **Problème de cold-start** : vérifier que le fallback heuristique fonctionne côté app, et que le backend publie bien des scores neutres
-
-## Liens utiles
-
-- [LightGBM documentation](https://lightgbm.readthedocs.io/)
-- [Supabase documentation](https://supabase.com/docs)
-- [Railway documentation](https://docs.railway.app/)
-- [Flutter documentation](https://docs.flutter.dev/)
+Le déploiement recommandé est **Railway + Supabase**. Voir `docs/RAILWAY_ML_SETUP.md` pour le runbook complet (variables d'environnement, Dockerfile, scheduling).
 
 ---
 
-**Contact** : @josoavj ou contributeurs MagicMirror pour toute question ou suggestion d’amélioration.
+## 11. Suivi et monitoring
+
+### KPI à surveiller
+
+| Indicateur | Description | Signal d'alerte |
+|------------|-------------|-----------------|
+| Taux d'acceptation | Part des feedbacks positifs | < 40% → modèle sous-optimal |
+| Taux de rejet | Part des feedbacks négatifs | > 50% → features ou data à revoir |
+| Diversité du top 4 | Nombre de styles distincts dans les 4 premières tenues | < 2 → ranking trop monotone |
+| Répétition à 7 jours | Taux de répétition des mêmes tenues sur 7 jours | > 60% → diversification nécessaire |
+| AUC / log_loss | Métriques dans `ml/artifacts/metrics.json` | Comparer entre runs |
+
+### Consulter les logs
+
+```bash
+# Logs locaux
+tail -f /var/log/magicmirror-ml.log
+
+# Logs Railway
+railway logs --tail
+```
+
+---
+
+## 12. Bonnes pratiques
+
+| Règle | Raison |
+|-------|--------|
+| Ne jamais exposer la `service_role` key côté Flutter | Elle contourne le RLS et donne accès à toutes les données |
+| Fixer le seed (`--seed`) à chaque run | Reproductibilité des résultats entre exécutions |
+| Versionner les artefacts (`outfit_ranker.joblib`) | Permet de revenir à une version précédente en cas de régression |
+| Surveiller la distribution des labels avant entraînement | Un dataset déséquilibré produit un modèle biaisé |
+| Utiliser la cross-validation systématiquement | Détecte l'overfitting avant la mise en production |
+| Mettre à jour ce document à chaque modification des scripts | Évite la dette documentaire |
+
+---
+
+## 13. Dépannage
+
+### "Missing required columns"
+
+**Cause :** Le schéma des candidats générés ne correspond pas aux colonnes attendues par le modèle.
+
+**Solution :**
+
+1. Vérifier que le schéma Supabase est à jour (re-exécuter `supabase_full_setup.sql`)
+2. Vérifier la sortie de `generate_outfit_candidates.py` : toutes les colonnes listées en section 5 doivent être présentes
+3. S'assurer que les colonnes booléennes ne contiennent pas de valeurs `null`
+
+### "Permission denied"
+
+**Cause :** La clé Supabase utilisée est la clé `anon` au lieu de la `service_role` key, ou la clé est incorrecte.
+
+**Solution :**
+
+1. Vérifier que `SUPABASE_SERVICE_ROLE_KEY` est bien définie dans les variables d'environnement
+2. Ne pas confondre avec `SUPABASE_ANON_KEY` : les scripts ML requièrent obligatoirement la `service_role` key pour bypasser le RLS
+
+### Table `outfit_ml_scores` vide après exécution
+
+**Cause :** Le pipeline ne s'est pas exécuté, ou s'est terminé avec une erreur silencieuse.
+
+**Solution :**
+
+1. Vérifier les logs du cron ou de Railway
+2. Exécuter manuellement `run_ml_pipeline_once.py` et observer la sortie console
+3. Vérifier que `--min-samples` n'est pas trop élevé par rapport au volume de feedbacks disponibles
+
+### Problème de cold-start persistant côté app
+
+**Cause :** Le fallback heuristique n'est pas activé, ou les scores neutres n'ont pas été publiés.
+
+**Solution :**
+
+1. Vérifier que `AppConfig.enableHybridMlRanking` est `true`
+2. Vérifier que `publish_ml_scores.py` a bien été exécuté et que des lignes sont présentes dans `outfit_ml_scores`
+3. En cas de doute, exécuter le pipeline manuellement pour forcer la publication des scores neutres
+
+---
+
+## 14. Références
+
+| Ressource | Lien |
+|-----------|------|
+| LightGBM | [lightgbm.readthedocs.io](https://lightgbm.readthedocs.io/) |
+| Supabase | [supabase.com/docs](https://supabase.com/docs) |
+| Railway | [docs.railway.app](https://docs.railway.app/) |
+| Flutter | [docs.flutter.dev](https://docs.flutter.dev/) |
+| Runbook Railway + ML | `docs/RAILWAY_ML_SETUP.md` |
+
+---
+
+*Pour toute question ou suggestion : @josoavj ou contributeurs MagicMirror.*
