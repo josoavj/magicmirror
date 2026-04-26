@@ -1,6 +1,7 @@
 # Supabase Setup Complet (MagicMirror)
 
 Ce document est un setup unique, complet et operable pour:
+
 - auth utilisateur,
 - profil cloud,
 - agenda cloud,
@@ -19,6 +20,7 @@ OPENWEATHERMAP_API_KEY=YOUR_OPENWEATHERMAP_API_KEY
 ```
 
 Notes:
+
 - `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont obligatoires.
 - `OPENWEATHERMAP_API_KEY` est requis pour la météo réelle.
 
