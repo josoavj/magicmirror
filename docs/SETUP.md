@@ -37,7 +37,7 @@ SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
-Puis exécuter les scripts SQL documentés dans [SUPABASE_SETUP.md](SUPABASE_SETUP.md) :
+Puis exécuter les scripts SQL documentés dans [SUPABASE_SETUP.md](https://github.com/josoavj/magicmirror/blob/master/docs/SUPABASE_SETUP.md) :
 
 - Table `profiles` + politiques RLS
 - Bucket `avatars` + politiques de stockage
@@ -49,7 +49,7 @@ Puis exécuter les scripts SQL documentés dans [SUPABASE_SETUP.md](SUPABASE_SET
 OPENWEATHERMAP_API_KEY=your_production_key
 ```
 
-Voir [WEATHER_SETUP.md](WEATHER_SETUP.md) pour le guide complet et les options de configuration.
+Voir [WEATHER_SETUP.md](https://github.com/josoavj/magicmirror/blob/master/docs/WEATHER_SETUP.md) pour le guide complet et les options de configuration.
 
 ---
 
@@ -134,4 +134,4 @@ flutter build windows --release
 
 ---
 
-Voir aussi [ARCHITECTURE.md](ARCHITECTURE.md) pour la structure interne du code.
+Voir aussi [ARCHITECTURE.md](https://github.com/josoavj/magicmirror/blob/master/ARCHITECTURE.md) pour la structure interne du code.
