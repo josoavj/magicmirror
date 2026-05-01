@@ -85,6 +85,11 @@ class AppLogger {
       await initialize();
     }
 
+    if (!_isInitialized) {
+      _logToConsole(message, level: level, tag: tag, error: error);
+      return;
+    }
+
     final timestamp = DateFormat(
       'yyyy-MM-dd HH:mm:ss.SSS',
     ).format(DateTime.now());
