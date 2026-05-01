@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-%3E%3D3.1.0-blue?style=flat-square" alt="Flutter Version">
   <img src="https://img.shields.io/badge/Dart-%3E%3D3.1.0-blue?style=flat-square" alt="Dart Version">
-  <img src="https://img.shields.io/badge/Version-1.0.0--beta.1-orange?style=flat-square" alt="Version actuelle">
+  <img src="https://img.shields.io/badge/Version-1.0.1--beta-orange?style=flat-square" alt="Version actuelle">
   <img src="https://img.shields.io/badge/Status-Beta-yellow?style=flat-square" alt="Statut Beta">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence">
   <img src="https://img.shields.io/github/last-commit/josoavj/magicmirror?style=flat-square" alt="Dernier commit">
