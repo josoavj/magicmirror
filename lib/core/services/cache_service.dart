@@ -59,10 +59,18 @@ class CacheService {
 
   /// Retourne une valeur du cache si elle existe et n'a pas expir\u00e9
   T? get<T>(String key) {
-    final entry = _cache[key] as CacheEntry<T>?;
+    final entry = _cache[key];
 
     if (entry == null) {
       logger.debug('Cache MISS: $key', tag: 'CacheService');
+      return null;
+    }
+
+    if (entry is! CacheEntry<T>) {
+      logger.warning(
+        'Cache TYPE MISMATCH: $key expected ${T.toString()}, got ${entry.runtimeType}',
+        tag: 'CacheService',
+      );
       return null;
     }
 
