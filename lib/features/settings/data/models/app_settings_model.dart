@@ -1,4 +1,6 @@
 /// Modele pour les parametres de l'application
+import 'package:magicmirror/core/constants/app_constants.dart';
+
 class AppSettings {
   final bool darkMode;
   final String locale;
@@ -69,7 +71,7 @@ class AppSettings {
       cameraFlashMode: 'off',
       mirrorHudDisplaySeconds: 30,
       mirrorHudCycleMinutes: 5,
-      appVersion: '1.0.0',
+      appVersion: AppConstants.appVersion,
     );
   }
 
