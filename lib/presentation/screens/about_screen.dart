@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import '../widgets/glass_container.dart';
 
@@ -124,7 +125,7 @@ class AboutScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'v1.0.1 - Beta',
+          'v${AppConstants.appVersion}',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
             fontSize: 16,

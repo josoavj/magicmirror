@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/legacy.dart';
 import 'dart:typed_data';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
@@ -119,7 +121,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }) : _ref = ref,
        _syncService = syncService,
        super(UserProfile.defaults()) {
-    _loadProfile();
+    Future.microtask(_loadProfile);
   }
 
   final Ref _ref;

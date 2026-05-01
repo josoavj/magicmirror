@@ -14,6 +14,7 @@ class MlFrameProcessor {
   final CameraDescription camera;
   bool _isProcessing = false;
   int _skippedFrames = 0;
+  int _processedFrames = 0;
 
   // Performance tracking
   final List<int> _processingTimesMs = [];
@@ -151,8 +152,9 @@ class MlFrameProcessor {
       _dynamicDelayMs = 150;
     }
 
-    // Log tous les 30 frames
-    if (_processingTimesMs.length % 30 == 0) {
+    _processedFrames++;
+    // Log tous les 30 frames traitees
+    if (_processedFrames % 30 == 0) {
       logger.debug(
         'ML Performance: avg=${avgProcessingTime}ms, delay=${_dynamicDelayMs}ms, history=${_processingTimesMs.length}/$_timingHistorySize',
         tag: 'MlFrameProcessor',

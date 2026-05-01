@@ -1,4 +1,6 @@
-# MagicMirror Release 1.0.0-beta
+# MagicMirror Release 1.0.0-beta (deprecated)
+
+Deprecated: use release 1.0.1-beta.
 
 Date: 2026-04-01
 Type: Android APK + AAB (release)

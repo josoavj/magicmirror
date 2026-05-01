@@ -26,8 +26,9 @@ class WeatherService {
   final Dio _dio = Dio();
 
   WeatherService() {
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.connectTimeout = AppConfig.networkTimeout;
+    _dio.options.sendTimeout = AppConfig.networkTimeout;
+    _dio.options.receiveTimeout = AppConfig.networkTimeout;
   }
 
   String _coordBucket(double latitude, double longitude) {
