@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:magicmirror/features/settings/data/models/app_settings_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,7 +14,7 @@ final appSettingsProvider =
 
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
   AppSettingsNotifier() : super(AppSettings.defaults()) {
-    _loadSettings();
+    Future.microtask(_loadSettings);
   }
 
   static const Set<String> _supportedLocales = {'fr_FR', 'en_US'};
@@ -72,7 +75,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         ),
         mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
         mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
-        appVersion: prefs.getString('appVersion') ?? '1.0.1',
+        appVersion: prefs.getString('appVersion') ?? AppConstants.appVersion,
       );
 
       state = settings;
