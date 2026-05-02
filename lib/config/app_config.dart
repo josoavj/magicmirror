@@ -32,6 +32,13 @@ class AppConfig {
   static const bool enableDarkMode = false;
   static const Locale defaultLocale = Locale('fr', 'FR');
 
+  // Camera profile (auto | low | medium | high)
+  // Configure with: --dart-define=CAMERA_PROFILE=low
+  static const String cameraProfile = String.fromEnvironment(
+    'CAMERA_PROFILE',
+    defaultValue: 'auto',
+  );
+
   // Debugging
   static const bool enableDebugLogging = true;
   static const bool enablePerformanceMonitoring = true;
@@ -75,6 +82,7 @@ class AppConfig {
       'Second LLM: ${enableSecondaryLlmRanking ? "ON" : "OFF"} (w=${secondaryLlmWeight.toStringAsFixed(2)})',
       tag: 'Features',
     );
+    logger.info('Camera profile: $cameraProfile', tag: 'Config');
     logger.info('========== OK ==========', tag: 'MagicMirror');
   }
 }
