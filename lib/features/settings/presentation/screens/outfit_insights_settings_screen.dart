@@ -531,7 +531,7 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                                   fontSize: 12,
                                 ),
                               ),
-                              error: (_, __) => Text(
+                              error: (error, stack) => Text(
                                 _tr(
                                   context,
                                   '2e LLM indisponible (fallback actif)',
@@ -558,7 +558,7 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                           fontSize: 12,
                         ),
                       ),
-                      error: (_, __) => const Text(
+                      error: (error, stack) => const Text(
                         'ML indisponible (fallback heuristique actif)',
                         style: TextStyle(
                           color: Colors.redAccent,

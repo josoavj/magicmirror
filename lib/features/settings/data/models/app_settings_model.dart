@@ -1,4 +1,5 @@
-/// Modele pour les parametres de l'application
+// Modele pour les parametres de l'application
+import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 
 class AppSettings {
@@ -20,6 +21,7 @@ class AppSettings {
   final double cameraZoom;
   final double cameraExposureOffset;
   final String cameraFlashMode;
+  final String cameraProfile;
   final int mirrorHudDisplaySeconds;
   final int mirrorHudCycleMinutes;
   final String appVersion;
@@ -43,6 +45,7 @@ class AppSettings {
     required this.cameraZoom,
     required this.cameraExposureOffset,
     required this.cameraFlashMode,
+    required this.cameraProfile,
     required this.mirrorHudDisplaySeconds,
     required this.mirrorHudCycleMinutes,
     required this.appVersion,
@@ -69,6 +72,7 @@ class AppSettings {
       cameraZoom: 1.0,
       cameraExposureOffset: 0.0,
       cameraFlashMode: 'off',
+      cameraProfile: AppConfig.cameraProfile,
       mirrorHudDisplaySeconds: 30,
       mirrorHudCycleMinutes: 5,
       appVersion: AppConstants.appVersion,
@@ -95,6 +99,7 @@ class AppSettings {
     double? cameraZoom,
     double? cameraExposureOffset,
     String? cameraFlashMode,
+    String? cameraProfile,
     int? mirrorHudDisplaySeconds,
     int? mirrorHudCycleMinutes,
     String? appVersion,
@@ -121,6 +126,7 @@ class AppSettings {
       cameraZoom: cameraZoom ?? this.cameraZoom,
       cameraExposureOffset: cameraExposureOffset ?? this.cameraExposureOffset,
       cameraFlashMode: cameraFlashMode ?? this.cameraFlashMode,
+      cameraProfile: cameraProfile ?? this.cameraProfile,
       mirrorHudDisplaySeconds:
           mirrorHudDisplaySeconds ?? this.mirrorHudDisplaySeconds,
       mirrorHudCycleMinutes:

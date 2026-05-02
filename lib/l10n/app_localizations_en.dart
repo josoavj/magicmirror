@@ -120,6 +120,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraFlipSubtitle => 'Mirror camera preview';
 
   @override
+  String get cameraProfileLabel => 'Camera performance';
+
+  @override
+  String get cameraProfileSubtitle => 'Adjust quality vs. latency';
+
+  @override
+  String get cameraProfileAuto => 'Auto';
+
+  @override
+  String get cameraProfileLow => 'Low (faster)';
+
+  @override
+  String get cameraProfileMedium => 'Medium';
+
+  @override
+  String get cameraProfileHigh => 'High (sharper)';
+
+  @override
   String get flashModeLabel => 'Flash mode';
 
   @override

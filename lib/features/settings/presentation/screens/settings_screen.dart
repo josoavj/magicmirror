@@ -336,6 +336,53 @@ class SettingsScreen extends ConsumerWidget {
                       },
                     ),
                     SettingsDropdown<String>(
+                      icon: Icons.speed,
+                      label: l10n.cameraProfileLabel,
+                      value: settings.cameraProfile,
+                      items: [
+                        DropdownMenuItem(
+                          value: 'auto',
+                          child: Text(
+                            l10n.cameraProfileAuto,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'low',
+                          child: Text(
+                            l10n.cameraProfileLow,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'medium',
+                          child: Text(
+                            l10n.cameraProfileMedium,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'high',
+                          child: Text(
+                            l10n.cameraProfileHigh,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setCameraProfile(value);
+                        }
+                      },
+                    ),
+                    SettingsInfo(
+                      icon: Icons.info_outline,
+                      label: l10n.cameraProfileLabel,
+                      value: l10n.cameraProfileSubtitle,
+                    ),
+                    SettingsDropdown<String>(
                       icon: Icons.flash_on,
                       label: l10n.flashModeLabel,
                       value: settings.cameraFlashMode,
