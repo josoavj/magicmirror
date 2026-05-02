@@ -1,4 +1,3 @@
-// Modele pour les parametres de l'application
 import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 

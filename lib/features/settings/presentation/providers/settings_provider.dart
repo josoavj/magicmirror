@@ -54,7 +54,10 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     return 'off';
   }
 
-  String? _normalizeSupportedValue(String? rawValue, Set<String> supportedValues) {
+  String? _normalizeSupportedValue(
+    String? rawValue,
+    Set<String> supportedValues,
+  ) {
     if (rawValue == null) {
       return null;
     }
@@ -107,7 +110,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         ),
         mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
         mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
-        appVersion: prefs.getString('appVersion') ?? AppConstants.appVersion,
+        appVersion: AppConstants.appVersion,
       );
 
       state = settings;

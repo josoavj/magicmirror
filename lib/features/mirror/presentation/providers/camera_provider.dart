@@ -295,12 +295,25 @@ final cameraControllerProvider =
             });
 
             return controller;
-          } catch (e) {
-            logger.warning(
-              'Init failed (res=${resolution.name}, format=${format.name}): $e',
+          } catch (e, st) {
+            logger.log(
+              'Init failed (res=${resolution.name}, format=${format.name})',
+              level: LogLevel.warning,
               tag: 'CameraProvider',
+              error: e,
+              stackTrace: st,
             );
-            await controller.dispose();
+            try {
+              await controller.dispose();
+            } catch (disposeError, disposeStack) {
+              logger.log(
+                'Dispose failed after init error',
+                level: LogLevel.warning,
+                tag: 'CameraProvider',
+                error: disposeError,
+                stackTrace: disposeStack,
+              );
+            }
           }
         }
       }
