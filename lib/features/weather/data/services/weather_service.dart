@@ -245,7 +245,7 @@ class WeatherService {
     }
 
     try {
-      debugPrint('🌡️ Récupération météo pour ($latitude, $longitude)...');
+      debugPrint('Récupération météo pour ($latitude, $longitude)...');
 
       final response = await _dio.get(
         '$_baseUrl/weather',
