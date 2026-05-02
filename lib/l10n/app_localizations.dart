@@ -314,6 +314,42 @@ abstract class AppLocalizations {
   /// **'Retourner l\'affichage de la caméra'**
   String get cameraFlipSubtitle;
 
+  /// No description provided for @cameraProfileLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Performance caméra'**
+  String get cameraProfileLabel;
+
+  /// No description provided for @cameraProfileSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajuster qualité vs latence'**
+  String get cameraProfileSubtitle;
+
+  /// No description provided for @cameraProfileAuto.
+  ///
+  /// In fr, this message translates to:
+  /// **'Auto'**
+  String get cameraProfileAuto;
+
+  /// No description provided for @cameraProfileLow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Faible (rapide)'**
+  String get cameraProfileLow;
+
+  /// No description provided for @cameraProfileMedium.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moyenne'**
+  String get cameraProfileMedium;
+
+  /// No description provided for @cameraProfileHigh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Haute (plus nette)'**
+  String get cameraProfileHigh;
+
   /// No description provided for @flashModeLabel.
   ///
   /// In fr, this message translates to:

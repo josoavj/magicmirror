@@ -122,6 +122,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cameraFlipSubtitle => 'Retourner l\'affichage de la caméra';
 
   @override
+  String get cameraProfileLabel => 'Performance caméra';
+
+  @override
+  String get cameraProfileSubtitle => 'Ajuster qualité vs latence';
+
+  @override
+  String get cameraProfileAuto => 'Auto';
+
+  @override
+  String get cameraProfileLow => 'Faible (rapide)';
+
+  @override
+  String get cameraProfileMedium => 'Moyenne';
+
+  @override
+  String get cameraProfileHigh => 'Haute (plus nette)';
+
+  @override
   String get flashModeLabel => 'Mode flash';
 
   @override
