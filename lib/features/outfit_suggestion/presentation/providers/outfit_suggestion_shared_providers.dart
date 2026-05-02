@@ -54,7 +54,7 @@ final outfitMlScoreMapProvider = FutureProvider<Map<String, double>>((
         map[outfitId] = score.clamp(0, 1);
       }
     }
-      if (map.isEmpty) {
+    if (map.isEmpty) {
       return _defaultOutfitMlPriors;
     }
 
