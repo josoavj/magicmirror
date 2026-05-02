@@ -64,8 +64,8 @@ class WeatherService {
         previous.isNotEmpty &&
         previous != currentCacheKey) {
       cacheService.invalidate(previous);
-      await prefs.remove('${previous}.raw');
-      await prefs.remove('${previous}.savedAtMs');
+      await prefs.remove('$previous.raw');
+      await prefs.remove('$previous.savedAtMs');
     }
     await prefs.setString(trackingKey, currentCacheKey);
   }
@@ -93,9 +93,9 @@ class WeatherService {
   }) async {
     cacheService.set<Map<String, dynamic>>(cacheKey, payload, ttl: ttl);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('${cacheKey}.raw', jsonEncode(payload));
+    await prefs.setString('$cacheKey.raw', jsonEncode(payload));
     await prefs.setInt(
-      '${cacheKey}.savedAtMs',
+      '$cacheKey.savedAtMs',
       DateTime.now().millisecondsSinceEpoch,
     );
   }
@@ -111,8 +111,8 @@ class WeatherService {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('${cacheKey}.raw');
-    final savedAtMs = prefs.getInt('${cacheKey}.savedAtMs');
+    final raw = prefs.getString('$cacheKey.raw');
+    final savedAtMs = prefs.getInt('$cacheKey.savedAtMs');
     if (raw == null || raw.isEmpty || savedAtMs == null) {
       return null;
     }
@@ -123,8 +123,8 @@ class WeatherService {
         _isFresh(savedAtMs, AppConfig.weatherStaleFallbackMaxAge);
 
     if (!fresh && !staleAllowed) {
-      await prefs.remove('${cacheKey}.raw');
-      await prefs.remove('${cacheKey}.savedAtMs');
+      await prefs.remove('$cacheKey.raw');
+      await prefs.remove('$cacheKey.savedAtMs');
       return null;
     }
 
