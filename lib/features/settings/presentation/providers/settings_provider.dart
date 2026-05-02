@@ -54,11 +54,26 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     return 'off';
   }
 
-  String _normalizeCameraProfile(String? rawProfile) {
-    if (rawProfile != null && _supportedCameraProfiles.contains(rawProfile)) {
-      return rawProfile;
+  String? _normalizeSupportedValue(String? rawValue, Set<String> supportedValues) {
+    if (rawValue == null) {
+      return null;
     }
-    return AppConfig.cameraProfile;
+
+    final normalizedValue = rawValue.trim().toLowerCase();
+    if (supportedValues.contains(normalizedValue)) {
+      return normalizedValue;
+    }
+
+    return null;
+  }
+
+  String _normalizeCameraProfile(String? rawProfile) {
+    return _normalizeSupportedValue(rawProfile, _supportedCameraProfiles) ??
+        _normalizeSupportedValue(
+          AppConfig.cameraProfile,
+          _supportedCameraProfiles,
+        ) ??
+        'auto';
   }
 
   /// Charger les paramètres depuis shared_preferences
