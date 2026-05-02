@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:magicmirror/features/settings/data/models/app_settings_model.dart';
@@ -25,6 +26,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     'always',
     'torch',
   };
+  static const Set<String> _supportedCameraProfiles = {
+    'auto',
+    'low',
+    'medium',
+    'high',
+  };
 
   String _normalizeLocale(String? rawLocale) {
     if (rawLocale != null && _supportedLocales.contains(rawLocale)) {
@@ -45,6 +52,13 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       return rawMode;
     }
     return 'off';
+  }
+
+  String _normalizeCameraProfile(String? rawProfile) {
+    if (rawProfile != null && _supportedCameraProfiles.contains(rawProfile)) {
+      return rawProfile;
+    }
+    return AppConfig.cameraProfile;
   }
 
   /// Charger les paramètres depuis shared_preferences
@@ -72,6 +86,9 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         cameraExposureOffset: prefs.getDouble('cameraExposureOffset') ?? 0.0,
         cameraFlashMode: _normalizeFlashMode(
           prefs.getString('cameraFlashMode'),
+        ),
+        cameraProfile: _normalizeCameraProfile(
+          prefs.getString('cameraProfile'),
         ),
         mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
         mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
@@ -114,6 +131,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       await prefs.setDouble('cameraZoom', state.cameraZoom);
       await prefs.setDouble('cameraExposureOffset', state.cameraExposureOffset);
       await prefs.setString('cameraFlashMode', state.cameraFlashMode);
+      await prefs.setString('cameraProfile', state.cameraProfile);
       await prefs.setInt(
         'mirrorHudDisplaySeconds',
         state.mirrorHudDisplaySeconds,
@@ -244,6 +262,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Modifier le mode flash caméra
   Future<void> setCameraFlashMode(String mode) async {
     state = state.copyWith(cameraFlashMode: _normalizeFlashMode(mode));
+    await _saveSettings();
+  }
+
+  /// Modifier le profil performance camera
+  Future<void> setCameraProfile(String profile) async {
+    state = state.copyWith(cameraProfile: _normalizeCameraProfile(profile));
     await _saveSettings();
   }
 
