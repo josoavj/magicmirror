@@ -6,9 +6,45 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
+import 'package:magicmirror/config/app_config.dart';
+import 'package:magicmirror/features/settings/presentation/providers/settings_provider.dart';
 
 /// Déterminer le type de plateforme
 enum PlatformType { android, ios, macos, windows, linux, web, unknown }
+
+enum CameraProfile { auto, low, medium, high }
+
+CameraProfile _cameraProfileFromConfig() {
+  final raw = AppConfig.cameraProfile.trim().toLowerCase();
+  switch (raw) {
+    case 'low':
+      return CameraProfile.low;
+    case 'medium':
+      return CameraProfile.medium;
+    case 'high':
+      return CameraProfile.high;
+    default:
+      return CameraProfile.auto;
+  }
+}
+
+CameraProfile _cameraProfileFromSettings(String? rawProfile) {
+  if (rawProfile == null || rawProfile.isEmpty) {
+    return _cameraProfileFromConfig();
+  }
+  switch (rawProfile.trim().toLowerCase()) {
+    case 'low':
+      return CameraProfile.low;
+    case 'medium':
+      return CameraProfile.medium;
+    case 'high':
+      return CameraProfile.high;
+    case 'auto':
+      return CameraProfile.auto;
+    default:
+      return _cameraProfileFromConfig();
+  }
+}
 
 PlatformType _getPlatformType() {
   if (kIsWeb) return PlatformType.web;
@@ -21,7 +57,19 @@ PlatformType _getPlatformType() {
 }
 
 /// Obtenir la résolution appropriée par plateforme
-ResolutionPreset _getResolutionForPlatform(PlatformType platform) {
+ResolutionPreset _getResolutionForPlatform(
+  PlatformType platform,
+  CameraProfile profile,
+) {
+  if (profile == CameraProfile.low) {
+    return ResolutionPreset.low;
+  }
+  if (profile == CameraProfile.medium) {
+    return ResolutionPreset.medium;
+  }
+  if (profile == CameraProfile.high) {
+    return ResolutionPreset.high;
+  }
   switch (platform) {
     case PlatformType.android:
       return ResolutionPreset.medium; // Réduit pression mémoire en stream ML
@@ -34,22 +82,6 @@ ResolutionPreset _getResolutionForPlatform(PlatformType platform) {
     case PlatformType.web:
     case PlatformType.unknown:
       return ResolutionPreset.medium;
-  }
-}
-
-ImageFormatGroup _getImageFormatForPlatform(PlatformType platform) {
-  switch (platform) {
-    case PlatformType.android:
-      // ML Kit Android attend un format YUV/NV21 compatible stream.
-      return ImageFormatGroup.nv21;
-    case PlatformType.ios:
-      return ImageFormatGroup.bgra8888;
-    case PlatformType.macos:
-    case PlatformType.windows:
-    case PlatformType.linux:
-    case PlatformType.web:
-    case PlatformType.unknown:
-      return ImageFormatGroup.unknown;
   }
 }
 
@@ -66,6 +98,21 @@ Duration _getTimeoutForPlatform(PlatformType platform) {
     case PlatformType.web:
     case PlatformType.unknown:
       return const Duration(seconds: 5); // Défaut
+  }
+}
+
+List<ImageFormatGroup> _getImageFormatFallbacks(PlatformType platform) {
+  switch (platform) {
+    case PlatformType.android:
+      return const [
+        ImageFormatGroup.nv21,
+        ImageFormatGroup.yuv420,
+        ImageFormatGroup.unknown,
+      ];
+    case PlatformType.ios:
+      return const [ImageFormatGroup.bgra8888, ImageFormatGroup.unknown];
+    default:
+      return const [ImageFormatGroup.unknown];
   }
 }
 
@@ -201,93 +248,66 @@ final cameraControllerProvider =
       camera,
     ) async {
       final platform = ref.watch(platformTypeProvider);
-      final resolutionPreset = _getResolutionForPlatform(platform);
-      final imageFormatGroup = _getImageFormatForPlatform(platform);
+      final settings = ref.watch(appSettingsProvider);
+      final profile = _cameraProfileFromSettings(settings.cameraProfile);
+      final resolutionPreset = _getResolutionForPlatform(platform, profile);
       final timeout = _getTimeoutForPlatform(platform);
+      final formatFallbacks = _getImageFormatFallbacks(platform);
 
       logger.info(
         'Initializing camera controller on ${platform.toString()}...',
         tag: 'CameraProvider',
       );
       logger.debug(
-        'Resolution: ${resolutionPreset.toString()}',
+        'Resolution: ${resolutionPreset.toString()} (profile: ${profile.name})',
         tag: 'CameraProvider',
       );
       logger.debug('Timeout: ${timeout.inSeconds}s', tag: 'CameraProvider');
-
-      final controller = CameraController(
-        camera,
+      final resolutionCandidates = <ResolutionPreset>{
         resolutionPreset,
-        enableAudio: false,
-        imageFormatGroup: imageFormatGroup,
-      );
+        if (resolutionPreset != ResolutionPreset.low) ResolutionPreset.low,
+      }.toList();
 
-      try {
-        await controller.initialize().timeout(timeout);
-        logger.info(
-          'Camera controller initialized successfully',
-          tag: 'CameraProvider',
-        );
-
-        // BUG FIX #6: Dispose controller quand le provider est nettoyé
-        ref.onDispose(() {
-          logger.debug('Disposing camera controller', tag: 'CameraProvider');
-          controller.dispose();
-        });
-
-        return controller;
-      } catch (e) {
-        logger.error(
-          'Erreur initialisation caméra',
-          tag: 'CameraProvider',
-          error: e,
-        );
-
-        // Essayer avec une résolution inférieure sur certaines plateformes
-        if ((platform == PlatformType.windows ||
-                platform == PlatformType.linux) &&
-            resolutionPreset != ResolutionPreset.low) {
-          logger.warning(
-            'Retrying with lower resolution...',
-            tag: 'CameraProvider',
-          );
-
-          final fallbackController = CameraController(
+      for (final resolution in resolutionCandidates) {
+        for (final format in formatFallbacks) {
+          final controller = CameraController(
             camera,
-            ResolutionPreset.low,
+            resolution,
             enableAudio: false,
-            imageFormatGroup: imageFormatGroup,
+            imageFormatGroup: format,
           );
 
           try {
-            await fallbackController.initialize().timeout(timeout);
+            await controller.initialize().timeout(timeout);
             logger.info(
-              'Camera controller initialized with fallback resolution',
+              'Camera controller initialized (res=${resolution.name}, format=${format.name})',
               tag: 'CameraProvider',
             );
 
-            // BUG FIX #6: Dispose controller quand le provider est nettoyé
             ref.onDispose(() {
               logger.debug(
-                'Disposing fallback camera controller',
+                'Disposing camera controller',
                 tag: 'CameraProvider',
               );
-              fallbackController.dispose();
+              controller.dispose();
             });
 
-            return fallbackController;
-          } catch (fallbackError) {
-            logger.error(
-              'Fallback initialization failed',
+            return controller;
+          } catch (e) {
+            logger.warning(
+              'Init failed (res=${resolution.name}, format=${format.name}): $e',
               tag: 'CameraProvider',
-              error: fallbackError,
             );
-            return null;
+            await controller.dispose();
           }
         }
-
-        return null;
       }
+
+      logger.error(
+        'Erreur initialisation caméra (toutes les options ont échoué)',
+        tag: 'CameraProvider',
+      );
+      return null;
     });
 
 final isRecordingProvider = StateProvider<bool>((ref) => false);
