@@ -205,7 +205,7 @@ final outfitCloudTelemetryProvider = FutureProvider<OutfitTelemetryState>((
           break;
       }
     }
-  
+
     return OutfitTelemetryState(
       likes: likes,
       dislikes: dislikes,
