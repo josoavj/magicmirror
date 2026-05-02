@@ -44,19 +44,17 @@ final outfitMlScoreMapProvider = FutureProvider<Map<String, double>>((
         .eq('user_id', userId);
 
     final map = <String, double>{};
-    if (rows is List) {
-      for (final row in rows.whereType<Map<String, dynamic>>()) {
-        final outfitId = row['outfit_id']?.toString();
-        final scoreRaw = row['score'];
-        final score = scoreRaw is num
-            ? scoreRaw.toDouble()
-            : double.tryParse(scoreRaw?.toString() ?? '');
-        if (outfitId != null && outfitId.isNotEmpty && score != null) {
-          map[outfitId] = score.clamp(0, 1);
-        }
+    for (final row in rows.whereType<Map<String, dynamic>>()) {
+      final outfitId = row['outfit_id']?.toString();
+      final scoreRaw = row['score'];
+      final score = scoreRaw is num
+          ? scoreRaw.toDouble()
+          : double.tryParse(scoreRaw?.toString() ?? '');
+      if (outfitId != null && outfitId.isNotEmpty && score != null) {
+        map[outfitId] = score.clamp(0, 1);
       }
     }
-    if (map.isEmpty) {
+      if (map.isEmpty) {
       return _defaultOutfitMlPriors;
     }
 
@@ -187,29 +185,27 @@ final outfitCloudTelemetryProvider = FutureProvider<OutfitTelemetryState>((
     var favoriteAdds = 0;
     var favoriteRemoves = 0;
 
-    if (rows is List) {
-      for (final row in rows.whereType<Map<String, dynamic>>()) {
-        final type = row['event_type']?.toString() ?? '';
-        switch (type) {
-          case 'like':
-            likes++;
-            break;
-          case 'dislike':
-            dislikes++;
-            break;
-          case 'seen':
-            seen++;
-            break;
-          case 'favorite_add':
-            favoriteAdds++;
-            break;
-          case 'favorite_remove':
-            favoriteRemoves++;
-            break;
-        }
+    for (final row in rows.whereType<Map<String, dynamic>>()) {
+      final type = row['event_type']?.toString() ?? '';
+      switch (type) {
+        case 'like':
+          likes++;
+          break;
+        case 'dislike':
+          dislikes++;
+          break;
+        case 'seen':
+          seen++;
+          break;
+        case 'favorite_add':
+          favoriteAdds++;
+          break;
+        case 'favorite_remove':
+          favoriteRemoves++;
+          break;
       }
     }
-
+  
     return OutfitTelemetryState(
       likes: likes,
       dislikes: dislikes,
