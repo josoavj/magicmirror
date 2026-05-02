@@ -248,8 +248,10 @@ final cameraControllerProvider =
       camera,
     ) async {
       final platform = ref.watch(platformTypeProvider);
-      final settings = ref.watch(appSettingsProvider);
-      final profile = _cameraProfileFromSettings(settings.cameraProfile);
+      final cameraProfile = ref.watch(
+        appSettingsProvider.select((s) => s.cameraProfile),
+      );
+      final profile = _cameraProfileFromSettings(cameraProfile);
       final resolutionPreset = _getResolutionForPlatform(platform, profile);
       final timeout = _getTimeoutForPlatform(platform);
       final formatFallbacks = _getImageFormatFallbacks(platform);
