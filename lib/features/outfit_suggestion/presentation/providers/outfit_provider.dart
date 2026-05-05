@@ -3,6 +3,7 @@ import '../../data/models/outfit_model.dart';
 import '../../../ai_ml/presentation/providers/ml_provider.dart';
 import '../../../user_profile/presentation/providers/user_profile_provider.dart';
 import '../../../weather/presentation/widgets/weather_widget.dart';
+import 'outfit_suggestion_shared_providers.dart';
 
 // Liste statique enrichie de tenues (simulant une base de données avec styles et genres)
 final allOutfitsProvider = Provider<List<OutfitSuggestion>>((ref) {
@@ -141,13 +142,19 @@ final suggestedOutfitsProvider = Provider<List<OutfitSuggestion>>((ref) {
   final currentMorphology = ref.watch(currentMorphologyProvider);
   final userProfile = ref.watch(userProfileProvider);
   final weatherAsync = ref.watch(currentWeatherProvider);
+  final mlScoreMapAsync = ref.watch(outfitMlScoreMapProvider);
+  final llmScoreMapAsync = ref.watch(outfitSecondaryLlmScoreMapProvider);
   final allOutfits = ref.watch(allOutfitsProvider);
 
   // 1. Déterminer la morphologie (priorité à la caméra, sinon profil)
   final bodyType = currentMorphology?.bodyType ?? userProfile.morphology;
   if (bodyType.isEmpty || bodyType == 'Inconnu') return [];
 
-  return allOutfits.where((outfit) {
+  // Extraire les maps de scores (elles seront rechargées de manière asynchrone)
+  final mlScoreMap = mlScoreMapAsync.maybeWhen(data: (d) => d, orElse: () => const <String, double>{});
+  final llmScoreMap = llmScoreMapAsync.maybeWhen(data: (d) => d, orElse: () => const <String, double>{});
+
+  var filteredList = allOutfits.where((outfit) {
     // A. Filtrage par Morphologie
     bool matchMorphology = outfit.matchingBodyTypes.any((bt) => 
         bt.toLowerCase().contains(bodyType.toLowerCase()) || 
@@ -189,4 +196,19 @@ final suggestedOutfitsProvider = Provider<List<OutfitSuggestion>>((ref) {
 
     return true;
   }).toList();
+
+  // 2. Trier par score LLM / ML
+  filteredList.sort((a, b) {
+    final scoreAMl = mlScoreMap[a.id] ?? 0.0;
+    final scoreALlm = llmScoreMap[a.id] ?? 0.0;
+    final totalA = scoreAMl + scoreALlm;
+
+    final scoreBMl = mlScoreMap[b.id] ?? 0.0;
+    final scoreBLlm = llmScoreMap[b.id] ?? 0.0;
+    final totalB = scoreBMl + scoreBLlm;
+
+    return totalB.compareTo(totalA); // Tri décroissant (le plus grand score en premier)
+  });
+
+  return filteredList;
 });
