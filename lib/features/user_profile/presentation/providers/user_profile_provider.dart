@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/data/services/user_profile_sync_service.dart';
 import 'package:riverpod/riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 enum ProfileSyncStatus { idle, syncing, success, failure }
 
@@ -142,24 +142,40 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _loadProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final localUserId = prefs.getString('profile.userId') ?? 'local-user';
+    const storage = FlutterSecureStorage();
+    final localUserId = await storage.read(key: 'profile.userId') ?? 'local-user';
     final resolvedUserId = await _syncService.resolveUserId(
       fallback: localUserId,
     );
 
+    final displayName = await storage.read(key: 'profile.displayName') ?? 'Utilisateur';
+    final avatarUrl = await storage.read(key: 'profile.avatarUrl') ?? '';
+    final gender = await storage.read(key: 'profile.gender') ?? 'Non précise';
+    
+    final ageStr = await storage.read(key: 'profile.age');
+    final age = ageStr != null ? int.tryParse(ageStr) ?? 25 : 25;
+    
+    final heightCmStr = await storage.read(key: 'profile.heightCm');
+    final heightCm = (heightCmStr != null ? int.tryParse(heightCmStr) ?? 170 : 170).clamp(120, 230);
+    
+    final birthDateStr = await storage.read(key: 'profile.birthDate');
+    final morphology = await storage.read(key: 'profile.morphology') ?? 'Silhouette non définie';
+    
+    final preferredStylesStr = await storage.read(key: 'profile.preferredStyles');
+    final preferredStyles = preferredStylesStr != null && preferredStylesStr.isNotEmpty 
+        ? preferredStylesStr.split('|||') 
+        : ['Casual'];
+
     state = UserProfile(
       userId: resolvedUserId ?? localUserId,
-      displayName: prefs.getString('profile.displayName') ?? 'Utilisateur',
-      avatarUrl: prefs.getString('profile.avatarUrl') ?? '',
-      gender: prefs.getString('profile.gender') ?? 'Non précise',
-      age: prefs.getInt('profile.age') ?? 25,
-      heightCm: (prefs.getInt('profile.heightCm') ?? 170).clamp(120, 230),
-      birthDate: _readBirthDate(prefs.getString('profile.birthDate')),
-      morphology:
-          prefs.getString('profile.morphology') ?? 'Silhouette non définie',
-      preferredStyles:
-          prefs.getStringList('profile.preferredStyles') ?? ['Casual'],
+      displayName: displayName,
+      avatarUrl: avatarUrl,
+      gender: gender,
+      age: age,
+      heightCm: heightCm,
+      birthDate: _readBirthDate(birthDateStr),
+      morphology: morphology,
+      preferredStyles: preferredStyles,
     );
 
     final normalizedLocal = _normalizeDerivedFields(state);
@@ -196,19 +212,19 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _saveProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('profile.userId', state.userId);
-    await prefs.setString('profile.displayName', state.displayName);
-    await prefs.setString('profile.avatarUrl', state.avatarUrl);
-    await prefs.setString('profile.gender', state.gender);
-    await prefs.setInt('profile.age', state.age);
-    await prefs.setInt('profile.heightCm', state.heightCm);
-    await prefs.setString(
-      'profile.birthDate',
-      state.birthDate?.toIso8601String() ?? '',
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'profile.userId', value: state.userId);
+    await storage.write(key: 'profile.displayName', value: state.displayName);
+    await storage.write(key: 'profile.avatarUrl', value: state.avatarUrl);
+    await storage.write(key: 'profile.gender', value: state.gender);
+    await storage.write(key: 'profile.age', value: state.age.toString());
+    await storage.write(key: 'profile.heightCm', value: state.heightCm.toString());
+    await storage.write(
+      key: 'profile.birthDate',
+      value: state.birthDate?.toIso8601String() ?? '',
     );
-    await prefs.setString('profile.morphology', state.morphology);
-    await prefs.setStringList('profile.preferredStyles', state.preferredStyles);
+    await storage.write(key: 'profile.morphology', value: state.morphology);
+    await storage.write(key: 'profile.preferredStyles', value: state.preferredStyles.join('|||'));
   }
 
   Future<void> setUserId(String userId) async {
