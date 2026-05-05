@@ -9,6 +9,8 @@ class OutfitSuggestion {
   final List<String> occasions; // Occasions/types d'événement
   final String? imageUrl;
   final List<String> matchingBodyTypes; // Quels types de corps (X, V, A, H)
+  final List<String> genderTargets; // ex: ['homme', 'femme', 'all']
+  final List<String> styles; // ex: ['casual', 'streetwear', 'business']
   final DateTime suggestedAt;
 
   OutfitSuggestion({
@@ -21,6 +23,8 @@ class OutfitSuggestion {
     required this.occasions,
     this.imageUrl,
     this.matchingBodyTypes = const [],
+    this.genderTargets = const ['all'],
+    this.styles = const [],
     required this.suggestedAt,
   });
 }
