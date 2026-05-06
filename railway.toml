@@ -1,9 +1,0 @@
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "ml/Dockerfile"
-
-[deploy]
-# Runs one full batch. Use Railway Cron to trigger this command periodically.
-startCommand = "python ml/run_ml_pipeline_once.py --url $SUPABASE_URL --key $SUPABASE_SERVICE_ROLE_KEY --days ${ML_LOOKBACK_DAYS:-90} --min-samples ${ML_MIN_SAMPLES:-200}"
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
