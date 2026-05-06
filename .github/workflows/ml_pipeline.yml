@@ -1,0 +1,169 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MagicMirror — ML Pipeline (GitHub Actions)
+#
+# Remplace Railway : exécute le pipeline LightGBM une fois par jour et
+# publie les scores dans Supabase (table public.outfit_ml_scores).
+#
+# Secrets GitHub requis (Settings → Secrets and variables → Actions) :
+#   SUPABASE_URL              → URL du projet Supabase
+#   SUPABASE_SERVICE_ROLE_KEY → Clé service role (pas la clé anon)
+#
+# Variables GitHub optionnelles (Settings → Variables) :
+#   ML_LOOKBACK_DAYS   → Fenêtre d'historique feedback (défaut: 90)
+#   ML_MIN_SAMPLES     → Seuil minimum pour re-entraîner (défaut: 200)
+#   ML_OUTFITS_TABLE   → Table Supabase du catalog outfits (défaut: vide)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: ML Pipeline
+
+on:
+  # Exécution automatique chaque nuit à 02:00 UTC
+  schedule:
+    - cron: "0 2 * * *"
+
+  # Déclenchement manuel depuis GitHub UI avec paramètres optionnels
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Fenêtre historique feedback (jours)"
+        required: false
+        default: "90"
+      min_samples:
+        description: "Minimum samples pour re-entraîner"
+        required: false
+        default: "200"
+      outfits_table:
+        description: "Table Supabase du catalog outfits (laisser vide = fallback)"
+        required: false
+        default: ""
+      force_retrain:
+        description: "Forcer le re-entraînement même avec peu de données"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  ml-pipeline:
+    name: Run ML Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── 1. Code ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python ────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ml/requirements.txt
+
+      - name: Install ML dependencies
+        run: pip install -r ml/requirements.txt
+
+      # ── 3. Restauration du modèle précédent ──────────────────────────────
+      # Stratégie : clé unique par run pour toujours sauver, mais restore-keys
+      # cherche le modèle le plus récent des runs précédents.
+      - name: Restore model from cache
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: ml/artifacts/outfit_ranker.joblib
+          key: ml-model-${{ github.run_id }}
+          restore-keys: |
+            ml-model-
+
+      - name: Report cache status
+        run: |
+          mkdir -p ml/artifacts data
+          if [ -f ml/artifacts/outfit_ranker.joblib ]; then
+            SIZE=$(du -sh ml/artifacts/outfit_ranker.joblib | cut -f1)
+            echo "✓ Model restored from cache ($SIZE)"
+          else
+            echo "⚠ No cached model — cold-start run"
+          fi
+
+      # ── 4. Exécution du pipeline ──────────────────────────────────────────
+      - name: Run ML pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Résolution des paramètres (workflow_dispatch > variables > défauts)
+          DAYS="${{ github.event.inputs.days || vars.ML_LOOKBACK_DAYS || '90' }}"
+          MIN_SAMPLES="${{ github.event.inputs.min_samples || vars.ML_MIN_SAMPLES || '200' }}"
+          OUTFITS_TABLE="${{ github.event.inputs.outfits_table || vars.ML_OUTFITS_TABLE || '' }}"
+
+          # Construction des arguments optionnels
+          EXTRA_ARGS=""
+          if [ -n "$OUTFITS_TABLE" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --outfits-table $OUTFITS_TABLE"
+          fi
+          if [ "${{ github.event.inputs.force_retrain }}" == "true" ]; then
+            MIN_SAMPLES="1"
+          fi
+
+          echo "▶ Pipeline params: days=$DAYS, min_samples=$MIN_SAMPLES"
+
+          python ml/run_ml_pipeline_once.py \
+            --url        "$SUPABASE_URL"              \
+            --key        "$SUPABASE_SERVICE_ROLE_KEY" \
+            --days       "$DAYS"                      \
+            --min-samples "$MIN_SAMPLES"              \
+            --feedback-out  data/outfit_feedback_events.jsonl \
+            --candidates-out data/outfit_candidates.jsonl     \
+            --model-out  ml/artifacts/outfit_ranker.joblib    \
+            --metrics-out ml/artifacts/metrics.json           \
+            --scored-out ml/artifacts/scored_candidates.csv   \
+            $EXTRA_ARGS
+
+      # ── 5. Sauvegarde des artefacts ───────────────────────────────────────
+      - name: Upload model & metrics as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-artifacts-${{ github.run_id }}
+          path: |
+            ml/artifacts/outfit_ranker*.joblib
+            ml/artifacts/metrics.json
+            ml/artifacts/scored_candidates.csv
+          retention-days: 30
+          if-no-files-found: warn
+
+      # ── 6. Résumé dans l'UI GitHub ────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## 🧠 ML Pipeline — Run \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Paramètre | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f ml/artifacts/metrics.json ]; then
+            echo "### 📊 Métriques du modèle" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            # Afficher seulement les métriques clés (pas le rapport complet)
+            python3 -c "
+          import json, sys
+          m = json.load(open('ml/artifacts/metrics.json'))
+          keys = ['train_rows','valid_rows','auc_roc','auc_pr','accuracy',
+                  'log_loss','optimal_threshold','model_version','training_time_s']
+          print(json.dumps({k: m[k] for k in keys if k in m}, indent=2))
+          " >> $GITHUB_STEP_SUMMARY 2>/dev/null || cat ml/artifacts/metrics.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "_Pas de métriques (cold-start ou scoring uniquement)_" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # ── 7. Notification d'échec ───────────────────────────────────────────
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Le pipeline ML a échoué. Vérifier les logs ci-dessus."
+          echo "::notice::Pour relancer manuellement: Actions → ML Pipeline → Run workflow"
