@@ -30,6 +30,9 @@ import joblib
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
+# Shared schema — single source of truth (mirrors train_lightgbm_ranker.py)
+from schema import BOOLEAN_CANDIDATES, INFERENCE_DROP_COLS, OUTPUT_KEEP_COLS
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -41,12 +44,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# Columns that must be dropped before inference (not seen during training)
-# and that should NOT appear in the scored output either (privacy / leakage).
-_INFERENCE_DROP_COLS = {"label"}
-
-# Columns excluded from model features but kept in output for traceability
-_OUTPUT_KEEP_COLS = {"user_id", "outfit_id", "context_id"}
+# INFERENCE_DROP_COLS and OUTPUT_KEEP_COLS are imported from schema.py.
 
 # ---------------------------------------------------------------------------
 # I/O helpers  (kept in sync with train_lightgbm_ranker.py)
@@ -102,8 +100,11 @@ def _normalize_multivalue_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _cast_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Cast boolean-like columns to 0/1 integers (mirrors train preprocessing)."""
-    BOOLEAN_CANDIDATES = ["strict_weather_mode", "is_weekend"]
+    """Cast boolean-like columns to 0/1 integers (mirrors train preprocessing).
+
+    Uses BOOLEAN_CANDIDATES from schema.py — guaranteed to stay in sync
+    with train_lightgbm_ranker.py.
+    """
     out = df.copy()
     for col in BOOLEAN_CANDIDATES:
         if col in out.columns:
@@ -175,10 +176,10 @@ def score(args: argparse.Namespace) -> pd.DataFrame:
     df = _cast_boolean_columns(df)
 
     # Separate identity/output columns from feature columns
-    output_meta = df[[c for c in _OUTPUT_KEEP_COLS if c in df.columns]].copy()
+    output_meta = df[[c for c in OUTPUT_KEEP_COLS if c in df.columns]].copy()
 
     # Drop columns not seen during training
-    cols_to_drop = list(_INFERENCE_DROP_COLS & set(df.columns))
+    cols_to_drop = list(INFERENCE_DROP_COLS & set(df.columns))
     if cols_to_drop:
         log.info("Dropping inference-only columns: %s", cols_to_drop)
         df = df.drop(columns=cols_to_drop)
