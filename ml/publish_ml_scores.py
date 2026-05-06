@@ -4,7 +4,7 @@
 Expected input columns:
 - user_id
 - outfit_id
-- ml_score
+- score (or ml_score)
 """
 
 from __future__ import annotations
@@ -18,7 +18,8 @@ import pandas as pd
 from supabase import create_client
 
 
-REQUIRED_COLS = {"user_id", "outfit_id", "ml_score"}
+REQUIRED_ID_COLS = {"user_id", "outfit_id"}
+SCORE_COLS = ("score", "ml_score")
 
 
 def _read(path: Path) -> pd.DataFrame:
@@ -43,13 +44,20 @@ def _read(path: Path) -> pd.DataFrame:
 
 def publish(url: str, key: str, input_path: Path, batch_size: int = 500) -> dict[str, int]:
     df = _read(input_path)
-    missing = REQUIRED_COLS - set(df.columns)
-    if missing:
-        raise ValueError(f"Missing required columns: {sorted(missing)}")
+    missing_ids = REQUIRED_ID_COLS - set(df.columns)
+    if missing_ids:
+        raise ValueError(f"Missing required columns: {sorted(missing_ids)}")
 
-    df = df[list(REQUIRED_COLS)].copy()
-    df["ml_score"] = pd.to_numeric(df["ml_score"], errors="coerce").fillna(0.5).clip(0, 1)
+    if not any(col in df.columns for col in SCORE_COLS):
+        raise ValueError("Missing required score column: 'score' or 'ml_score'")
+
+    df = df.copy()
+    if "score" not in df.columns and "ml_score" in df.columns:
+        df["score"] = df["ml_score"]
+    df["score"] = pd.to_numeric(df["score"], errors="coerce").fillna(0.5).clip(0, 1)
     df["updated_at"] = datetime.now(timezone.utc).isoformat()
+    keep_cols = ["user_id", "outfit_id", "score", "updated_at"]
+    df = df[keep_cols]
 
     rows = df.to_dict(orient="records")
     client = create_client(url, key)
