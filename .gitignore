@@ -55,3 +55,12 @@ app.*.map.json
 # Release binaries (kept local, not versioned)
 release/**/*.apk
 release/**/*.aab
+
+# ML pipeline — données et artefacts générés (gérés par GitHub Actions)
+data/
+ml/artifacts/*.joblib
+ml/artifacts/*.csv
+ml/artifacts/*.json
+ml/__pycache__/
+# Garder le dossier artifacts/ tracké via .gitkeep
+!ml/artifacts/.gitkeep
