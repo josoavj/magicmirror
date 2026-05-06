@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Generate outfit candidates per user from Supabase profiles.
 
+Fix #4 : le catalog d'outfits est maintenant chargé depuis Supabase si
+--outfits-table est fourni, avec fallback sur FALLBACK_OUTFIT_STYLES
+(défini dans schema.py) pour la rétrocompatibilité.
+
 This bridges the app catalog with the ML batch pipeline by creating one
 candidate row per (user, outfit) pair.
 """
@@ -9,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -16,14 +21,12 @@ from typing import Any
 import pandas as pd
 from supabase import create_client
 
-_OUTFIT_STYLES: dict[str, list[str]] = {
-    "casual_moderne": ["casual", "minimaliste"],
-    "elegant": ["elegant", "business"],
-    "sport": ["sport"],
-    "street_dynamics": ["streetwear", "casual"],
-    "business_smart": ["business", "elegant"],
-    "minimal_monochrome": ["minimaliste", "casual"],
-}
+# shared constants (fallback catalog + style normalization helpers)
+_ML_DIR = Path(__file__).parent
+if str(_ML_DIR) not in sys.path:
+    sys.path.insert(0, str(_ML_DIR))
+
+from schema import FALLBACK_OUTFIT_STYLES  # noqa: E402
 
 
 def _normalize_styles(value: Any) -> str:
@@ -70,8 +73,72 @@ def _default_context() -> dict[str, Any]:
     }
 
 
-def generate_candidates(url: str, key: str) -> pd.DataFrame:
+def _load_outfit_catalog(
+    client: Any, outfits_table: str | None
+) -> dict[str, list[str]]:
+    """Load the outfit catalog from Supabase or fall back to the hardcoded map.
+
+    Fix #4 : si `outfits_table` est fourni, charge les outfits depuis Supabase
+    (colonnes attendues : outfit_id, styles). Si la table est vide ou si la
+    colonne 'styles' est absente, on retombe sur le catalog par défaut.
+
+    Args:
+        client: Supabase client instance.
+        outfits_table: Name of the Supabase table, or None to use the fallback.
+
+    Returns:
+        dict mapping outfit_id -> list[str] of style tags.
+    """
+    if not outfits_table:
+        return dict(FALLBACK_OUTFIT_STYLES)
+
+    try:
+        rows = (
+            client.table(outfits_table)
+            .select("outfit_id,styles")
+            .execute()
+            .data
+            or []
+        )
+        if not rows:
+            print(
+                f"[WARNING] Table '{outfits_table}' returned 0 rows — using fallback catalog.",
+                file=sys.stderr,
+            )
+            return dict(FALLBACK_OUTFIT_STYLES)
+
+        catalog: dict[str, list[str]] = {}
+        for row in rows:
+            oid = row.get("outfit_id")
+            if not oid:
+                continue
+            raw_styles = row.get("styles", [])
+            if isinstance(raw_styles, str):
+                try:
+                    raw_styles = json.loads(raw_styles)
+                except json.JSONDecodeError:
+                    raw_styles = [s.strip() for s in raw_styles.split("|") if s.strip()]
+            catalog[str(oid)] = list(raw_styles) if isinstance(raw_styles, list) else []
+
+        print(f"Loaded {len(catalog)} outfits from '{outfits_table}'.")
+        return catalog
+
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[WARNING] Could not load outfits from '{outfits_table}': {exc}. "
+            "Using fallback catalog.",
+            file=sys.stderr,
+        )
+        return dict(FALLBACK_OUTFIT_STYLES)
+
+
+def generate_candidates(
+    url: str,
+    key: str,
+    outfits_table: str | None = None,
+) -> pd.DataFrame:
     client = create_client(url, key)
+
     rows = (
         client.table("profiles")
         .select("user_id,age,height_cm,morphology,preferred_styles,gender")
@@ -79,6 +146,9 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
         .data
         or []
     )
+
+    # Fix #4 : catalog chargé dynamiquement depuis Supabase si demandé
+    outfit_catalog = _load_outfit_catalog(client, outfits_table)
 
     payload = []
     common = _default_context()
@@ -89,6 +159,7 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
             continue
 
         preferred_styles = _normalize_styles(row.get("preferred_styles"))
+
         age = row.get("age")
         if not isinstance(age, int):
             try:
@@ -105,7 +176,7 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
 
         morphology = str(row.get("morphology") or "Silhouette non definie")
 
-        for outfit_id, styles in _OUTFIT_STYLES.items():
+        for outfit_id, styles in outfit_catalog.items():
             payload.append(
                 {
                     "user_id": str(user_id),
@@ -123,7 +194,10 @@ def generate_candidates(url: str, key: str) -> pd.DataFrame:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Generate outfit candidates per user")
+    parser = argparse.ArgumentParser(
+        description="Generate outfit candidates per user",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("--url", required=True, help="Supabase URL")
     parser.add_argument("--key", required=True, help="Supabase service role key")
     parser.add_argument(
@@ -131,12 +205,21 @@ def build_parser() -> argparse.ArgumentParser:
         default="data/outfit_candidates.jsonl",
         help="Output path (.jsonl or .csv)",
     )
+    parser.add_argument(
+        "--outfits-table",
+        default=None,
+        help=(
+            "Supabase table name for outfit catalog "
+            "(columns: outfit_id, styles). "
+            "If omitted, uses the hardcoded fallback catalog from schema.py."
+        ),
+    )
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    df = generate_candidates(args.url, args.key)
+    df = generate_candidates(args.url, args.key, outfits_table=args.outfits_table)
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
