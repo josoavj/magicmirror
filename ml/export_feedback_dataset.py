@@ -19,23 +19,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from supabase import create_client
 
+# Shared event labels — single source of truth
+_ML_DIR = Path(__file__).parent
+if str(_ML_DIR) not in sys.path:
+    sys.path.insert(0, str(_ML_DIR))
 
-POSITIVE_EVENTS = {"like", "favorite_add", "worn"}
-NEGATIVE_EVENTS = {
-    "dislike",
-    "favorite_remove",
-    "not_adapted",
-    "too_hot",
-    "too_cold",
-    "too_formal",
-    "too_sporty",
-}
+from schema import NEGATIVE_EVENTS, POSITIVE_EVENTS  # noqa: E402
 
 
 def _parse_iso(ts: str | None) -> datetime | None:

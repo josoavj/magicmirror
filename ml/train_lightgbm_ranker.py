@@ -17,8 +17,10 @@ Example:
 import argparse
 import json
 import logging
+import shutil
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +41,13 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
+# Shared schema — single source of truth for feature columns
+from schema import (
+    BOOLEAN_CANDIDATES,
+    CATEGORICAL_CANDIDATES,
+    NUMERIC_CANDIDATES,
+)
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -55,35 +64,8 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 REQUIRED_COLUMNS = {"label"}
-
-# NOTE: user_id and outfit_id are intentionally excluded — including raw IDs
-# as features causes data leakage and prevents generalisation to unseen users
-# or outfits. If you need entity embeddings, handle them separately.
-NUMERIC_CANDIDATES = [
-    "age",
-    "height_cm",
-    "weather_temp",
-    "weather_humidity",
-    "weather_wind",
-    "seen_7d_count",
-    "feedback_style_bias",
-    "feedback_outfit_bias",
-]
-
-# Boolean-like columns that are better treated as 0/1 numerics
-BOOLEAN_CANDIDATES = [
-    "strict_weather_mode",
-    "is_weekend",
-]
-
-CATEGORICAL_CANDIDATES = [
-    "morphology",
-    "planning_context",
-    "weather_main",
-    "hour_slot",
-    "styles",
-    "preferred_styles",
-]
+# NOTE: NUMERIC_CANDIDATES, BOOLEAN_CANDIDATES, CATEGORICAL_CANDIDATES are
+# imported from schema.py to stay in sync with score_lightgbm_ranker.py.
 
 # ---------------------------------------------------------------------------
 # I/O helpers
@@ -433,8 +415,20 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     # --- Persist ---
     out_path = Path(args.model_out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": model, "threshold": optimal_threshold}, out_path)
+    artefact = {"model": model, "threshold": optimal_threshold}
+    joblib.dump(artefact, out_path)
     log.info("Model saved → %s", out_path)
+
+    # Fix #9 : versioning par timestamp — permet le rollback si régression.
+    # Sauvegarde <stem>_YYYYMMDD_HHMMSS<suffix> en plus du fichier "latest".
+    ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+    versioned_path = out_path.with_stem(f"{out_path.stem}_{ts}")
+    shutil.copy2(out_path, versioned_path)
+    log.info("Versioned model → %s", versioned_path)
+
+    metrics["model_version"] = ts
+    metrics["model_path"] = str(out_path)
+    metrics["versioned_path"] = str(versioned_path)
 
     metrics_path = Path(args.metrics_out)
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
