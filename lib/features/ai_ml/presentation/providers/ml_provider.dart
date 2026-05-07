@@ -20,6 +20,12 @@ final currentMorphologyProvider =
       return MorphologyNotifier(service);
     });
 
+/// Morphologie stabilisee pour limiter les rebuilds frequents.
+final stableMorphologyProvider =
+    StateNotifierProvider<StableMorphologyNotifier, MorphologyData?>((ref) {
+      return StableMorphologyNotifier(ref);
+    });
+
 /// État pour tracer le traitement ML
 final isMlProcessingProvider = StateProvider<bool>((ref) => false);
 
@@ -90,4 +96,80 @@ class MorphologyNotifier extends StateNotifier<MorphologyData?> {
 
   /// Retourne la dernière morphologie détectée (pour la stabilisation)
   MorphologyData? getLatest() => state;
+}
+
+class StableMorphologyNotifier extends StateNotifier<MorphologyData?> {
+  StableMorphologyNotifier(this._ref) : super(null) {
+    _subscription = _ref.listen<MorphologyData?>(
+      currentMorphologyProvider,
+      (previous, next) => _maybeEmit(next),
+    );
+    _ref.onDispose(() => _subscription?.close());
+  }
+
+  final Ref _ref;
+  ProviderSubscription<MorphologyData?>? _subscription;
+  DateTime? _lastEmittedAt;
+  String? _lastBodyType;
+  double? _lastConfidence;
+
+  void _maybeEmit(MorphologyData? next) {
+    if (next == null) {
+      if (state != null) {
+        state = null;
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    final poseQuality = _tryParseDouble(next.measurements['pose_quality']);
+    final confidence = next.confidence;
+    final bodyType = next.bodyType;
+
+    const minIntervalMs = 1200;
+    const minConfidence = 50.0;
+    const minPoseQuality = 50.0;
+    const minConfidenceDelta = 6.0;
+    const minChangeConfidence = 45.0;
+    const minChangePoseQuality = 45.0;
+
+    final elapsedMs = _lastEmittedAt == null
+        ? minIntervalMs
+        : now.difference(_lastEmittedAt!).inMilliseconds;
+    final enoughTime = elapsedMs >= minIntervalMs;
+    final bodyTypeChanged = _lastBodyType == null || _lastBodyType != bodyType;
+    final confidenceDelta = _lastConfidence == null
+        ? 100.0
+        : (confidence - _lastConfidence!).abs();
+
+    final qualityOk =
+        confidence >= minConfidence && poseQuality >= minPoseQuality;
+    final changeOk =
+        confidence >= minChangeConfidence &&
+        poseQuality >= minChangePoseQuality &&
+        bodyTypeChanged;
+
+    if (!qualityOk && !changeOk) {
+      return;
+    }
+
+    if (enoughTime ||
+        bodyTypeChanged ||
+        confidenceDelta >= minConfidenceDelta) {
+      state = next;
+      _lastEmittedAt = now;
+      _lastBodyType = bodyType;
+      _lastConfidence = confidence;
+    }
+  }
+
+  double _tryParseDouble(dynamic value) {
+    if (value == null) {
+      return 0;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString()) ?? 0;
+  }
 }
