@@ -300,29 +300,6 @@ flutter run
 
 ---
 
-## 📈 Feuille de route
-
-### Phase 1 — Court terme
-
-- [ ] Tests unitaires & d'intégration
-- [ ] Optimisation des performances caméra
-- [ ] Mise en cache hors ligne pour la météo
-
-### Phase 2 — Moyen terme
-
-- [ ] Système de widgets modulaires (horloge, météo, agenda)
-- [ ] Support multi-écran natif
-- [ ] Intégration Spotify / Deezer
-- [ ] Reconnaissance faciale anti-intrusion
-
-### Phase 3 — Long terme
-
-- [ ] Intelligence artificielle améliorée
-- [ ] Intégration maison intelligente (MQTT / IoT)
-- [ ] Synchronisation cloud complète
-- [ ] Version web complète
-
----
 
 ## 👥 Contribution
 
