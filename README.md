@@ -10,8 +10,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-%3E%3D3.1.0-blue?style=flat-square" alt="Flutter Version">
-  <img src="https://img.shields.io/badge/Dart-%3E%3D3.1.0-blue?style=flat-square" alt="Dart Version">
-  <img src="https://img.shields.io/badge/Version-1.0.1--beta-orange?style=flat-square" alt="Version actuelle">
+  <img src="https://img.shields.io/badge/Dart-%3E%3D3.10.4-blue?style=flat-square" alt="Dart Version">
+  <img src="https://img.shields.io/badge/Version-1.0.1--beta%2B2-orange?style=flat-square" alt="Version actuelle">
   <img src="https://img.shields.io/badge/Status-Beta-yellow?style=flat-square" alt="Statut Beta">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence">
   <img src="https://img.shields.io/github/last-commit/josoavj/magicmirror?style=flat-square" alt="Dernier commit">
@@ -27,7 +27,9 @@
 | 📅 **Agenda / Calendrier** | ✅ 100% | Agenda cloud Supabase lié au compte actif |
 | 🌦️ **Météo** | ✅ 100% | API OpenWeatherMap réelle + géolocalisation automatique |
 | 🤖 **Morphologie IA** | ✅ 100% | Google ML Kit — détection de pose + classification morphologique |
-| 👔 **Suggestions de tenues** | ✅ 100% | Filtrées par morphologie + synthèse vocale française intégrée |
+| 👔 **Suggestions de tenues** | ✅ 100% | Filtrées par contexte + ranking hybride (ML + LLM) |
+| 👤 **Profil utilisateur** | ✅ 100% | Local + sync Supabase (profil, avatar, préférences) |
+| ⭐ **Favoris & feedback** | ✅ 100% | Favoris synchronisés + télémétrie de feedback |
 | 🗣️ **Synthèse vocale** | ✅ 100% | FlutterTTS en français pour les recommandations |
 | 📱 **UI responsive** | ✅ 100% | Design glassmorphism, support multi-écran |
 
@@ -74,11 +76,11 @@ flutter build macos      # macOS
 
 ### 1️⃣ Météo — OpenWeatherMap (2 min) ⚡
 
-**Configuration sécurisée via `.env`**
+**Configuration sécurisée via `assets/.env`**
 
 ```bash
 # 1. Copier le template
-cp .env.example .env
+cp .env.example assets/.env
 ```
 
 ```bash
@@ -87,7 +89,7 @@ cp .env.example .env
 ```
 
 ```env
-# 3. Renseigner la clé dans .env
+# 3. Renseigner la clé dans assets/.env
 OPENWEATHERMAP_API_KEY=votre_cle_ici
 ```
 
@@ -97,7 +99,7 @@ Voir [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) pour le guide complet.
 
 ### 2️⃣ Backend Supabase (recommandé)
 
-- Renseigner `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `.env`
+- Renseigner `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `assets/.env`
 - Créer les tables `profiles`, `agenda_events` et les politiques RLS
 
 Voir [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) pour le guide complet.
@@ -111,7 +113,6 @@ lib/
 ├── main.dart                          # Point d'entrée (AuthGate + routes)
 ├── config/
 │   ├── app_config.dart                # Feature flags & configuration
-│   └── di_setup.dart                  # Bootstrap des dépendances
 ├── core/
 │   ├── constants/
 │   ├── services/
@@ -173,13 +174,13 @@ lib/features/weather/data/services/weather_service.dart
 
 ### Configuration & secrets
 
-- `flutter_dotenv: ^5.1.0` — Variables d'environnement sécurisées
+- `flutter_dotenv: ^6.0.0` — Variables d'environnement sécurisées
 
 ### Services & API
 
 - `dio: ^5.3.1` — Client HTTP
-- `supabase_flutter: ^2.x` — Auth + profil + agenda (mobile & web)
-- `geolocator: ^12.0.0` — Géolocalisation GPS
+- `supabase_flutter: ^2.9.1` — Auth + profil + agenda (mobile & web)
+- `geolocator: ^14.0.2` — Géolocalisation GPS
 
 ### Caméra & médias
 
@@ -221,8 +222,10 @@ Voir [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) pour les détails par plateform
 | [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) | Configuration météo OpenWeatherMap |
 | [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Guide de démarrage rapide |
 | [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) | Support caméra par plateforme |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture de l'application |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture de l'application |
 | [OUTFIT_ML_PIPELINE.md](docs/OUTFIT_ML_PIPELINE.md) | Pipeline ML (LightGBM) |
+| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) | Schéma et policies Supabase |
+| [LOGGING.md](docs/LOGGING.md) | Logging et diagnostic |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des changements |
 
 ---
@@ -262,7 +265,6 @@ static const Duration cacheExpiry    = Duration(hours: 24);
 flutter analyze          # Lint & détection d'erreurs
 flutter doctor           # Diagnostics plateforme
 flutter pub get          # Vérification des dépendances
-
 flutter test             # Tests unitaires
 flutter test --coverage  # Rapport de couverture
 ```
@@ -288,41 +290,18 @@ flutter run
 
 ### Météo affiche « Non disponible »
 
-- Vérifier la clé API dans `weather_service.dart`
+- Vérifier la clé API dans `assets/.env`
 - Vérifier la connexion internet
 - Consulter le dépannage dans [WEATHER_SETUP.md](docs/WEATHER_SETUP.md)
 
 ### « Agenda non disponible »
 
-- Vérifier `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `.env`
+- Vérifier `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `assets/.env`
 - Exécuter le SQL décrit dans [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 - Vérifier que l'utilisateur est bien connecté
 
 ---
 
-## 📈 Feuille de route
-
-### Phase 1 — Court terme
-
-- [ ] Tests unitaires & d'intégration
-- [ ] Optimisation des performances caméra
-- [ ] Mise en cache hors ligne pour la météo
-
-### Phase 2 — Moyen terme
-
-- [ ] Système de widgets modulaires (horloge, météo, agenda)
-- [ ] Support multi-écran natif
-- [ ] Intégration Spotify / Deezer
-- [ ] Reconnaissance faciale anti-intrusion
-
-### Phase 3 — Long terme
-
-- [ ] Intelligence artificielle améliorée
-- [ ] Intégration maison intelligente (MQTT / IoT)
-- [ ] Synchronisation cloud complète
-- [ ] Version web complète
-
----
 
 ## 👥 Contribution
 
