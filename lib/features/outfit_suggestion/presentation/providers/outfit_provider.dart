@@ -153,8 +153,9 @@ bool _matchesTokens(String value, List<String> targets) {
 
 /// Fonction utilitaire pour vérifier l'intersection de deux listes
 bool _hasIntersection(List<String> list1, List<String> list2) {
-  if (list1.isEmpty || list2.isEmpty)
+  if (list1.isEmpty || list2.isEmpty) {
     return true; // Si l'un est vide, pas de restriction stricte
+  }
   for (final item in list1) {
     if (_matchesTokens(item, list2)) return true;
   }
