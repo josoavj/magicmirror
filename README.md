@@ -27,7 +27,9 @@
 | 📅 **Agenda / Calendrier** | ✅ 100% | Agenda cloud Supabase lié au compte actif |
 | 🌦️ **Météo** | ✅ 100% | API OpenWeatherMap réelle + géolocalisation automatique |
 | 🤖 **Morphologie IA** | ✅ 100% | Google ML Kit — détection de pose + classification morphologique |
-| 👔 **Suggestions de tenues** | ✅ 100% | Filtrées par morphologie + synthèse vocale française intégrée |
+| 👔 **Suggestions de tenues** | ✅ 100% | Filtrées par contexte + ranking hybride (ML + LLM) |
+| 👤 **Profil utilisateur** | ✅ 100% | Local + sync Supabase (profil, avatar, préférences) |
+| ⭐ **Favoris & feedback** | ✅ 100% | Favoris synchronisés + télémétrie de feedback |
 | 🗣️ **Synthèse vocale** | ✅ 100% | FlutterTTS en français pour les recommandations |
 | 📱 **UI responsive** | ✅ 100% | Design glassmorphism, support multi-écran |
 
@@ -74,11 +76,11 @@ flutter build macos      # macOS
 
 ### 1️⃣ Météo — OpenWeatherMap (2 min) ⚡
 
-**Configuration sécurisée via `.env`**
+**Configuration sécurisée via `assets/.env`**
 
 ```bash
 # 1. Copier le template
-cp .env.example .env
+cp .env.example assets/.env
 ```
 
 ```bash
@@ -87,7 +89,7 @@ cp .env.example .env
 ```
 
 ```env
-# 3. Renseigner la clé dans .env
+# 3. Renseigner la clé dans assets/.env
 OPENWEATHERMAP_API_KEY=votre_cle_ici
 ```
 
@@ -97,7 +99,7 @@ Voir [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) pour le guide complet.
 
 ### 2️⃣ Backend Supabase (recommandé)
 
-- Renseigner `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `.env`
+- Renseigner `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `assets/.env`
 - Créer les tables `profiles`, `agenda_events` et les politiques RLS
 
 Voir [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) pour le guide complet.
@@ -111,7 +113,6 @@ lib/
 ├── main.dart                          # Point d'entrée (AuthGate + routes)
 ├── config/
 │   ├── app_config.dart                # Feature flags & configuration
-│   └── di_setup.dart                  # Bootstrap des dépendances
 ├── core/
 │   ├── constants/
 │   ├── services/
@@ -221,8 +222,10 @@ Voir [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) pour les détails par plateform
 | [WEATHER_SETUP.md](docs/WEATHER_SETUP.md) | Configuration météo OpenWeatherMap |
 | [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Guide de démarrage rapide |
 | [CAMERA_SUPPORT.md](docs/CAMERA_SUPPORT.md) | Support caméra par plateforme |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture de l'application |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture de l'application |
 | [OUTFIT_ML_PIPELINE.md](docs/OUTFIT_ML_PIPELINE.md) | Pipeline ML (LightGBM) |
+| [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) | Schéma et policies Supabase |
+| [LOGGING.md](docs/LOGGING.md) | Logging et diagnostic |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des changements |
 
 ---
@@ -257,6 +260,11 @@ static const Duration cacheExpiry    = Duration(hours: 24);
 ---
 
 ## 🧪 Tests & validation
+
+```bash
+flutter analyze
+flutter test
+```
 
 ```bash
 flutter analyze          # Lint & détection d'erreurs
