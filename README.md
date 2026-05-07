@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-%3E%3D3.1.0-blue?style=flat-square" alt="Flutter Version">
-  <img src="https://img.shields.io/badge/Dart-%3E%3D3.1.0-blue?style=flat-square" alt="Dart Version">
+  <img src="https://img.shields.io/badge/Dart-%3E%3D3.10.4-blue?style=flat-square" alt="Dart Version">
   <img src="https://img.shields.io/badge/Version-1.0.1--beta%2B2-orange?style=flat-square" alt="Version actuelle">
   <img src="https://img.shields.io/badge/Status-Beta-yellow?style=flat-square" alt="Statut Beta">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence">
@@ -174,13 +174,13 @@ lib/features/weather/data/services/weather_service.dart
 
 ### Configuration & secrets
 
-- `flutter_dotenv: ^5.1.0` — Variables d'environnement sécurisées
+- `flutter_dotenv: ^6.0.0` — Variables d'environnement sécurisées
 
 ### Services & API
 
 - `dio: ^5.3.1` — Client HTTP
-- `supabase_flutter: ^2.x` — Auth + profil + agenda (mobile & web)
-- `geolocator: ^12.0.0` — Géolocalisation GPS
+- `supabase_flutter: ^2.9.1` — Auth + profil + agenda (mobile & web)
+- `geolocator: ^14.0.2` — Géolocalisation GPS
 
 ### Caméra & médias
 
@@ -262,15 +262,9 @@ static const Duration cacheExpiry    = Duration(hours: 24);
 ## 🧪 Tests & validation
 
 ```bash
-flutter analyze
-flutter test
-```
-
-```bash
 flutter analyze          # Lint & détection d'erreurs
 flutter doctor           # Diagnostics plateforme
 flutter pub get          # Vérification des dépendances
-
 flutter test             # Tests unitaires
 flutter test --coverage  # Rapport de couverture
 ```
@@ -296,13 +290,13 @@ flutter run
 
 ### Météo affiche « Non disponible »
 
-- Vérifier la clé API dans `weather_service.dart`
+- Vérifier la clé API dans `assets/.env`
 - Vérifier la connexion internet
 - Consulter le dépannage dans [WEATHER_SETUP.md](docs/WEATHER_SETUP.md)
 
 ### « Agenda non disponible »
 
-- Vérifier `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `.env`
+- Vérifier `SUPABASE_URL` et `SUPABASE_ANON_KEY` dans `assets/.env`
 - Exécuter le SQL décrit dans [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 - Vérifier que l'utilisateur est bien connecté
 
