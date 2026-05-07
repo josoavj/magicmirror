@@ -3427,7 +3427,6 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     );
   }
 
-  /*
   Widget _buildWeatherSection(AsyncValue<_OutfitWeatherBundle> weatherAsync) {
     return weatherAsync.when(
       data: (weatherBundle) {
@@ -3526,7 +3525,6 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       ),
     );
   }
-  */
 
   Widget _buildWeatherStat(String label, String value) {
     return Column(
