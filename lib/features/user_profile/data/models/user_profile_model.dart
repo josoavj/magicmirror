@@ -36,6 +36,19 @@ class UserProfile {
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    int readInt(dynamic value, int fallback) {
+      if (value is int) {
+        return value;
+      }
+      if (value is num) {
+        return value.toInt();
+      }
+      if (value is String && value.trim().isNotEmpty) {
+        return int.tryParse(value.trim()) ?? fallback;
+      }
+      return fallback;
+    }
+
     final birthDateRaw = json['birthDate'];
     DateTime? birthDate;
     if (birthDateRaw is String && birthDateRaw.isNotEmpty) {
@@ -47,8 +60,8 @@ class UserProfile {
       displayName: json['displayName'] as String? ?? 'Utilisateur',
       avatarUrl: json['avatarUrl'] as String? ?? '',
       gender: json['gender'] as String? ?? 'Non précise',
-      age: json['age'] as int? ?? 25,
-      heightCm: json['heightCm'] as int? ?? 170,
+      age: readInt(json['age'], 25),
+      heightCm: readInt(json['heightCm'], 170),
       birthDate: birthDate,
       morphology: json['morphology'] as String? ?? 'Silhouette non définie',
       preferredStyles: (json['preferredStyles'] as List<dynamic>? ?? ['Casual'])
