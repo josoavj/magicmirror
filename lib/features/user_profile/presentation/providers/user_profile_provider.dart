@@ -143,27 +143,38 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
   Future<void> _loadProfile() async {
     const storage = FlutterSecureStorage();
-    final localUserId = await storage.read(key: 'profile.userId') ?? 'local-user';
+    final localUserId =
+        await storage.read(key: 'profile.userId') ?? 'local-user';
     final resolvedUserId = await _syncService.resolveUserId(
       fallback: localUserId,
     );
 
-    final displayName = await storage.read(key: 'profile.displayName') ?? 'Utilisateur';
+    final displayName =
+        await storage.read(key: 'profile.displayName') ?? 'Utilisateur';
     final avatarUrl = await storage.read(key: 'profile.avatarUrl') ?? '';
     final gender = await storage.read(key: 'profile.gender') ?? 'Non précise';
-    
+
     final ageStr = await storage.read(key: 'profile.age');
     final age = ageStr != null ? int.tryParse(ageStr) ?? 25 : 25;
-    
+
     final heightCmStr = await storage.read(key: 'profile.heightCm');
-    final heightCm = (heightCmStr != null ? int.tryParse(heightCmStr) ?? 170 : 170).clamp(120, 230);
-    
+    final heightCm =
+        (heightCmStr != null ? int.tryParse(heightCmStr) ?? 170 : 170).clamp(
+          120,
+          230,
+        );
+
     final birthDateStr = await storage.read(key: 'profile.birthDate');
-    final morphology = await storage.read(key: 'profile.morphology') ?? 'Silhouette non définie';
-    
-    final preferredStylesStr = await storage.read(key: 'profile.preferredStyles');
-    final preferredStyles = preferredStylesStr != null && preferredStylesStr.isNotEmpty 
-        ? preferredStylesStr.split('|||') 
+    final morphology =
+        await storage.read(key: 'profile.morphology') ??
+        'Silhouette non définie';
+
+    final preferredStylesStr = await storage.read(
+      key: 'profile.preferredStyles',
+    );
+    final preferredStyles =
+        preferredStylesStr != null && preferredStylesStr.isNotEmpty
+        ? preferredStylesStr.split('|||')
         : ['Casual'];
 
     state = UserProfile(
@@ -218,13 +229,19 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     await storage.write(key: 'profile.avatarUrl', value: state.avatarUrl);
     await storage.write(key: 'profile.gender', value: state.gender);
     await storage.write(key: 'profile.age', value: state.age.toString());
-    await storage.write(key: 'profile.heightCm', value: state.heightCm.toString());
+    await storage.write(
+      key: 'profile.heightCm',
+      value: state.heightCm.toString(),
+    );
     await storage.write(
       key: 'profile.birthDate',
       value: state.birthDate?.toIso8601String() ?? '',
     );
     await storage.write(key: 'profile.morphology', value: state.morphology);
-    await storage.write(key: 'profile.preferredStyles', value: state.preferredStyles.join('|||'));
+    await storage.write(
+      key: 'profile.preferredStyles',
+      value: state.preferredStyles.join('|||'),
+    );
   }
 
   Future<void> setUserId(String userId) async {
@@ -414,7 +431,15 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         state = state.copyWith(userId: authUserId);
       }
 
-      await _syncService.pushProfile(state);
+      final saved = await _syncService.pushProfile(state);
+      if (saved == null) {
+        _ref.read(profileSyncStatusProvider.notifier).state =
+            ProfileSyncStatus.failure;
+        _ref.read(profileSyncMessageProvider.notifier).state =
+            'Synchronisation refusee par Supabase.';
+        return;
+      }
+      state = _normalizeDerivedFields(saved);
       await _saveProfile();
       _ref.read(profileSyncStatusProvider.notifier).state =
           ProfileSyncStatus.success;
