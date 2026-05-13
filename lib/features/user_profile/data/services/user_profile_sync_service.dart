@@ -59,15 +59,15 @@ class UserProfileSyncService {
     return null;
   }
 
-  Future<void> pushProfile(UserProfile profile) async {
+  Future<UserProfile?> pushProfile(UserProfile profile) async {
     final client = _client;
     if (client == null) {
-      return;
+      return null;
     }
 
     final resolvedUserId = await resolveUserId(fallback: profile.userId);
     if (resolvedUserId == null || resolvedUserId.isEmpty) {
-      return;
+      return null;
     }
 
     final payload = {
@@ -84,17 +84,50 @@ class UserProfileSyncService {
     };
 
     try {
-      await client.from('profiles').upsert(payload, onConflict: 'user_id');
+      final data = await client
+          .from('profiles')
+          .upsert(payload, onConflict: 'user_id')
+          .select()
+          .maybeSingle();
+      if (data != null) {
+        return UserProfile.fromJson({
+          'userId': data['user_id'],
+          'displayName': data['display_name'],
+          'avatarUrl': data['avatar_url'],
+          'gender': data['gender'],
+          'age': data['age'],
+          'heightCm': data['height_cm'],
+          'birthDate': data['birth_date'],
+          'morphology': data['morphology'],
+          'preferredStyles': data['preferred_styles'] ?? <dynamic>[],
+        });
+      }
+      return null;
     } on PostgrestException catch (error) {
       // Retro-compat: certains environnements n'ont pas encore la colonne
       // height_cm. On retente sans ce champ.
       if (error.code == '42703') {
         final fallbackPayload = Map<String, dynamic>.from(payload)
           ..remove('height_cm');
-        await client
+        final data = await client
             .from('profiles')
-            .upsert(fallbackPayload, onConflict: 'user_id');
-        return;
+            .upsert(fallbackPayload, onConflict: 'user_id')
+            .select()
+            .maybeSingle();
+        if (data != null) {
+          return UserProfile.fromJson({
+            'userId': data['user_id'],
+            'displayName': data['display_name'],
+            'avatarUrl': data['avatar_url'],
+            'gender': data['gender'],
+            'age': data['age'],
+            'heightCm': data['height_cm'],
+            'birthDate': data['birth_date'],
+            'morphology': data['morphology'],
+            'preferredStyles': data['preferred_styles'] ?? <dynamic>[],
+          });
+        }
+        return null;
       }
       rethrow;
     }
