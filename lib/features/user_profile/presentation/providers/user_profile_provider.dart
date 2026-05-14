@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/legacy.dart';
 import 'dart:typed_data';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/data/services/user_profile_sync_service.dart';
+import 'package:magicmirror/core/error/index.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -27,7 +29,17 @@ final userProfileSyncServiceProvider = Provider<UserProfileSyncService>((ref) {
 
 final profileSchemaWarningProvider = FutureProvider<String?>((ref) async {
   final syncService = ref.watch(userProfileSyncServiceProvider);
-  return syncService.validateProfileSchema();
+  final result = await syncService.validateProfileSchema();
+  return result.fold(
+    (failure) {
+      // Si error, on retourne le message d'erreur
+      if (failure is DatabaseException && failure.code == '42703') {
+        return 'Schéma Supabase obsolète. Contactez l\'administrateur.';
+      }
+      return 'Vérification du schéma échouée.';
+    },
+    (warning) => warning, // success: null = pas d'erreur
+  );
 });
 
 final userProfileProvider =
@@ -145,9 +157,10 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     const storage = FlutterSecureStorage();
     final localUserId =
         await storage.read(key: 'profile.userId') ?? 'local-user';
-    final resolvedUserId = await _syncService.resolveUserId(
+    final userIdResult = await _syncService.resolveUserId(
       fallback: localUserId,
     );
+    final resolvedUserId = userIdResult.getOrNull() ?? localUserId;
 
     final displayName =
         await storage.read(key: 'profile.displayName') ?? 'Utilisateur';
@@ -178,7 +191,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         : ['Casual'];
 
     state = UserProfile(
-      userId: resolvedUserId ?? localUserId,
+      userId: resolvedUserId,
       displayName: displayName,
       avatarUrl: avatarUrl,
       gender: gender,
@@ -198,13 +211,15 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
     // Si un profil cloud existe pour l'utilisateur authentifie, il devient la source de verite.
     try {
-      final authUserId = await _syncService.resolveUserId();
-      if (authUserId != null && authUserId.isNotEmpty) {
+      final authUserIdResult = await _syncService.resolveUserId();
+      if (authUserIdResult.isSuccess) {
+        final authUserId = authUserIdResult.getOrNull()!;
         if (authUserId != state.userId) {
           state = state.copyWith(userId: authUserId);
         }
-        final remote = await _syncService.fetchProfile(authUserId);
-        if (remote != null) {
+        final remoteResult = await _syncService.fetchProfile(authUserId);
+        if (remoteResult.isSuccess) {
+          final remote = remoteResult.getOrNull()!;
           state = _normalizeDerivedFields(remote);
           await _saveProfile();
           _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
@@ -254,8 +269,9 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
     // Quand l'utilisateur actif est connu, on recharge depuis Supabase.
     try {
-      final remote = await _syncService.fetchProfile(normalized);
-      if (remote != null) {
+      final remoteResult = await _syncService.fetchProfile(normalized);
+      if (remoteResult.isSuccess) {
+        final remote = remoteResult.getOrNull()!;
         state = _normalizeDerivedFields(remote);
         await _saveProfile();
       }
@@ -283,20 +299,28 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     required Uint8List bytes,
     String fileExtension = 'jpg',
   }) async {
-    final resolvedUserId = await _syncService.resolveUserId(
+    final userIdResult = await _syncService.resolveUserId(
       fallback: state.userId,
     );
-    if (resolvedUserId == null || resolvedUserId.isEmpty) {
+
+    if (userIdResult.isFailure) {
       return null;
     }
 
-    final uploadedUrl = await _syncService.uploadAvatarBytes(
+    final resolvedUserId = userIdResult.getOrNull()!;
+
+    final uploadResult = await _syncService.uploadAvatarBytes(
       bytes: bytes,
       userId: resolvedUserId,
       fileExtension: fileExtension,
     );
 
-    if (uploadedUrl == null || uploadedUrl.isEmpty) {
+    if (uploadResult.isFailure) {
+      return null;
+    }
+
+    final uploadedUrl = uploadResult.getOrNull()!;
+    if (uploadedUrl.isEmpty) {
       return null;
     }
 
@@ -419,38 +443,88 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         'Synchronisation en cours...';
 
     try {
-      final authUserId = await _syncService.resolveUserId();
-      if (authUserId == null || authUserId.isEmpty) {
+      final authUserIdResult = await _syncService.resolveUserId();
+      if (authUserIdResult.isFailure) {
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
         _ref.read(profileSyncMessageProvider.notifier).state =
             'Connectez-vous pour synchroniser votre profil.';
         return;
       }
+
+      final authUserId = authUserIdResult.getOrNull()!;
       if (authUserId != state.userId) {
         state = state.copyWith(userId: authUserId);
       }
 
-      final saved = await _syncService.pushProfile(state);
-      if (saved == null) {
+      final saveResult = await _syncService.pushProfile(state);
+
+      if (saveResult.isFailure) {
+        final error = saveResult.exceptionOrNull()!;
+
+        // Si c'est une erreur réseau, enqueue pour retry offline
+        if (error is NetworkException) {
+          // Enqueue the update to the offline queue for later retry
+          final queueItem = ProfileUpdateQueueItem(
+            id: state.userId,
+            displayName: state.displayName,
+            avatarUrl: state.avatarUrl,
+            gender: state.gender,
+            heightCm: state.heightCm,
+            birthDate: state.birthDate,
+            morphology: state.morphology,
+            preferredStyles: state.preferredStyles,
+          );
+
+          try {
+            await OfflineQueue.enqueue(
+              state.userId,
+              jsonEncode(queueItem.toJson()),
+            );
+          } catch (_) {
+            // Silent fail if queue can't persist
+          }
+
+          _ref.read(profileSyncStatusProvider.notifier).state =
+              ProfileSyncStatus.failure;
+          _ref.read(profileSyncMessageProvider.notifier).state =
+              'Hors ligne. Synchronisation différée.';
+          return;
+        }
+
+        // Si c'est une erreur d'auth, afficher le message
+        if (error is AuthException) {
+          _ref.read(profileSyncStatusProvider.notifier).state =
+              ProfileSyncStatus.failure;
+          _ref.read(profileSyncMessageProvider.notifier).state =
+              'Authentification requise pour synchroniser.';
+          return;
+        }
+
+        // Autres erreurs
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
-        _ref.read(profileSyncMessageProvider.notifier).state =
-            'Synchronisation refusee par Supabase.';
+        _ref
+            .read(profileSyncMessageProvider.notifier)
+            .state = error is DatabaseException && error.code == '23505'
+            ? 'Profil déjà utilisé par un autre compte.'
+            : 'Synchronisation échouée: ${error.message}';
         return;
       }
+
+      final saved = saveResult.getOrNull()!;
       state = _normalizeDerivedFields(saved);
       await _saveProfile();
       _ref.read(profileSyncStatusProvider.notifier).state =
           ProfileSyncStatus.success;
       _ref.read(profileSyncMessageProvider.notifier).state =
-          'Profil synchronise avec Supabase.';
+          'Profil synchronisé avec Supabase.';
       _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
-    } catch (_) {
+    } catch (e) {
       _ref.read(profileSyncStatusProvider.notifier).state =
           ProfileSyncStatus.failure;
       _ref.read(profileSyncMessageProvider.notifier).state =
-          'Echec de synchronisation Supabase.';
+          'Erreur inattendue lors de la synchronisation.';
     }
   }
 
@@ -458,40 +532,56 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     _ref.read(profileSyncStatusProvider.notifier).state =
         ProfileSyncStatus.syncing;
     _ref.read(profileSyncMessageProvider.notifier).state =
-        'Recuperation du profil cloud...';
+        'Récupération du profil cloud...';
 
     try {
-      final authUserId = await _syncService.resolveUserId();
-      if (authUserId == null || authUserId.isEmpty) {
+      final authUserIdResult = await _syncService.resolveUserId();
+      if (authUserIdResult.isFailure) {
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
         _ref.read(profileSyncMessageProvider.notifier).state =
-            'Connectez-vous pour recuperer votre profil cloud.';
+            'Connectez-vous pour récupérer votre profil cloud.';
         return;
       }
+
+      final authUserId = authUserIdResult.getOrNull()!;
       if (authUserId != state.userId) {
         state = state.copyWith(userId: authUserId);
       }
-      final remote = await _syncService.fetchProfile(authUserId);
-      if (remote != null) {
-        state = _normalizeDerivedFields(remote);
-        await _saveProfile();
-        _ref.read(profileSyncStatusProvider.notifier).state =
-            ProfileSyncStatus.success;
-        _ref.read(profileSyncMessageProvider.notifier).state =
-            'Profil recupere depuis Supabase.';
-        _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
-      } else {
+
+      final remoteResult = await _syncService.fetchProfile(authUserId);
+
+      if (remoteResult.isFailure) {
+        final error = remoteResult.exceptionOrNull()!;
         _ref.read(profileSyncStatusProvider.notifier).state =
             ProfileSyncStatus.failure;
-        _ref.read(profileSyncMessageProvider.notifier).state =
-            'Profil introuvable sur Supabase.';
+
+        if (error is DatabaseException && error.code == 'NOT_FOUND') {
+          _ref.read(profileSyncMessageProvider.notifier).state =
+              'Profil introuvable sur Supabase.';
+        } else if (error is NetworkException) {
+          _ref.read(profileSyncMessageProvider.notifier).state =
+              'Erreur réseau lors de la récupération.';
+        } else {
+          _ref.read(profileSyncMessageProvider.notifier).state =
+              'Récupération échouée: ${error.message}';
+        }
+        return;
       }
-    } catch (_) {
+
+      final remote = remoteResult.getOrNull()!;
+      state = _normalizeDerivedFields(remote);
+      await _saveProfile();
+      _ref.read(profileSyncStatusProvider.notifier).state =
+          ProfileSyncStatus.success;
+      _ref.read(profileSyncMessageProvider.notifier).state =
+          'Profil récupéré depuis Supabase.';
+      _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
+    } catch (e) {
       _ref.read(profileSyncStatusProvider.notifier).state =
           ProfileSyncStatus.failure;
       _ref.read(profileSyncMessageProvider.notifier).state =
-          'Echec de recuperation depuis Supabase.';
+          'Erreur inattendue lors de la récupération.';
     }
   }
 }
