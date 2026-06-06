@@ -74,7 +74,7 @@ flutter build macos      # macOS
 
 ## ⚙️ Configuration requise
 
-### 1️⃣ Météo — OpenWeatherMap (2 min) ⚡
+### 1️⃣ Météo — OpenWeatherMap
 
 **Configuration sécurisée via `assets/.env`**
 
