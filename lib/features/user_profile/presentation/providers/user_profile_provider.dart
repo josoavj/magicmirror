@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/data/services/user_profile_sync_service.dart';
 import 'package:magicmirror/core/error/index.dart';
+import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -209,7 +210,8 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       await _saveProfile();
     }
 
-    // Si un profil cloud existe pour l'utilisateur authentifie, il devient la source de verite.
+    // Si un profil cloud existe pour l'utilisateur authentifie, il devient la source de verite
+    // UNIQUEMENT si le profil local est celui par defaut.
     try {
       final authUserIdResult = await _syncService.resolveUserId();
       if (authUserIdResult.isSuccess) {
@@ -217,12 +219,20 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         if (authUserId != state.userId) {
           state = state.copyWith(userId: authUserId);
         }
-        final remoteResult = await _syncService.fetchProfile(authUserId);
-        if (remoteResult.isSuccess) {
-          final remote = remoteResult.getOrNull()!;
-          state = _normalizeDerivedFields(remote);
-          await _saveProfile();
-          _ref.read(profileLastSyncAtProvider.notifier).state = DateTime.now();
+
+        if (state.isDefault) {
+          final remoteResult = await _syncService.fetchProfile(authUserId);
+          if (remoteResult.isSuccess) {
+            final remote = remoteResult.getOrNull()!;
+            state = _normalizeDerivedFields(remote);
+            await _saveProfile();
+            _ref.read(profileLastSyncAtProvider.notifier).state =
+                DateTime.now();
+          }
+        } else {
+          // Si on a des donnees locales mais qu'on vient de se connecter,
+          // on pousse nos donnees vers le cloud pour initialiser le compte.
+          await syncToCloud();
         }
       }
     } catch (_) {
@@ -267,16 +277,21 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     state = state.copyWith(userId: normalized);
     await _saveProfile();
 
-    // Quand l'utilisateur actif est connu, on recharge depuis Supabase.
+    // Quand l'utilisateur actif est connu, on tente de synchroniser.
+    // Si local est defaut -> on pull. Sinon -> on push.
     try {
-      final remoteResult = await _syncService.fetchProfile(normalized);
-      if (remoteResult.isSuccess) {
-        final remote = remoteResult.getOrNull()!;
-        state = _normalizeDerivedFields(remote);
-        await _saveProfile();
+      if (state.isDefault) {
+        final remoteResult = await _syncService.fetchProfile(normalized);
+        if (remoteResult.isSuccess) {
+          final remote = remoteResult.getOrNull()!;
+          state = _normalizeDerivedFields(remote);
+          await _saveProfile();
+        }
+      } else {
+        await syncToCloud();
       }
     } catch (_) {
-      // On conserve l'etat local si la lecture cloud echoue.
+      // On conserve l'etat local si la synchro echoue.
     }
   }
 
@@ -299,6 +314,14 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     required Uint8List bytes,
     String fileExtension = 'jpg',
   }) async {
+    if (bytes.length > AppConstants.maxAvatarSizeBytes) {
+      _ref.read(profileSyncStatusProvider.notifier).state =
+          ProfileSyncStatus.failure;
+      _ref.read(profileSyncMessageProvider.notifier).state =
+          'L\'image est trop volumineuse (max 2Mo).';
+      return null;
+    }
+
     final userIdResult = await _syncService.resolveUserId(
       fallback: state.userId,
     );
