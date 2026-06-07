@@ -511,8 +511,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final userId = response.user?.id;
       if (userId != null) {
         final profileNotifier = ref.read(userProfileProvider.notifier);
+        // setUserId gère désormais intelligemment la synchro (push si local présent, pull sinon)
         await profileNotifier.setUserId(userId);
-        await profileNotifier.pullFromCloud();
         await _tryUploadPendingAvatarAfterLogin(profileNotifier);
       }
     } on AuthException catch (e) {
