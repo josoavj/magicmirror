@@ -33,4 +33,7 @@ class AppConstants {
   // Locations
   static const double defaultLatitude = 48.8566;
   static const double defaultLongitude = 2.3522;
+
+  // Profile & Storage
+  static const int maxAvatarSizeBytes = 2 * 1024 * 1024; // 2MB
 }

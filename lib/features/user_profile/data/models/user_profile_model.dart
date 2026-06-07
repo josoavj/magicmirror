@@ -70,6 +70,15 @@ class UserProfile {
     );
   }
 
+  /// Vérifie si le profil contient les valeurs par défaut (non personnalisé)
+  bool get isDefault {
+    return displayName == 'Utilisateur' &&
+        gender == 'Non précise' &&
+        morphology == 'Silhouette non définie' &&
+        (preferredStyles.isEmpty ||
+            (preferredStyles.length == 1 && preferredStyles.first == 'Casual'));
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
