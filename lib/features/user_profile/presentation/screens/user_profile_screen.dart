@@ -33,9 +33,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       final notifier = ref.read(userProfileProvider.notifier);
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
+        // setUserId gère désormais intelligemment la synchro
         await notifier.setUserId(currentUser.id);
       }
-      await notifier.pullFromCloud();
     });
   }
 
