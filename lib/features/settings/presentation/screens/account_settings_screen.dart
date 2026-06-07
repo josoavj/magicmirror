@@ -144,10 +144,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final currentUser = Supabase.instance.client.auth.currentUser;
+      final notifier = ref.read(userProfileProvider.notifier);
+
       if (currentUser != null) {
-        await ref.read(userProfileProvider.notifier).setUserId(currentUser.id);
+        // setUserId gère désormais intelligemment la synchro
+        // (push si local présent, pull si vide)
+        await notifier.setUserId(currentUser.id);
       }
-      await _refreshProfileFromCloud();
+
       if (!mounted) {
         return;
       }
