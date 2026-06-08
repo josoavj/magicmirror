@@ -269,6 +269,32 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     );
   }
 
+  Future<void> updateProfile({
+    String? displayName,
+    String? avatarUrl,
+    String? gender,
+    DateTime? birthDate,
+    int? heightCm,
+    String? morphology,
+    List<String>? preferredStyles,
+  }) async {
+    state = state.copyWith(
+      displayName: displayName?.trim() ?? state.displayName,
+      avatarUrl: avatarUrl?.trim() ?? state.avatarUrl,
+      gender: gender ?? state.gender,
+      birthDate: birthDate ?? state.birthDate,
+      age: birthDate != null ? _ageFromBirthDate(birthDate) : state.age,
+      heightCm: heightCm?.clamp(120, 230) ?? state.heightCm,
+      morphology: morphology != null
+          ? _canonicalizeMorphology(morphology)
+          : state.morphology,
+      preferredStyles: preferredStyles ?? state.preferredStyles,
+    );
+
+    await _saveProfile();
+    await syncToCloud();
+  }
+
   Future<void> setUserId(String userId) async {
     final normalized = userId.trim();
     if (normalized.isEmpty) {
@@ -363,37 +389,19 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     String? userId,
     bool syncIfConnected = true,
   }) async {
-    final resolvedName = displayName.trim().isEmpty
-        ? 'Utilisateur'
-        : displayName.trim();
-    final resolvedStyles = preferredStyles.isEmpty
-        ? const ['Casual']
-        : preferredStyles;
-
-    final normalizedBirthDate = DateTime(
-      birthDate.year,
-      birthDate.month,
-      birthDate.day,
-    );
-
-    state = state.copyWith(
-      userId: (userId?.trim().isNotEmpty ?? false)
-          ? userId!.trim()
-          : state.userId,
-      displayName: resolvedName,
-      avatarUrl: avatarUrl.trim(),
+    await updateProfile(
+      displayName: displayName,
+      avatarUrl: avatarUrl,
       gender: gender,
-      age: _ageFromBirthDate(normalizedBirthDate),
-      heightCm: heightCm.clamp(120, 230),
-      birthDate: normalizedBirthDate,
-      morphology: _canonicalizeMorphology(morphology),
-      preferredStyles: resolvedStyles,
+      birthDate: birthDate,
+      heightCm: heightCm,
+      morphology: morphology,
+      preferredStyles: preferredStyles,
     );
 
-    await _saveProfile();
-
-    if (syncIfConnected) {
-      await syncToCloud();
+    if (userId != null && userId.trim().isNotEmpty) {
+      state = state.copyWith(userId: userId.trim());
+      await _saveProfile();
     }
   }
 

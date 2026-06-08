@@ -428,96 +428,143 @@ class _AgendaGlassTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final accentColor = isNow ? Colors.cyanAccent : Colors.white;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: GlassContainer(
         borderRadius: 24,
-        blur: isNow ? 36 : 32,
-        opacity: isNow ? 0.13 : 0.1,
-        tintColor: isNow ? Colors.blue : Colors.white,
+        blur: isNow ? 40 : 32,
+        opacity: isNow ? 0.16 : 0.1,
+        tintColor: isNow ? Colors.cyan.withValues(alpha: 0.8) : Colors.white,
+        borderWidth: isNow ? 2.0 : 1.1,
         padding: EdgeInsets.all(isMobile ? 16 : 20),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  time,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isMobile ? 18 : 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  type,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.62),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(width: isMobile ? 16 : 24),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: isCompleted
-                      ? Colors.white.withValues(alpha: 0.55)
-                      : Colors.white,
-                  fontSize: isMobile ? 16 : 18,
-                  fontWeight: FontWeight.w500,
-                  decoration: isCompleted
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: onToggleComplete,
-              icon: Icon(
-                isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: isCompleted ? Colors.greenAccent : Colors.white70,
-              ),
-            ),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white70),
-              onSelected: (value) {
-                if (value == 'edit') {
-                  onEdit();
-                } else if (value == 'delete') {
-                  onDelete();
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Text(isEnglish ? 'Edit' : 'Modifier'),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text(isEnglish ? 'Delete' : 'Supprimer'),
-                ),
-              ],
-            ),
             if (isNow)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue,
-                      blurRadius: 8,
-                      spreadRadius: 2,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.cyanAccent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.cyanAccent.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.sensors,
+                        size: 14,
+                        color: Colors.cyanAccent,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isEnglish ? 'NOW' : 'EN CE MOMENT',
+                        style: const TextStyle(
+                          color: Colors.cyanAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      time,
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: isMobile ? 18 : 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      type,
+                      style: TextStyle(
+                        color: accentColor.withValues(alpha: 0.62),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
-              ),
+                SizedBox(width: isMobile ? 16 : 24),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: isCompleted
+                          ? Colors.white.withValues(alpha: 0.55)
+                          : Colors.white,
+                      fontSize: isMobile ? 16 : 18,
+                      fontWeight:
+                          isNow ? FontWeight.bold : FontWeight.w500,
+                      decoration: isCompleted
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onToggleComplete,
+                  icon: Icon(
+                    isCompleted
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isCompleted
+                        ? Colors.greenAccent
+                        : (isNow ? Colors.cyanAccent : Colors.white70),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white70),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      onEdit();
+                    } else if (value == 'delete') {
+                      onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text(isEnglish ? 'Edit' : 'Modifier'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(isEnglish ? 'Delete' : 'Supprimer'),
+                    ),
+                  ],
+                ),
+                if (isNow)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.cyanAccent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.cyanAccent,
+                          blurRadius: 10,
+                          spreadRadius: 3,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

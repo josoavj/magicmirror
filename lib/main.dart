@@ -5,13 +5,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:magicmirror/l10n/app_localizations.dart';
-import 'package:magicmirror/core/theme/app_colors.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
 import 'package:magicmirror/core/services/cache_service.dart';
 import 'package:magicmirror/features/settings/presentation/providers/settings_provider.dart';
 import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/routes/app_routes.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_gate.dart';
+import 'core/theme/app_theme.dart';
 
 bool _isSupabaseReady = false;
 

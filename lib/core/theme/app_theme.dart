@@ -6,7 +6,6 @@ class AppTheme {
     final baseTheme = isDarkMode ? ThemeData.dark() : ThemeData.light();
 
     return baseTheme.copyWith(
-      useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: isDarkMode ? Brightness.dark : Brightness.light,

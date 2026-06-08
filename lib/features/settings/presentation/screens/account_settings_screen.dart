@@ -172,25 +172,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     });
     try {
       final notifier = ref.read(userProfileProvider.notifier);
-      final previousProfile = ref.read(userProfileProvider);
 
-      await notifier.setDisplayName(_displayNameController.text);
-      await notifier.setAvatarUrl(_avatarUrlController.text);
-      await notifier.setGender(_gender);
-      await notifier.setHeightCm(_heightCm);
-      await notifier.setMorphology(_morphology);
-      if (_birthDate != null) {
-        await notifier.setBirthDate(_birthDate!);
-      }
-
-      final previousStyles = previousProfile.preferredStyles.toSet();
-      final toggles = _styles.where(
-        (style) =>
-            previousStyles.contains(style) != _selectedStyles.contains(style),
+      await notifier.updateProfile(
+        displayName: _displayNameController.text,
+        avatarUrl: _avatarUrlController.text,
+        gender: _gender,
+        heightCm: _heightCm,
+        morphology: _morphology,
+        birthDate: _birthDate,
+        preferredStyles: _selectedStyles.toList(),
       );
-      for (final style in toggles) {
-        await notifier.togglePreferredStyle(style);
-      }
 
       if (!mounted) {
         return;
@@ -198,6 +189,21 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_tr(context, 'Profil mis à jour.', 'Profile updated.')),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _tr(
+              context,
+              'Erreur lors de la mise à jour.',
+              'Update failed.',
+            ),
+          ),
         ),
       );
     } finally {
