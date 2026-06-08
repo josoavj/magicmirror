@@ -25,23 +25,29 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
     refresh();
     _autoRefreshTimer = Timer.periodic(const Duration(minutes: 30), (_) {
       logger.debug('Auto-refresh agenda', tag: 'AgendaNotifier');
-      refresh();
+      refresh(null, true);
     });
   }
 
   DateTime get selectedDay => _selectedDay;
 
-  Future<void> refresh([DateTime? day]) async {
+  Future<void> refresh([DateTime? day, bool silent = false]) async {
     if (day != null) {
       _selectedDay = DateTime(day.year, day.month, day.day);
     }
-    state = const AsyncValue.loading();
+    
+    if (!silent) {
+      state = const AsyncValue.loading();
+    }
+    
     try {
       final events = await _service.fetchEventsForDay(_selectedDay);
       state = AsyncValue.data(events);
     } catch (e, st) {
       logger.error('Erreur refresh agenda', tag: 'AgendaNotifier', error: e);
-      state = AsyncValue.error(e, st);
+      if (!silent) {
+        state = AsyncValue.error(e, st);
+      }
     }
   }
 
@@ -90,7 +96,7 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
   Future<void> deleteEvent(String eventId) async {
     try {
       await _service.deleteEvent(eventId);
-      await refresh();
+      await refresh(null, true);
     } catch (e, st) {
       logger.error(
         'Erreur suppression événement',
@@ -102,7 +108,27 @@ class AgendaNotifier extends StateNotifier<AsyncValue<List<AgendaEvent>>> {
   }
 
   Future<void> toggleComplete(AgendaEvent event) async {
-    await updateEvent(event.copyWith(isCompleted: !event.isCompleted));
+    final oldState = state;
+    if (state is AsyncData<List<AgendaEvent>>) {
+      final currentList = state.asData!.value;
+      final newList = currentList.map((e) {
+        if (e.id == event.id) {
+          return e.copyWith(isCompleted: !event.isCompleted);
+        }
+        return e;
+      }).toList();
+      state = AsyncValue.data(newList);
+    }
+
+    try {
+      await _service.updateEvent(event.copyWith(isCompleted: !event.isCompleted));
+      // Pas besoin de refresh complet ici si on fait confiance à l'optimisme,
+      // mais on peut faire un refresh silencieux pour confirmer.
+      await refresh(null, true);
+    } catch (e) {
+      logger.error('Erreur toggle complete', tag: 'AgendaNotifier', error: e);
+      state = oldState; // Rollback en cas d'erreur
+    }
   }
 
   @override
