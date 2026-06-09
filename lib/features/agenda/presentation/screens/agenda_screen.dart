@@ -44,217 +44,14 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   }
 
   Future<void> _showEventDialog({AgendaEvent? editingEvent}) async {
-    final titleController = TextEditingController(
-      text: editingEvent?.title ?? '',
-    );
-    final descriptionController = TextEditingController(
-      text: editingEvent?.description ?? '',
-    );
-    final locationController = TextEditingController(
-      text: editingEvent?.location ?? '',
-    );
-
-    DateTime startTime =
-        editingEvent?.startTime ??
-        DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 9, 0);
-    DateTime endTime =
-        editingEvent?.endTime ?? startTime.add(const Duration(hours: 1));
-    String eventType = editingEvent?.eventType ?? 'Personnel';
-
-    final formKey = GlobalKey<FormState>();
-    final eventTypes = <String>['Personnel', 'Travail', 'Routine', 'Autre'];
-
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (_, setLocalState) {
-            Future<void> pickDateTime({required bool forStart}) async {
-              final source = forStart ? startTime : endTime;
-              final date = await showDatePicker(
-                context: dialogContext,
-                initialDate: source,
-                firstDate: DateTime(_selectedDay.year - 1),
-                lastDate: DateTime(_selectedDay.year + 2),
-              );
-              if (date == null || !dialogContext.mounted) {
-                return;
-              }
-              final time = await showTimePicker(
-                context: dialogContext,
-                initialTime: TimeOfDay.fromDateTime(source),
-              );
-              if (time == null || !dialogContext.mounted) {
-                return;
-              }
-              final value = DateTime(
-                date.year,
-                date.month,
-                date.day,
-                time.hour,
-                time.minute,
-              );
-              setLocalState(() {
-                if (forStart) {
-                  startTime = value;
-                  if (!endTime.isAfter(startTime)) {
-                    endTime = startTime.add(const Duration(hours: 1));
-                  }
-                } else {
-                  endTime = value;
-                }
-              });
-            }
-
-            return AlertDialog(
-              title: Text(
-                editingEvent == null
-                    ? _tr(dialogContext, 'Nouvel evenement', 'New event')
-                    : _tr(dialogContext, 'Modifier evenement', 'Edit event'),
-              ),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titre'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Titre obligatoire';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                        ),
-                        minLines: 1,
-                        maxLines: 3,
-                      ),
-                      TextFormField(
-                        controller: locationController,
-                        decoration: const InputDecoration(labelText: 'Lieu'),
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue: eventType,
-                        items: eventTypes
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(item),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setLocalState(() {
-                              eventType = value;
-                            });
-                          }
-                        },
-                        decoration: const InputDecoration(labelText: 'Type'),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => pickDateTime(forStart: true),
-                              icon: const Icon(Icons.schedule),
-                              label: Text(
-                                'Début\n${startTime.day.toString().padLeft(2, '0')}/${startTime.month.toString().padLeft(2, '0')} ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => pickDateTime(forStart: false),
-                              icon: const Icon(Icons.schedule_send),
-                              label: Text(
-                                'Fin\n${endTime.day.toString().padLeft(2, '0')}/${endTime.month.toString().padLeft(2, '0')} ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: Text(_tr(dialogContext, 'Annuler', 'Cancel')),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!(formKey.currentState?.validate() ?? false)) {
-                      return;
-                    }
-                    if (!endTime.isAfter(startTime)) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('La fin doit être après le début.'),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final notifier = ref.read(agendaEventsProvider.notifier);
-                    if (editingEvent == null) {
-                      await notifier.createEvent(
-                        title: titleController.text.trim(),
-                        description: descriptionController.text.trim().isEmpty
-                            ? null
-                            : descriptionController.text.trim(),
-                        startTime: startTime,
-                        endTime: endTime,
-                        location: locationController.text.trim().isEmpty
-                            ? null
-                            : locationController.text.trim(),
-                        eventType: eventType,
-                      );
-                    } else {
-                      await notifier.updateEvent(
-                        editingEvent.copyWith(
-                          title: titleController.text.trim(),
-                          description: descriptionController.text.trim().isEmpty
-                              ? null
-                              : descriptionController.text.trim(),
-                          startTime: startTime,
-                          endTime: endTime,
-                          location: locationController.text.trim().isEmpty
-                              ? null
-                              : locationController.text.trim(),
-                          eventType: eventType,
-                        ),
-                      );
-                    }
-
-                    if (!dialogContext.mounted) {
-                      return;
-                    }
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: Text(_tr(dialogContext, 'Enregistrer', 'Save')),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      barrierDismissible: false, // Prevents closing while saving
+      builder: (dialogContext) => _AgendaEventDialog(
+        editingEvent: editingEvent,
+        selectedDay: _selectedDay,
+      ),
     );
-
-    titleController.dispose();
-    descriptionController.dispose();
-    locationController.dispose();
   }
 
   @override
@@ -308,13 +105,15 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                         _GlassIconButton(
                           icon: Icons.event,
                           onPressed: _pickDay,
+                          tooltip: Localizations.localeOf(context).languageCode == 'en' ? 'Select day' : 'Choisir un jour',
                         ),
                         const SizedBox(width: 10),
                         _GlassIconButton(
                           icon: Icons.refresh,
                           onPressed: () => ref
                               .read(agendaEventsProvider.notifier)
-                              .refresh(_selectedDay),
+                              .refresh(_selectedDay, true),
+                          tooltip: Localizations.localeOf(context).languageCode == 'en' ? 'Refresh' : 'Actualiser',
                         ),
                       ],
                     ),
@@ -374,17 +173,19 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                     Expanded(
                       child: _GlassButton(
                         label: _tr(context, 'Retour', 'Back'),
-                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/home',
-                          (route) => false,
-                        ),
+                        onPressed: () {
+                          // Clean up before navigating
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/home',
+                            (route) => false,
+                          );
+                        },
                         icon: Icons.arrow_back_ios_new,
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
                       child: _GlassButton(
                         label: _tr(context, 'Ajouter', 'Add'),
@@ -399,6 +200,275 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AgendaEventDialog extends ConsumerStatefulWidget {
+  final AgendaEvent? editingEvent;
+  final DateTime selectedDay;
+
+  const _AgendaEventDialog({
+    super.key,
+    this.editingEvent,
+    required this.selectedDay,
+  });
+
+  @override
+  ConsumerState<_AgendaEventDialog> createState() => _AgendaEventDialogState();
+}
+
+class _AgendaEventDialogState extends ConsumerState<_AgendaEventDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _locationController;
+
+  late DateTime _startTime;
+  late DateTime _endTime;
+  late String _eventType;
+
+  final _formKey = GlobalKey<FormState>();
+  final _eventTypes = <String>['Personnel', 'Travail', 'Routine', 'Autre'];
+  bool _isSaving = false;
+
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.editingEvent?.title ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.editingEvent?.description ?? '',
+    );
+    _locationController = TextEditingController(
+      text: widget.editingEvent?.location ?? '',
+    );
+
+    _startTime =
+        widget.editingEvent?.startTime ??
+        DateTime(
+          widget.selectedDay.year,
+          widget.selectedDay.month,
+          widget.selectedDay.day,
+          9,
+          0,
+        );
+    _endTime =
+        widget.editingEvent?.endTime ?? _startTime.add(const Duration(hours: 1));
+    _eventType = widget.editingEvent?.eventType ?? 'Personnel';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDateTime({required bool forStart}) async {
+    final source = forStart ? _startTime : _endTime;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: source,
+      firstDate: DateTime(widget.selectedDay.year - 1),
+      lastDate: DateTime(widget.selectedDay.year + 2),
+    );
+    if (date == null || !mounted) {
+      return;
+    }
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(source),
+    );
+    if (time == null || !mounted) {
+      return;
+    }
+    final value = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    setState(() {
+      if (forStart) {
+        _startTime = value;
+        if (!_endTime.isAfter(_startTime)) {
+          _endTime = _startTime.add(const Duration(hours: 1));
+        }
+      } else {
+        _endTime = value;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        widget.editingEvent == null
+            ? _tr(context, 'Nouvel événement', 'New event')
+            : _tr(context, 'Modifier événement', 'Edit event'),
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Titre'),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Titre obligatoire';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+                minLines: 1,
+                maxLines: 3,
+              ),
+              TextFormField(
+                controller: _locationController,
+                decoration: const InputDecoration(labelText: 'Lieu'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _eventType,
+                items: _eventTypes
+                    .map(
+                      (item) => DropdownMenuItem(value: item, child: Text(item)),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _eventType = value;
+                    });
+                  }
+                },
+                decoration: const InputDecoration(labelText: 'Type'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickDateTime(forStart: true),
+                      icon: const Icon(Icons.schedule),
+                      label: Text(
+                        'Début\n${_startTime.day.toString().padLeft(2, '0')}/${_startTime.month.toString().padLeft(2, '0')} ${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickDateTime(forStart: false),
+                      icon: const Icon(Icons.schedule_send),
+                      label: Text(
+                        'Fin\n${_endTime.day.toString().padLeft(2, '0')}/${_endTime.month.toString().padLeft(2, '0')} ${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: Text(_tr(context, 'Annuler', 'Cancel')),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving
+              ? null
+              : () async {
+                  if (!(_formKey.currentState?.validate() ?? false)) {
+                    return;
+                  }
+
+                  if (!_endTime.isAfter(_startTime)) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _tr(
+                              context,
+                              'La fin doit être après le début.',
+                              'End must be after start.',
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  setState(() => _isSaving = true);
+
+                  try {
+                    final notifier = ref.read(agendaEventsProvider.notifier);
+                    final title = _titleController.text.trim();
+                    final desc = _descriptionController.text.trim();
+                    final loc = _locationController.text.trim();
+
+                    if (widget.editingEvent == null) {
+                      await notifier.createEvent(
+                        title: title,
+                        description: desc.isEmpty ? null : desc,
+                        startTime: _startTime,
+                        endTime: _endTime,
+                        location: loc.isEmpty ? null : loc,
+                        eventType: _eventType,
+                      );
+                    } else {
+                      await notifier.updateEvent(
+                        widget.editingEvent!.copyWith(
+                          title: title,
+                          description: desc.isEmpty ? null : desc,
+                          startTime: _startTime,
+                          endTime: _endTime,
+                          location: loc.isEmpty ? null : loc,
+                          eventType: _eventType,
+                        ),
+                      );
+                    }
+
+                    if (!mounted) return;
+                    Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => _isSaving = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erreur: $e')),
+                      );
+                    }
+                  }
+                },
+          child: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(_tr(context, 'Enregistrer', 'Save')),
+        ),
+      ],
     );
   }
 }
@@ -575,8 +645,13 @@ class _AgendaGlassTile extends StatelessWidget {
 class _GlassIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
+  final String? tooltip;
 
-  const _GlassIconButton({required this.icon, required this.onPressed});
+  const _GlassIconButton({
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -588,6 +663,7 @@ class _GlassIconButton extends StatelessWidget {
       child: IconButton(
         icon: Icon(icon, color: Colors.white, size: 24),
         onPressed: onPressed,
+        tooltip: tooltip,
       ),
     );
   }
