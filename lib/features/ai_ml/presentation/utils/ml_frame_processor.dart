@@ -58,12 +58,20 @@ class MlFrameProcessor {
         return;
       }
 
-      // Utilise le MorphologyNotifier pour traiter la frame
       final morphologyNotifier = ref.read(currentMorphologyProvider.notifier);
+      
+      // Determine effective dimensions after rotation
+      final rotation = _getInputImageRotation();
+      final bool isRotated = rotation == InputImageRotation.rotation90deg || 
+                           rotation == InputImageRotation.rotation270deg;
+      
+      final effectiveWidth = isRotated ? image.height : image.width;
+      final effectiveHeight = isRotated ? image.width : image.height;
+
       await morphologyNotifier.processFrame(
         inputImage,
-        frameWidth: image.width,
-        frameHeight: image.height,
+        frameWidth: effectiveWidth,
+        frameHeight: effectiveHeight,
       );
       ref.read(mlRuntimeErrorProvider.notifier).state = null;
     } catch (e) {

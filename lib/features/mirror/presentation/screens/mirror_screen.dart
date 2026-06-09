@@ -737,9 +737,17 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         if (trackingRect != null)
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: _BodyTrackingFramePainter(
-                  normalizedRect: trackingRect,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(
+                  appSettings.cameraFlipped ? -1.0 : 1.0,
+                  1.0,
+                  1.0,
+                ),
+                child: CustomPaint(
+                  painter: _BodyTrackingFramePainter(
+                    normalizedRect: trackingRect,
+                  ),
                 ),
               ),
             ),
