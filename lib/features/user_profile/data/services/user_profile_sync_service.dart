@@ -155,15 +155,25 @@ class UserProfileSyncService with RetryableMixin {
           );
         }
 
-        final userIdResult = await resolveUserId(fallback: profile.userId);
+        final userIdResult = await resolveUserId();
         if (userIdResult.isFailure) {
           return Failure(userIdResult.exceptionOrNull()!);
         }
 
-        final resolvedUserId = userIdResult.getOrNull()!;
+        final authUserId = userIdResult.getOrNull()!;
+        
+        // Sécurité : Interdire la mise à jour d'un profil autre que celui de l'utilisateur connecté
+        if (profile.userId != authUserId && profile.userId != 'local-user') {
+          return Failure(
+            app_error.AuthException(
+              message: 'Tentative de modification d\'un profil tiers détectée.',
+              code: 'CROSS_USER_UPDATE_DENIED',
+            ),
+          );
+        }
 
         final payload = {
-          'user_id': resolvedUserId,
+          'user_id': authUserId,
           'display_name': profile.displayName,
           'avatar_url': profile.avatarUrl,
           'gender': profile.gender,
