@@ -1206,6 +1206,11 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   }
 }
 
+final outfitFavoritesProvider =
+    StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
+  return OutfitFavoritesNotifier(ref);
+});
+
 class OutfitSuggestionScreen extends ConsumerWidget {
   const OutfitSuggestionScreen({super.key, this.initialShowFavorites = false});
 
@@ -1259,7 +1264,6 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     return visible.map((item) => item.outfit.id).toSet();
   }
 
-  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final isFavoritesMode = initialShowFavorites;
