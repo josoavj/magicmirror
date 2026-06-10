@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de Magic Mirror sont documentées dans ce fichier.
 
+## [1.1.0-beta] - 2026-05-05
+
+### Refactor & Performance
+- Optimisation majeure du moteur de recommandation de tenues (calcul différé via Provider).
+- Amélioration de la fluidité de l'interface (Butter-smooth UI).
+- Stabilisation de la gestion du cycle de vie des dialogues dans l'agenda.
+
+### Security
+- Migration des logs vers le répertoire privé de l'application (confidentialité).
+- Suppression des permissions de stockage externe superflues sur Android.
+- Verrouillage strict de la synchronisation cloud par ID utilisateur authentifié.
+
+### Fix
+- Correction du décalage du cadre vert (bounding box) dans le suivi morphologique.
+- Correction du bug de double soumission lors de la création d'événements.
+- Résolution des erreurs techniques 'Duplicate GlobalKey' et 'TextEditingController used after dispose'.
+
 ## [2026-03-31] - Migration agenda Supabase, comptes et documentation
 
 ### feat(agenda)
