@@ -9,11 +9,7 @@
     
     <!-- Microphone Permissions -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
-    <!-- Storage Permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    
+
     <!-- Location Permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
