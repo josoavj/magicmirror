@@ -45,15 +45,19 @@ class WeatherWidget extends ConsumerWidget {
     if (minutes == null) {
       return weather.isFallback ? 'Source: fallback local' : 'Source: API';
     }
-    final source = weather.isFallback ? 'fallback local' : 'API';
+    final source = weather.isFallback ? (_tr(context, 'fallback local', 'local fallback')) : 'API';
     if (minutes < 1) {
-      return 'Mise a jour: a l\'instant ($source)';
+      return '${_tr(context, 'Mise a jour: a l\'instant', 'Updated: just now')} ($source)';
     }
     if (minutes < 60) {
-      return 'Mise a jour: il y a $minutes min ($source)';
+      return '${_tr(context, 'Mise a jour: il y a', 'Updated:')} $minutes min ($source)';
     }
     final hours = (minutes / 60).floor();
-    return 'Mise a jour: il y a $hours h ($source)';
+    return '${_tr(context, 'Mise a jour: il y a', 'Updated:')} $hours h ($source)';
+  }
+
+  String _tr(BuildContext context, String fr, String en) {
+    return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
   /// Obtenir l'emoji de la météo
@@ -204,6 +208,16 @@ class WeatherWidget extends ConsumerWidget {
                         tablet: 80,
                       ),
                       fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return SizedBox(
+                          width: ResponsiveHelper.resp(context, mobile: 60, tablet: 80),
+                          height: ResponsiveHelper.resp(context, mobile: 60, tablet: 80),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+                          ),
+                        );
+                      },
                       errorBuilder: (context, error, stackTrace) {
                         return Text(
                           _getWeatherEmoji(weather.description),
