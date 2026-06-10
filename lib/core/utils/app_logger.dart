@@ -45,17 +45,10 @@ class AppLogger {
     }
   }
 
-  /// Obtient le répertoire approprié selon la plateforme
+  /// Obtient le répertoire approprié selon la plateforme (privé et sécurisé)
   Future<Directory> _getLogsDirectory() async {
-    if (Platform.isAndroid) {
-      final appDir = await getExternalCacheDirectories();
-      if (appDir != null && appDir.isNotEmpty) {
-        return Directory('${appDir[0].path}/logs');
-      }
-      final tempDir = await getTemporaryDirectory();
-      return Directory('${tempDir.path}/logs');
-    } else if (Platform.isIOS) {
-      final appDir = await getApplicationDocumentsDirectory();
+    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+      final appDir = await getApplicationSupportDirectory();
       return Directory('${appDir.path}/logs');
     } else if (Platform.isLinux) {
       final cacheDir = await getApplicationCacheDirectory();
@@ -63,12 +56,9 @@ class AppLogger {
     } else if (Platform.isWindows) {
       final appDir = await getApplicationSupportDirectory();
       return Directory('${appDir.path}/logs');
-    } else if (Platform.isMacOS) {
-      final appDir = await getApplicationSupportDirectory();
-      return Directory('${appDir.path}/logs');
     }
 
-    // Fallback
+    // Fallback sécurisé en stockage temporaire privé
     final tempDir = await getTemporaryDirectory();
     return Directory('${tempDir.path}/magicmirror/logs');
   }

@@ -326,10 +326,518 @@ String _normalizeToken(String value) {
   return folded.toString().replaceAll(RegExp(r'[^a-z0-9]'), '');
 }
 
-final outfitFavoritesProvider =
-    StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
-      return OutfitFavoritesNotifier(ref);
-    });
+final rankedOutfitsProvider =
+    Provider.family<List<_RankedOutfit>, _RankingParams>((ref, params) {
+  final profile = params.profile;
+  final events = params.events;
+  final favoriteIds = params.favoriteIds;
+  final personalization = params.personalization;
+  final mlScoreMap = params.mlScoreMap;
+  final llmDetailsByOutfitId = params.llmDetailsByOutfitId;
+  final secondaryLlmEnabled = params.secondaryLlmEnabled;
+  final targetDay = params.targetDay;
+  final weatherContext = params.weatherContext;
+  final strictWeatherMode = params.strictWeatherMode;
+  final creativeMixEnabled = params.creativeMixEnabled;
+  final creativeExplorationShare = params.creativeExplorationShare;
+  final creativeBoost = params.creativeBoost;
+  final excludedOutfitIds = params.excludedOutfitIds;
+  final referenceNow = params.referenceNow;
+
+  final baseOutfits = [
+    _Outfit(
+      id: 'casual_moderne',
+      title: 'Casual Moderne',
+      description: 'Jeans + T-shirt léger',
+      topPiece: 'T-shirt léger uni',
+      bottomPiece: 'Jeans coupe droite',
+      shoesPiece: 'Sneakers blanches',
+      layerPiece: 'Surchemise légère',
+      accessoryPieces: const ['Montre minimaliste'],
+      outfitType: 'Casual quotidien',
+      icon: Icons.checkroom,
+      color: const Color(0xFF3B82F6),
+      styles: const ['casual', 'minimaliste'],
+      compatibleMorphologies: const [
+        'Silhouette droite',
+        'Hanches et épaules équilibrées',
+      ],
+      genderTargets: const ['all'],
+      minAge: 16,
+      maxAge: 60,
+    ),
+    _Outfit(
+      id: 'elegant',
+      title: 'Élégant',
+      description: 'Chemise + Pantalon chino',
+      topPiece: 'Chemise structurée',
+      bottomPiece: 'Pantalon chino fuselé',
+      shoesPiece: 'Derbies en cuir',
+      layerPiece: 'Blazer léger',
+      accessoryPieces: const ['Ceinture cuir'],
+      outfitType: 'Smart élégant',
+      icon: Icons.style,
+      color: const Color(0xFF8B5CF6),
+      styles: const ['elegant', 'business'],
+      compatibleMorphologies: const [
+        'Hanches et épaules équilibrées',
+        'Épaules plus larges',
+      ],
+      genderTargets: const ['all'],
+      minAge: 20,
+      maxAge: 65,
+    ),
+    _Outfit(
+      id: 'sport',
+      title: 'Sport',
+      description: 'Legging + Hoodie',
+      topPiece: 'Hoodie respirant',
+      bottomPiece: 'Legging technique',
+      shoesPiece: 'Running trainers',
+      layerPiece: 'Coupe-vent fin',
+      accessoryPieces: const ['Casquette'],
+      outfitType: 'Sport actif',
+      icon: Icons.sports,
+      color: const Color(0xFF10B981),
+      styles: const ['sport'],
+      compatibleMorphologies: const [
+        'Hanches plus marquées',
+        'Taille très marquée',
+        'Silhouette droite',
+      ],
+      genderTargets: const ['all'],
+      minAge: 12,
+      maxAge: 50,
+    ),
+    _Outfit(
+      id: 'street_dynamics',
+      title: 'Street Dynamics',
+      description: 'Cargo + bomber oversize',
+      topPiece: 'T-shirt graphique',
+      bottomPiece: 'Cargo ample',
+      shoesPiece: 'Sneakers chunky',
+      layerPiece: 'Bomber oversize',
+      accessoryPieces: const ['Chaîne discrète'],
+      outfitType: 'Streetwear urbain',
+      icon: Icons.local_fire_department,
+      color: const Color(0xFFEC4899),
+      styles: const ['streetwear', 'casual'],
+      compatibleMorphologies: const [
+        'Épaules très marquées',
+        'Silhouette droite',
+      ],
+      genderTargets: const ['all'],
+      minAge: 14,
+      maxAge: 40,
+    ),
+    _Outfit(
+      id: 'business_smart',
+      title: 'Business Smart',
+      description: 'Blazer + pantalon taille haute',
+      topPiece: 'Top soyeux sobre',
+      bottomPiece: 'Pantalon taille haute',
+      shoesPiece: 'Mocassins premium',
+      layerPiece: 'Blazer structuré',
+      accessoryPieces: const ['Sac structuré'],
+      outfitType: 'Business smart',
+      icon: Icons.business_center,
+      color: const Color(0xFFF59E0B),
+      styles: const ['business', 'elegant'],
+      compatibleMorphologies: const [
+        'Hanches très marquées',
+        'Hanches et épaules équilibrées',
+        'Épaules plus larges',
+      ],
+      genderTargets: const ['all'],
+      minAge: 24,
+      maxAge: 70,
+    ),
+    _Outfit(
+      id: 'minimal_monochrome',
+      title: 'Minimal Monochrome',
+      description: 'Palette neutre + coupe clean',
+      topPiece: 'Pull fin monochrome',
+      bottomPiece: 'Pantalon droit neutre',
+      shoesPiece: 'Baskets épurées',
+      layerPiece: 'Manteau droit léger',
+      accessoryPieces: const ['Sac crossbody'],
+      outfitType: 'Minimal contemporain',
+      icon: Icons.layers,
+      color: const Color(0xFF14B8A6),
+      styles: const ['minimaliste', 'casual'],
+      compatibleMorphologies: const ['all'],
+      genderTargets: const ['all'],
+      minAge: 18,
+      maxAge: 80,
+    ),
+  ];
+
+  final allOutfits = _applyLlmDetails(
+    baseOutfits,
+    llmDetailsByOutfitId,
+    preferLlm: secondaryLlmEnabled,
+  );
+
+  final normalizedStyles = profile.preferredStyles.map(_normalizeStyle).toSet();
+  final normalizedGender = profile.gender.toLowerCase();
+  final planningSignals = _extractPlanningSignals(events);
+  final isWeekend = _isWeekend(targetDay);
+  final prioritySlot = _resolvePrioritySlot(events, referenceNow);
+  final primaryContext = _resolvePrimaryContext(events, referenceNow);
+  final season = _seasonFromMonth(targetDay.month);
+  final localHourSlot = _localHourSlotLabel(referenceNow.hour);
+
+  var candidates = allOutfits.where((outfit) {
+    final ageOk = profile.age >= outfit.minAge && profile.age <= outfit.maxAge;
+    final morphologyOk = _isMorphologyCompatible(profile.morphology, outfit);
+    return ageOk && morphologyOk;
+  }).toList();
+
+  final strictCandidates = candidates.where((outfit) {
+    return _passesHardConstraints(
+      outfit: outfit,
+      weatherContext: weatherContext,
+      strictWeatherMode: strictWeatherMode,
+      planningSignals: planningSignals,
+      primaryContext: primaryContext,
+    );
+  }).toList();
+  if (strictCandidates.isNotEmpty) {
+    candidates = strictCandidates;
+  }
+
+  final contextFiltered = candidates.where((outfit) {
+    return _isContextCompatible(primaryContext, outfit.styles);
+  }).toList();
+  if (contextFiltered.isNotEmpty) {
+    candidates = contextFiltered;
+  }
+
+  if (excludedOutfitIds.isNotEmpty) {
+    final noRepeatCandidates = candidates
+        .where((outfit) => !excludedOutfitIds.contains(outfit.id))
+        .toList();
+    if (noRepeatCandidates.isNotEmpty) {
+      candidates = noRepeatCandidates;
+    } else {
+      final noRepeatFallback = allOutfits
+          .where((outfit) => !excludedOutfitIds.contains(outfit.id))
+          .toList();
+      if (noRepeatFallback.isNotEmpty) {
+        candidates = noRepeatFallback;
+      }
+    }
+  }
+
+  if (candidates.isEmpty) {
+    candidates = allOutfits;
+  }
+
+  final ranked = candidates.map((outfit) {
+    var score = 10;
+    final reasonScores = <String, int>{};
+    final contextCompatible = _isContextCompatible(primaryContext, outfit.styles);
+
+    void addReason(String reason, int weight) {
+      final current = reasonScores[reason] ?? 0;
+      if (weight > current) {
+        reasonScores[reason] = weight;
+      }
+    }
+
+    if (favoriteIds.contains(outfit.id)) {
+      if (contextCompatible) {
+        score += 22;
+        addReason('Historique favori', 80);
+      } else {
+        score += 8;
+        addReason('Favori avec compromis contexte', 30);
+      }
+    }
+
+    if (outfit.styles.any(normalizedStyles.contains)) {
+      score += 44;
+      addReason('Correspond a vos styles', 100);
+    }
+
+    if (profile.preferredStyles.isNotEmpty) {
+      final topStyle = _normalizeStyle(profile.preferredStyles.first);
+      if (outfit.styles.contains(topStyle)) {
+        score += 18;
+        addReason('Aligne avec votre style principal', 110);
+      }
+    }
+
+    if (profile.age >= outfit.minAge && profile.age <= outfit.maxAge) {
+      score += 24;
+      addReason('Adapté à votre tranche d\'âge', 40);
+    }
+
+    if (_matchesMorphology(
+      profileMorphology: profile.morphology,
+      compatibleMorphologies: outfit.compatibleMorphologies,
+    )) {
+      score += 36;
+      addReason('Compatible avec votre morphologie', 95);
+    }
+
+    final isGenderMatch =
+        outfit.genderTargets.contains('all') ||
+        outfit.genderTargets.any((gender) => normalizedGender.contains(gender));
+    if (isGenderMatch) {
+      score += 12;
+    }
+
+    if (contextCompatible) {
+      score += 24;
+      addReason('Adapté à votre contexte principal', 90);
+    } else {
+      score -= 12;
+    }
+
+    final planningCoherence = _planningCoherenceBoost(
+      planningSignals: planningSignals,
+      primaryContext: primaryContext,
+      styles: outfit.styles,
+    );
+    if (planningCoherence > 0) {
+      score += planningCoherence;
+      addReason('Cohérence avec vos priorités du jour', 88);
+    } else if (planningCoherence < 0) {
+      score += planningCoherence;
+    }
+
+    if (isWeekend &&
+        outfit.styles.any((style) =>
+            style == 'casual' || style == 'streetwear' || style == 'sport')) {
+      score += 12;
+      addReason('Adapté au rythme du week-end', 35);
+    }
+
+    if (!isWeekend &&
+        outfit.styles.any((style) => style == 'business' || style == 'elegant')) {
+      score += 12;
+      addReason('Adapté à une journée de semaine', 35);
+    }
+
+    if (planningSignals.hasWorkEvent &&
+        outfit.styles.any((style) => style == 'business' || style == 'elegant')) {
+      score += 30;
+      addReason('Compatible avec votre planning pro', 105);
+    } else if (planningSignals.hasWorkEvent) {
+      score -= 8;
+    }
+
+    if (planningSignals.hasSportEvent && outfit.styles.contains('sport')) {
+      score += 30;
+      addReason('Compatible avec vos activités sportives', 105);
+    } else if (planningSignals.hasSportEvent) {
+      score -= 8;
+    }
+
+    if (planningSignals.hasEveningEvent &&
+        outfit.styles.any((style) => style == 'elegant' || style == 'streetwear')) {
+      score += 16;
+      addReason('Adapté à vos sorties du soir', 65);
+    }
+
+    if (planningSignals.hasCasualEvent &&
+        outfit.styles.any((style) =>
+            style == 'casual' || style == 'streetwear' || style == 'minimaliste')) {
+      score += 14;
+      addReason('Adapté à un planning détendu', 60);
+    }
+
+    if (events.isNotEmpty &&
+        planningSignals.hasOutdoorEvent &&
+        outfit.styles.any((style) => style == 'sport' || style == 'casual')) {
+      score += 10;
+      addReason('Confortable pour des déplacements extérieurs', 55);
+    }
+
+    final slotBoost = _slotScoreBoost(prioritySlot, outfit.styles);
+    if (slotBoost > 0) {
+      score += slotBoost;
+      addReason(
+        'Optimisé pour le créneau ${_slotLabel(prioritySlot).toLowerCase()}',
+        50,
+      );
+    }
+
+    final weatherBoost = _weatherScoreBoost(
+      weatherContext,
+      outfit.styles,
+      strictWeatherMode: strictWeatherMode,
+    );
+    if (weatherBoost > 0) {
+      score += weatherBoost;
+      addReason('Adapté aux conditions météo', 100);
+    } else if (weatherBoost < 0) {
+      score += weatherBoost;
+      addReason('Compromis météo détecté', 45);
+    }
+
+    final chronoBoost = _seasonRainHourBoost(
+      weather: weatherContext,
+      styles: outfit.styles,
+      season: season,
+      localHourSlot: localHourSlot,
+    );
+    if (chronoBoost > 0) {
+      score += chronoBoost;
+      addReason('Adapté à la saison et au moment de la journée', 72);
+    } else if (chronoBoost < 0) {
+      score += chronoBoost;
+    }
+
+    final styleBias = _styleBiasBoost(
+      styles: outfit.styles,
+      styleBiasByStyle: personalization.styleBiasByStyle,
+    );
+    if (styleBias > 0) {
+      score += styleBias;
+      addReason('Affinite learnée avec vos styles', 92);
+    } else if (styleBias < 0) {
+      score += styleBias;
+    }
+
+    final outfitBias = personalization.outfitBiasById[outfit.id] ?? 0;
+    if (outfitBias > 0) {
+      score += outfitBias;
+      addReason('Feedback positif precedent', 84);
+    } else if (outfitBias < 0) {
+      score += outfitBias;
+    }
+
+    final repetitionPenalty = _recentRepetitionPenalty(
+      outfitId: outfit.id,
+      lastSeenAtMsByOutfitId: personalization.lastSeenAtMsByOutfitId,
+    );
+    if (repetitionPenalty > 0) {
+      score -= repetitionPenalty;
+      addReason('Rotation anti-répétition', 52);
+    }
+
+    final freshnessBonus = _freshnessBonus(
+      outfitId: outfit.id,
+      lastSeenAtMsByOutfitId: personalization.lastSeenAtMsByOutfitId,
+    );
+    if (freshnessBonus > 0) {
+      score += freshnessBonus;
+      addReason('Favorise des tenues moins récentes', 58);
+    }
+
+    final dailyVarietyJitter = _dailyVarietyJitter(
+      outfitId: outfit.id,
+      targetDay: targetDay,
+    );
+    if (dailyVarietyJitter > 0) {
+      score += dailyVarietyJitter;
+      addReason('Rotation douce entre tenues proches', 36);
+    }
+
+    final mlScore = mlScoreMap[outfit.id];
+    if (AppConfig.enableHybridMlRanking && mlScore != null) {
+      final hybrid =
+          ((1 - AppConfig.hybridMlWeight) * score +
+                  AppConfig.hybridMlWeight * (mlScore * 100))
+              .round();
+      score = hybrid;
+      addReason('Calibration ML hybride', 86);
+    }
+
+    if (score < 0) score = 0;
+    final reasons = _sortedReasons(reasonScores);
+    return _RankedOutfit(outfit: outfit, score: score, reasons: reasons);
+  }).toList()..sort((a, b) => b.score.compareTo(a.score));
+
+  final diversePool = _selectDiverseTopOutfits(
+    ranked,
+    maxCount: ranked.length < 8 ? ranked.length : 8,
+  );
+
+  return _selectCreativeTopOutfits(
+    diversePool,
+    maxCount: 4,
+    targetDay: targetDay,
+    creativeMixEnabled: creativeMixEnabled,
+    creativeExplorationShare: creativeExplorationShare,
+    creativeBoost: creativeBoost,
+  );
+});
+
+class _RankingParams {
+  final UserProfile profile;
+  final List<AgendaEvent> events;
+  final Set<String> favoriteIds;
+  final OutfitPersonalizationState personalization;
+  final Map<String, double> mlScoreMap;
+  final Map<String, _OutfitLlmDetails> llmDetailsByOutfitId;
+  final bool secondaryLlmEnabled;
+  final DateTime targetDay;
+  final _OutfitWeatherContext? weatherContext;
+  final bool strictWeatherMode;
+  final bool creativeMixEnabled;
+  final double creativeExplorationShare;
+  final int creativeBoost;
+  final Set<String> excludedOutfitIds;
+  final DateTime referenceNow;
+
+  const _RankingParams({
+    required this.profile,
+    required this.events,
+    required this.favoriteIds,
+    required this.personalization,
+    required this.mlScoreMap,
+    required this.llmDetailsByOutfitId,
+    required this.secondaryLlmEnabled,
+    required this.targetDay,
+    required this.weatherContext,
+    required this.strictWeatherMode,
+    required this.creativeMixEnabled,
+    required this.creativeExplorationShare,
+    required this.creativeBoost,
+    required this.excludedOutfitIds,
+    required this.referenceNow,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is _RankingParams &&
+          profile == other.profile &&
+          favoriteIds == other.favoriteIds &&
+          personalization == other.personalization &&
+          mlScoreMap == other.mlScoreMap &&
+          llmDetailsByOutfitId == other.llmDetailsByOutfitId &&
+          secondaryLlmEnabled == other.secondaryLlmEnabled &&
+          targetDay == other.targetDay &&
+          weatherContext == other.weatherContext &&
+          strictWeatherMode == other.strictWeatherMode &&
+          creativeMixEnabled == other.creativeMixEnabled &&
+          creativeExplorationShare == other.creativeExplorationShare &&
+          creativeBoost == other.creativeBoost &&
+          excludedOutfitIds == other.excludedOutfitIds &&
+          referenceNow == other.referenceNow);
+
+  @override
+  int get hashCode => Object.hashAll([
+    profile,
+    favoriteIds,
+    personalization,
+    mlScoreMap,
+    llmDetailsByOutfitId,
+    secondaryLlmEnabled,
+    targetDay,
+    weatherContext,
+    strictWeatherMode,
+    creativeMixEnabled,
+    creativeExplorationShare,
+    creativeBoost,
+    excludedOutfitIds,
+    referenceNow,
+  ]);
+}
 
 final outfitPersonalizationProvider =
     StateNotifierProvider<
@@ -708,6 +1216,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
   }
 
   Set<String> _computeDisplayedOutfitIds({
+    required WidgetRef ref,
     required UserProfile profile,
     required List<AgendaEvent> events,
     required Set<String> favoriteIds,
@@ -723,20 +1232,15 @@ class OutfitSuggestionScreen extends ConsumerWidget {
     required int creativeBoost,
     required DateTime referenceNow,
   }) {
-    final targetDay = DateTime(
-      referenceNow.year,
-      referenceNow.month,
-      referenceNow.day,
-    );
-    final ranked = _rankOutfits(
-      profile,
-      events,
+    final params = _RankingParams(
+      profile: profile,
+      events: events,
       favoriteIds: favoriteIds,
       personalization: personalization,
       mlScoreMap: mlScoreMap,
       llmDetailsByOutfitId: llmDetailsByOutfitId,
       secondaryLlmEnabled: secondaryLlmEnabled,
-      targetDay: targetDay,
+      targetDay: DateTime(referenceNow.year, referenceNow.month, referenceNow.day),
       weatherContext: weatherContext,
       strictWeatherMode: strictWeatherMode,
       creativeMixEnabled: creativeMixEnabled,
@@ -745,6 +1249,8 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       excludedOutfitIds: const <String>{},
       referenceNow: referenceNow,
     );
+
+    final ranked = ref.read(rankedOutfitsProvider(params));
 
     final visible = showOnlyFavorites
         ? ranked.where((item) => favoriteIds.contains(item.outfit.id)).toList()
@@ -813,6 +1319,7 @@ class OutfitSuggestionScreen extends ConsumerWidget {
       orElse: () => null,
     );
     final todayDisplayedOutfitIds = _computeDisplayedOutfitIds(
+      ref: ref,
       profile: profile,
       events: todayEvents,
       favoriteIds: favoriteIds,
@@ -1106,18 +1613,15 @@ class OutfitSuggestionScreen extends ConsumerWidget {
   }) {
     return eventsAsync.when(
       data: (events) {
-        final cards = _buildOutfitCards(
-          ref,
-          context,
-          profile,
-          events,
-          targetDay: targetDay,
+        final params = _RankingParams(
+          profile: profile,
+          events: events,
           favoriteIds: favoriteIds,
-          showOnlyFavorites: showOnlyFavorites,
-          secondaryLlmEnabled: secondaryLlmEnabled,
           personalization: personalization,
           mlScoreMap: mlScoreMap,
           llmDetailsByOutfitId: llmDetailsByOutfitId,
+          secondaryLlmEnabled: secondaryLlmEnabled,
+          targetDay: targetDay,
           weatherContext: weatherContext,
           strictWeatherMode: strictWeatherMode,
           creativeMixEnabled: creativeMixEnabled,
@@ -1126,6 +1630,49 @@ class OutfitSuggestionScreen extends ConsumerWidget {
           excludedOutfitIds: excludedOutfitIds,
           referenceNow: referenceNow,
         );
+
+        final ranked = ref.watch(rankedOutfitsProvider(params));
+        final visible = showOnlyFavorites
+            ? ranked.where((item) => favoriteIds.contains(item.outfit.id)).toList()
+            : ranked;
+
+        final List<Widget> cards;
+        if (visible.isEmpty) {
+          cards = [
+            GlassContainer(
+              borderRadius: 16,
+              blur: 20,
+              opacity: 0.1,
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                showOnlyFavorites
+                    ? _tr(
+                        context,
+                        'Aucune tenue en favoris pour cette section.',
+                        'No favorite outfit available for this section.',
+                      )
+                    : _tr(
+                        context,
+                        'Aucune suggestion disponible.',
+                        'No suggestion available.',
+                      ),
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+          ];
+        } else {
+          cards = visible
+              .map(
+                (item) => _buildOutfitCard(
+                  ref,
+                  context,
+                  item,
+                  isFavorite: favoriteIds.contains(item.outfit.id),
+                ),
+              )
+              .toList();
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
