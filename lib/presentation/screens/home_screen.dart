@@ -9,7 +9,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favoritesCount = ref.watch(outfitFavoritesProvider).length;
+    final favoritesCount = ref.watch(outfitPr).length;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
@@ -19,7 +19,6 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Arrière-plan Mesh Gradient (Simulé par dégradé complexe)
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
