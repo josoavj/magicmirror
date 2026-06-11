@@ -82,7 +82,6 @@ final outfitSecondaryLlmDetailsProvider =
 
     final detailsByOutfitId = <String, _OutfitLlmDetails>{};
     for (final row in rows) {
-      if (row is! Map<String, dynamic>) continue;
       final outfitId = row['outfit_id']?.toString();
       if (outfitId == null || outfitId.isEmpty) continue;
 
@@ -91,7 +90,9 @@ final outfitSecondaryLlmDetailsProvider =
         profile: profile,
         useProfileContext: useProfileContext,
         strictGenderFilter: strictGenderFilter,
-      )) continue;
+      )) {
+        continue;
+      }
 
       final details = _OutfitLlmDetails(
         top: row['top_item']?.toString(),
@@ -767,7 +768,9 @@ int _seasonRainHourBoost({required _OutfitWeatherContext? weather, required List
 int _styleBiasBoost({required List<String> styles, required Map<String, int> styleBiasByStyle}) {
   if (styles.isEmpty || styleBiasByStyle.isEmpty) return 0;
   var total = 0;
-  for (final style in styles) total += styleBiasByStyle[style.toLowerCase()] ?? 0;
+  for (final style in styles) {
+    total += styleBiasByStyle[style.toLowerCase()] ?? 0;
+  }
   return (total / styles.length).round();
 }
 
@@ -956,10 +959,9 @@ class OutfitPersonalizationNotifier extends StateNotifier<OutfitPersonalizationS
 }
 
 class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
-  OutfitFavoritesNotifier(this._ref) : super(<String>{}) {
+  OutfitFavoritesNotifier() : super(<String>{}) {
     Future.microtask(_load);
   }
-  final Ref _ref;
   static const _prefsKey = 'outfit.favorite.ids';
 
   Future<void> _load() async {
@@ -969,7 +971,11 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
 
   Future<void> toggleFavorite(String outfitId) async {
     final next = Set<String>.from(state);
-    if (next.contains(outfitId)) next.remove(outfitId); else next.add(outfitId);
+    if (next.contains(outfitId)) {
+      next.remove(outfitId);
+    } else {
+      next.add(outfitId);
+    }
     state = next;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_prefsKey, state.toList());
@@ -977,7 +983,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
 }
 
 final outfitFavoritesProvider = StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
-  return OutfitFavoritesNotifier(ref);
+  return OutfitFavoritesNotifier();
 });
 
 // --- UI Widgets ---
@@ -1188,6 +1194,19 @@ class _ForecastCoordinates {
 // --- Helpers (Weather & Geo) ---
 
 Future<_ForecastCoordinates> _resolveForecastCoordinates() async {
+  try {
+    final permission = await Geolocator.checkPermission();
+    var granted = permission == LocationPermission.always || permission == LocationPermission.whileInUse;
+    if (!granted) {
+      final req = await Geolocator.requestPermission();
+      granted = req == LocationPermission.always || req == LocationPermission.whileInUse;
+    }
+    if (granted) {
+      const settings = LocationSettings(accuracy: LocationAccuracy.medium);
+      final pos = await Geolocator.getCurrentPosition(locationSettings: settings);
+      return _ForecastCoordinates(lat: pos.latitude, lon: pos.longitude);
+    }
+  } catch (_) {}
   return const _ForecastCoordinates(lat: -18.8792, lon: 47.5079);
 }
 
