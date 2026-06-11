@@ -494,6 +494,76 @@ final rankedOutfitsProvider =
 
 // --- Logic Helpers (Top-Level) ---
 
+List<String> _parseAccessories(dynamic raw) {
+  if (raw == null) return const <String>[];
+  if (raw is List) {
+    return raw.map((item) => item.toString().trim()).where((item) => item.isNotEmpty).toList();
+  }
+  final value = raw.toString().trim();
+  if (value.isEmpty) return const <String>[];
+  final splitter = value.contains('|') ? '|' : ',';
+  return value.split(splitter).map((item) => item.trim()).where((item) => item.isNotEmpty).toList();
+}
+
+bool _llamaRowMatchesProfile(Map<String, dynamic> row, {required UserProfile profile, required bool useProfileContext, required bool strictGenderFilter}) {
+  if (!useProfileContext) return true;
+  final payload = row['profile_payload'];
+  final payloadMap = payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+  final rowGenderRaw = row['target_gender'] ?? row['gender_target'] ?? row['profile_gender'] ?? payloadMap['gender'];
+  final rowGender = rowGenderRaw?.toString().trim() ?? '';
+  if (strictGenderFilter && rowGender.isNotEmpty) {
+    if (!_genderMatchesProfile(rowGender, profile.gender)) return false;
+  }
+  final rowStyles = _toNormalizedStringSet(row['target_styles'] ?? payloadMap['preferredStyles'] ?? payloadMap['styles']);
+  final profileStyles = _toNormalizedStringSet(profile.preferredStyles);
+  if (rowStyles.isNotEmpty && profileStyles.isNotEmpty) {
+    if (!rowStyles.any(profileStyles.contains)) return false;
+  }
+  final rowMorphologyRaw = row['target_morphology'] ?? payloadMap['morphology'];
+  final rowMorphology = rowMorphologyRaw?.toString().trim() ?? '';
+  if (rowMorphology.isNotEmpty && !_normalizeToken(rowMorphology).contains(_normalizeToken(profile.morphology)) && !_normalizeToken(profile.morphology).contains(_normalizeToken(rowMorphology))) return false;
+  return true;
+}
+
+bool _genderMatchesProfile(String targetGender, String profileGender) {
+  final target = _normalizeToken(targetGender);
+  final profile = _normalizeToken(profileGender);
+  if (target.isEmpty || target == 'all' || target == 'any' || target == 'unisex') return true;
+  if (target.contains('nonprecise') || target.contains('nonbinaire')) return true;
+  if (target.contains('femme') || target.contains('female') || target == 'f') {
+    return profile.contains('femme') || profile.contains('female') || profile == 'f';
+  }
+  if (target.contains('homme') || target.contains('male') || target == 'm') {
+    return profile.contains('homme') || profile.contains('male') || profile == 'm';
+  }
+  return true;
+}
+
+Set<String> _toNormalizedStringSet(dynamic raw) {
+  if (raw == null) return <String>{};
+  if (raw is List) return raw.map((item) => _normalizeToken(item.toString())).where((item) => item.isNotEmpty).toSet();
+  final value = raw.toString().trim();
+  if (value.isEmpty) return <String>{};
+  final splitter = value.contains('|') ? '|' : (value.contains(',') ? ',' : ' ');
+  return value.split(splitter).map(_normalizeToken).where((item) => item.isNotEmpty).toSet();
+}
+
+String _normalizeToken(String value) {
+  final lowered = value.toLowerCase();
+  const diacriticsMap = <String, String>{
+    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'å': 'a', 'æ': 'ae', 'ç': 'c',
+    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+    'ñ': 'n', 'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'œ': 'oe', 'ù': 'u',
+    'ú': 'u', 'û': 'u', 'ü': 'u', 'ý': 'y', 'ÿ': 'y', 'ß': 'ss',
+  };
+  final folded = StringBuffer();
+  for (final rune in lowered.runes) {
+    final char = String.fromCharCode(rune);
+    folded.write(diacriticsMap[char] ?? char);
+  }
+  return folded.toString().replaceAll(RegExp(r'[^a-z0-9]'), '');
+}
+
 String _normalizeStyle(String value) {
   final v = value.toLowerCase();
   if (v.contains('eleg')) return 'elegant';
