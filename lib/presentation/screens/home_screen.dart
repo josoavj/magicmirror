@@ -9,7 +9,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favoritesCount = ref.watch(outfitPr).length;
+    final favoritesCount = ref.watch(outfitFavoritesProvider).length;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
