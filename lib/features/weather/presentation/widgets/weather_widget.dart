@@ -40,7 +40,7 @@ final currentWeatherProvider = FutureProvider<WeatherResponse?>((ref) async {
 class WeatherWidget extends ConsumerWidget {
   const WeatherWidget({super.key});
 
-  String _freshnessLabel(WeatherResponse weather) {
+  String _freshnessLabel(BuildContext context, WeatherResponse weather) {
     final minutes = weather.minutesSinceObservation;
     if (minutes == null) {
       return weather.isFallback ? 'Source: fallback local' : 'Source: API';
@@ -153,7 +153,7 @@ class WeatherWidget extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _freshnessLabel(weather),
+                          _freshnessLabel(context, weather),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: ResponsiveHelper.resp(
