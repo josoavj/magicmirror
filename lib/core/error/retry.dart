@@ -60,7 +60,7 @@ class RetryConfig {
 class Retry {
   static const RetryConfig _defaultConfig = RetryConfig();
 
-  /// Retry a function up to maxAttempts times with exponential backoff
+  /// Retry a function up to `maxAttempts` times with exponential backoff
   static Future<T> execute<T>(
     Future<T> Function() fn, {
     RetryConfig config = _defaultConfig,
@@ -99,7 +99,7 @@ class Retry {
     }
   }
 
-  /// Retry a function that returns Result<T>
+  /// Retry a function that returns `Result<T>`
   static Future<Result<T>> executeResult<T>(
     Future<Result<T>> Function() fn, {
     RetryConfig config = _defaultConfig,
