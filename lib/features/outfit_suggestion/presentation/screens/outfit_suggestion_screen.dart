@@ -7,7 +7,8 @@ import 'package:magicmirror/features/outfit_suggestion/presentation/widgets/outf
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 
 class OutfitSuggestionScreen extends ConsumerWidget {
-  const OutfitSuggestionScreen({super.key});
+  final bool initialShowFavorites;
+  const OutfitSuggestionScreen({super.key, this.initialShowFavorites = false});
 
   String _tr(BuildContext context, String fr, String en) {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
