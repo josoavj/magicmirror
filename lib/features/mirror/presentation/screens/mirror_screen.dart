@@ -110,7 +110,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     );
   }
 
-  bool _isOutfitReadySignal(MorphologyData data) {
+  bool _isOutfitReadySignal(MorphologyData? data) {
+    if (data == null) return false;
     final heightEstimate = _tryParseDouble(data.measurements['height_estimate']);
     final poseQuality = _tryParseDouble(data.measurements['pose_quality']);
     return heightEstimate > 0 && poseQuality >= 60 && data.confidence >= 55;
@@ -269,85 +270,105 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
 
   @override
   Widget build(BuildContext context) {
-    final cameraAsync = ref.watch(cameraControllerProvider);
+    final cameraDescAsync = ref.watch(frontCameraProvider);
     final morphology = ref.watch(currentMorphologyProvider);
     final uiState = ref.watch(mirrorUIProvider);
     final trackingRect = _extractTrackingRect(morphology);
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          cameraAsync.when(
-            data: (controller) {
-              _configureCamera(controller);
-              if (controller.value.isInitialized) {
-                final camera = ref.read(cameraControllerProvider.notifier).camera;
-                if (camera != null) _ensureMlStream(controller, camera);
-                return CameraView(controller: controller);
-              }
-              return const Center(child: CircularProgressIndicator());
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, s) => Center(child: Text('Erreur Caméra: $e')),
-          ),
-          if (trackingRect != null)
-            IgnorePointer(
-              child: CustomPaint(
-                painter: BodyTrackingPainter(normalizedRect: trackingRect),
+      body: cameraDescAsync.when(
+        data: (camera) {
+          if (camera == null) {
+            return const Center(
+              child: Text(
+                'Pas de caméra détectée',
+                style: TextStyle(color: Colors.white),
               ),
-            ),
-          const MirrorOverlay(),
-          if (uiState.showMobileHud)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            );
+          }
+          final controllerAsync = ref.watch(cameraControllerProvider(camera));
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              controllerAsync.when(
+                data: (controller) {
+                  if (controller == null) {
+                    return const Center(child: Text('Erreur initialisation'));
+                  }
+                  _configureCamera(controller);
+                  if (controller.value.isInitialized) {
+                    _ensureMlStream(controller, camera);
+                    return CameraView(controller: controller);
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => Center(child: Text('Erreur Caméra: $e')),
+              ),
+              if (trackingRect != null)
+                IgnorePointer(
+                  child: CustomPaint(
+                    painter: BodyTrackingPainter(normalizedRect: trackingRect),
+                  ),
+                ),
+              const MirrorOverlay(),
+              if (uiState.showMobileHud)
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
                       children: [
-                        const MirrorClockCard(),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            MirrorStatusBadge(
-                              cameraReady: cameraAsync.hasValue,
-                              mlStreamStarted: _mlStreamStarted,
+                            const MirrorClockCard(),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                MirrorStatusBadge(
+                                  cameraReady: controllerAsync.hasValue,
+                                  mlStreamStarted: _mlStreamStarted,
+                                ),
+                                const SizedBox(height: 8),
+                                _buildQuickSettingsButton(),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            _buildQuickSettingsButton(),
                           ],
+                        ),
+                        const Spacer(),
+                        if (_isOutfitReadySignal(morphology))
+                          const MirrorOutfitBadge(),
+                        const Spacer(),
+                        MirrorCameraControls(
+                          minZoom: _minZoomLevel ?? 1.0,
+                          maxZoom: _maxZoomLevel ?? 1.0,
+                          minExposure: _minExposureOffset ?? 0.0,
+                          maxExposure: _maxExposureOffset ?? 0.0,
+                          canControlZoom: !uiState.zoomUnsupported,
+                          canControlExposure: !uiState.exposureUnsupported,
+                          onZoomChanged: _setZoomLevel,
+                          onExposureChanged: _setExposureOffset,
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    if (_isOutfitReadySignal(morphology ?? const MorphologyData.empty()))
-                      const MirrorOutfitBadge(),
-                    const Spacer(),
-                    MirrorCameraControls(
-                      minZoom: _minZoomLevel ?? 1.0,
-                      maxZoom: _maxZoomLevel ?? 1.0,
-                      minExposure: _minExposureOffset ?? 0.0,
-                      maxExposure: _maxExposureOffset ?? 0.0,
-                      canControlZoom: !uiState.zoomUnsupported,
-                      canControlExposure: !uiState.exposureUnsupported,
-                      onZoomChanged: _setZoomLevel,
-                      onExposureChanged: _setExposureOffset,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          if (uiState.showResetCameraBadge)
-            const Center(
-              child: GlassContainer(
-                padding: EdgeInsets.all(16),
-                child: Text('Réglages réinitialisés', style: TextStyle(color: Colors.white)),
-              ),
-            ),
-        ],
+              if (uiState.showResetCameraBadge)
+                const Center(
+                  child: GlassContainer(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Réglages réinitialisés',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('Erreur config: $e')),
       ),
     );
   }
