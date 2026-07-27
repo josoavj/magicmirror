@@ -29,7 +29,7 @@ void main() async {
   final supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
     _isSupabaseReady = true;
   }
 
