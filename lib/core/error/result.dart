@@ -94,9 +94,8 @@ abstract class Result<T> {
     if (self is Success<T>) {
       try {
         callback(self.value);
-      } catch (e, st) {
+      } catch (e) {
         // Log but don't rethrow - this is a side effect
-        print('Error in onSuccess callback: $e\n$st');
       }
     }
     return this;
@@ -108,9 +107,8 @@ abstract class Result<T> {
     if (self is Failure<T>) {
       try {
         callback(self.exception);
-      } catch (e, st) {
+      } catch (e) {
         // Log but don't rethrow
-        print('Error in onFailure callback: $e\n$st');
       }
     }
     return this;
@@ -168,7 +166,7 @@ class Failure<T> extends Result<T> {
   int get hashCode => exception.hashCode;
 }
 
-/// Extension to wrap Future<T> into Future<Result<T>>
+/// Extension to wrap `Future<T>` into `Future<Result<T>>`
 extension FutureResultExt<T> on Future<T> {
   /// Wraps a Future into Result, catching any exceptions
   Future<Result<T>> toResult() async {
