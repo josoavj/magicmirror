@@ -139,6 +139,10 @@ class MirrorUINotifier extends StateNotifier<MirrorUIState> {
     state = state.copyWith(flashUnsupported: value);
   }
 
+  void hideCameraControls() {
+    state = state.copyWith(showCameraControls: false, showExposureControl: false);
+  }
+
   @override
   void dispose() {
     _hudTimer?.cancel();
