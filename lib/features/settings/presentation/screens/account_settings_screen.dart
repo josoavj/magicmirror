@@ -1,11 +1,7 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
+import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
@@ -20,143 +16,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   final _displayNameController = TextEditingController();
   final _avatarUrlController = TextEditingController();
 
-  static const List<String> _genders = [
-    'Femme',
-    'Homme',
-    'Non binaire',
-    'Non précise',
-  ];
-
-  static const List<String> _morphologies = [
-    'Silhouette non définie',
-    'Hanches et épaules équilibrées',
-    'Hanches plus marquées',
-    'Silhouette droite',
-    'Épaules plus larges',
-    'Épaules très marquées',
-    'Taille très marquée',
-    'Hanches très marquées',
-  ];
-
-  static const List<String> _styles = [
-    'Casual',
-    'Elegant',
-    'Sport',
-    'Streetwear',
-    'Business',
-    'Minimaliste',
-  ];
-
-  DateTime? _birthDate;
-  int _heightCm = 170;
-  String _gender = 'Non précise';
-  String _morphology = 'Silhouette non définie';
-  Set<String> _selectedStyles = {'Casual'};
-
-  bool _isUploadingAvatar = false;
-  bool _isSavingProfile = false;
-
   String _tr(BuildContext context, String fr, String en) {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
-  }
-
-  String _normalizeSingleChoice(
-    String? value,
-    List<String> allowedValues,
-    String fallback,
-  ) {
-    if (value != null && allowedValues.contains(value)) {
-      return value;
-    }
-    return fallback;
-  }
-
-  Set<String> _normalizeMultiChoice(
-    Iterable<String> values,
-    List<String> allowedValues,
-    Set<String> fallback,
-  ) {
-    final normalized = values.where(allowedValues.contains).toSet();
-    if (normalized.isEmpty) {
-      return fallback;
-    }
-    return normalized;
-  }
-
-  void _applyProfileToControllers(UserProfile profile) {
-    _displayNameController.text = profile.displayName;
-    _avatarUrlController.text = profile.avatarUrl;
-    _birthDate = profile.birthDate;
-    _heightCm = profile.heightCm;
-    _gender = _normalizeSingleChoice(
-      profile.gender,
-      _genders,
-      'Non précise',
-    );
-    _morphology = _normalizeSingleChoice(
-      profile.morphology,
-      _morphologies,
-      'Silhouette non définie',
-    );
-    _selectedStyles = _normalizeMultiChoice(
-      profile.preferredStyles,
-      _styles,
-      {'Casual'},
-    );
-  }
-
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final maxDate = DateTime(now.year - 12, now.month, now.day);
-    final minDate = DateTime(now.year - 100, now.month, now.day);
-    final initialDate =
-        _birthDate ?? DateTime(now.year - 25, now.month, now.day);
-    final clampedInitialDate = initialDate.isBefore(minDate)
-        ? minDate
-        : (initialDate.isAfter(maxDate) ? maxDate : initialDate);
-
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: clampedInitialDate,
-      firstDate: minDate,
-      lastDate: maxDate,
-    );
-
-    if (selected == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _birthDate = DateTime(selected.year, selected.month, selected.day);
-    });
-  }
-
-  Future<void> _refreshProfileFromCloud() async {
-    await ref.read(userProfileProvider.notifier).pullFromCloud();
-    if (!mounted) {
-      return;
-    }
-    _applyProfileToControllers(ref.read(userProfileProvider));
   }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      final notifier = ref.read(userProfileProvider.notifier);
-
-      if (currentUser != null) {
-        // setUserId gère désormais intelligemment la synchro
-        // (push si local présent, pull si vide)
-        await notifier.setUserId(currentUser.id);
-      }
-
-      if (!mounted) {
-        return;
-      }
-      _applyProfileToControllers(ref.read(userProfileProvider));
-    });
+    final profile = ref.read(userProfileProvider);
+    _displayNameController.text = profile.displayName;
+    _avatarUrlController.text = profile.avatarUrl;
   }
 
   @override
@@ -166,342 +35,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _saveProfileBasics() async {
-    setState(() {
-      _isSavingProfile = true;
-    });
-    try {
-      final notifier = ref.read(userProfileProvider.notifier);
-
-      await notifier.updateProfile(
-        displayName: _displayNameController.text,
-        avatarUrl: _avatarUrlController.text,
-        gender: _gender,
-        heightCm: _heightCm,
-        morphology: _morphology,
-        birthDate: _birthDate,
-        preferredStyles: _selectedStyles.toList(),
-      );
-
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_tr(context, 'Profil mis à jour.', 'Profile updated.')),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _tr(
-              context,
-              'Erreur lors de la mise à jour.',
-              'Update failed.',
-            ),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSavingProfile = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _uploadAvatarFromDevice() async {
-    if (_isUploadingAvatar) {
-      return;
-    }
-
-    Future<Uint8List?> pickWithFilePicker() async {
-      final result = await FilePicker.pickFiles(
-        type: FileType.image,
-        withData: true,
-      );
-      final file = result?.files.single;
-      final bytes = file?.bytes;
-      if (bytes == null || bytes.isEmpty) {
-        return null;
-      }
-      return bytes;
-    }
-
-    Future<Uint8List?> pickWithImagePicker() async {
-      final imagePicker = ImagePicker();
-      final pickedFile = await imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 90,
-      );
-      if (pickedFile == null) {
-        return null;
-      }
-      return pickedFile.readAsBytes();
-    }
-
-    try {
-      setState(() {
-        _isUploadingAvatar = true;
-      });
-
-      Uint8List? bytes;
-      try {
-        bytes = await pickWithFilePicker();
-      } on MissingPluginException {
-        bytes = await pickWithImagePicker();
-      } on PlatformException {
-        bytes = await pickWithImagePicker();
-      }
-
-      if (bytes == null || bytes.isEmpty) {
-        return;
-      }
-
-      final notifier = ref.read(userProfileProvider.notifier);
-      final uploadedUrl = await notifier.uploadAvatar(bytes: bytes);
-      if (uploadedUrl == null || uploadedUrl.isEmpty) {
-        if (!mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _tr(
-                context,
-                'Echec de mise à jour de la photo.',
-                'Failed to update profile photo.',
-              ),
-            ),
-          ),
-        );
-        return;
-      }
-
-      _avatarUrlController.text = uploadedUrl;
-      await notifier.syncToCloud();
-
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _tr(
-              context,
-              'Photo de profil mis à jour.',
-              'Profile photo updated.',
-            ),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _tr(
-              context,
-              'Impossible d\'importer la photo.',
-              'Unable to import photo.',
-            ),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUploadingAvatar = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _showChangePasswordDialog() async {
-    final newPasswordController = TextEditingController();
-    final confirmController = TextEditingController();
-    var isSaving = false;
-    var showNew = false;
-    var showConfirm = false;
-    String? localError;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (_, setLocalState) {
-            return AlertDialog(
-              title: Text(
-                _tr(context, 'Changer le mot de passe', 'Change password'),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: !showNew,
-                    decoration: InputDecoration(
-                      labelText: _tr(
-                        context,
-                        'Nouveau mot de passe',
-                        'New password',
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setLocalState(() {
-                            showNew = !showNew;
-                          });
-                        },
-                        icon: Icon(
-                          showNew ? Icons.visibility_off : Icons.visibility,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: confirmController,
-                    obscureText: !showConfirm,
-                    decoration: InputDecoration(
-                      labelText: _tr(
-                        context,
-                        'Confirmer le mot de passe',
-                        'Confirm password',
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setLocalState(() {
-                            showConfirm = !showConfirm;
-                          });
-                        },
-                        icon: Icon(
-                          showConfirm ? Icons.visibility_off : Icons.visibility,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (localError != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      localError!,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSaving
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(),
-                  child: Text(_tr(context, 'Annuler', 'Cancel')),
-                ),
-                ElevatedButton(
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          final navigator = Navigator.of(dialogContext);
-                          final messenger = ScaffoldMessenger.of(context);
-                          final password = newPasswordController.text;
-                          final confirm = confirmController.text;
-                          if (password.length < 6) {
-                            setLocalState(() {
-                              localError = _tr(
-                                context,
-                                'Le mot de passe doit contenir au moins 6 caractères.',
-                                'Password must be at least 6 characters.',
-                              );
-                            });
-                            return;
-                          }
-                          if (password != confirm) {
-                            setLocalState(() {
-                              localError = _tr(
-                                context,
-                                'La confirmation du mot de passe ne correspond pas.',
-                                'Password confirmation does not match.',
-                              );
-                            });
-                            return;
-                          }
-
-                          setLocalState(() {
-                            localError = null;
-                            isSaving = true;
-                          });
-
-                          try {
-                            await Supabase.instance.client.auth.updateUser(
-                              UserAttributes(password: password),
-                            );
-                            if (!mounted) {
-                              return;
-                            }
-                            navigator.pop();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _tr(
-                                    context,
-                                    'Mot de passe mis à jour.',
-                                    'Password updated.',
-                                  ),
-                                ),
-                              ),
-                            );
-                          } on AuthException catch (e) {
-                            setLocalState(() {
-                              localError = e.message;
-                              isSaving = false;
-                            });
-                          } catch (_) {
-                            setLocalState(() {
-                              localError = _tr(
-                                context,
-                                'Impossible de changer le mot de passe.',
-                                'Unable to change password.',
-                              );
-                              isSaving = false;
-                            });
-                          }
-                        },
-                  child: isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(_tr(context, 'Enregistrer', 'Save')),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    newPasswordController.dispose();
-    confirmController.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final profile = ref.watch(userProfileProvider);
     final activeUser = Supabase.instance.client.auth.currentUser;
-    final syncStatus = ref.watch(profileSyncStatusProvider);
-    final syncMessage = ref.watch(profileSyncMessageProvider);
-    final lastSyncAt = ref.watch(profileLastSyncAtProvider);
-    final hasNetworkAvatar =
-        profile.avatarUrl.startsWith('http://') ||
-        profile.avatarUrl.startsWith('https://');
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -519,505 +56,88 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: GlassContainer(
-                    borderRadius: 18,
-                    blur: 24,
-                    opacity: 0.1,
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _tr(context, 'Compte actif', 'Active account'),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${_tr(context, 'Email', 'Email')}: ${activeUser?.email ?? _tr(context, 'Non connecte', 'Not connected')}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'ID: ${activeUser?.id ?? profile.userId}',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
-                          ),
-                        ),
-                      ],
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              AccountSettingsSection(
+                title: _tr(context, 'Compte actif', 'Active account'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Email: ${activeUser?.email ?? _tr(context, 'Non connecté', 'Not connected')}',
+                      style: const TextStyle(color: Colors.white),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ID: ${activeUser?.id ?? 'N/A'}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                GlassContainer(
-                  borderRadius: 18,
-                  blur: 24,
-                  opacity: 0.1,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _tr(context, 'Informations', 'Information'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+              ),
+              const SizedBox(height: 16),
+              AccountSettingsSection(
+                title: _tr(context, 'Profil', 'Profile'),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _displayNameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: accountInputDecoration(
+                        _tr(context, 'Nom affiché', 'Display name'),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.14,
-                            ),
-                            backgroundImage: hasNetworkAvatar
-                                ? NetworkImage(profile.avatarUrl)
-                                : null,
-                            child: hasNetworkAvatar
-                                ? null
-                                : Text(
-                                    profile.displayName.isNotEmpty
-                                        ? profile.displayName[0].toUpperCase()
-                                        : 'U',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _isUploadingAvatar
-                                  ? null
-                                  : _uploadAvatarFromDevice,
-                              icon: _isUploadingAvatar
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.add_a_photo_outlined),
-                              label: Text(
-                                _isUploadingAvatar
-                                    ? _tr(
-                                        context,
-                                        'Import en cours...',
-                                        'Uploading...',
-                                      )
-                                    : _tr(
-                                        context,
-                                        'Changer la photo',
-                                        'Change photo',
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _displayNameController,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _avatarUrlController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: accountInputDecoration('Avatar URL'),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(userProfileProvider.notifier)
+                            .updateProfile(
+                              displayName: _displayNameController.text,
+                              avatarUrl: _avatarUrlController.text,
+                            );
+                      },
+                      child: Text(_tr(context, 'Enregistrer', 'Save')),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              AccountSettingsSection(
+                title: _tr(context, 'Actions', 'Actions'),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.logout, color: Colors.redAccent),
+                      title: Text(
+                        _tr(context, 'Se déconnecter', 'Sign out'),
                         style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          _tr(context, 'Nom affiché', 'Display name'),
-                        ),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _avatarUrlController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          _tr(context, 'Photo (URL)', 'Photo (URL)'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _gender,
-                        dropdownColor: const Color(0xFF1A1A1A),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          _tr(context, 'Sexe', 'Gender'),
-                        ),
-                        items: _genders
-                            .map(
-                              (value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(value),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
+                      onTap: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        if (mounted) {
+                          if (context.mounted) {
+                            Navigator.pop(context);
                           }
-                          setState(() {
-                            _gender = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.cake_outlined,
-                            color: Colors.white70,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _birthDate == null
-                                  ? _tr(
-                                      context,
-                                      'Date de naissance non renseignée',
-                                      'Birth date not set',
-                                    )
-                                  : _tr(
-                                      context,
-                                      'Date de naissance: ${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
-                                      'Birth date: ${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
-                                    ),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          OutlinedButton(
-                            onPressed: _pickBirthDate,
-                            child: Text(_tr(context, 'Modifier', 'Edit')),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${_tr(context, 'Taille', 'Height')}: $_heightCm cm',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: Colors.cyanAccent,
-                          thumbColor: Colors.cyanAccent,
-                          inactiveTrackColor: Colors.white24,
-                          overlayColor: Colors.cyanAccent.withValues(
-                            alpha: 0.2,
-                          ),
-                        ),
-                        child: Slider(
-                          min: 120,
-                          max: 230,
-                          divisions: 110,
-                          value: _heightCm.toDouble(),
-                          label: '$_heightCm cm',
-                          onChanged: (value) {
-                            setState(() {
-                              _heightCm = value.round();
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _morphology,
-                        dropdownColor: const Color(0xFF1A1A1A),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          _tr(context, 'Morphologie', 'Body type'),
-                        ),
-                        items: _morphologies
-                            .map(
-                              (value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(value),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            _morphology = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _tr(
-                            context,
-                            'Styles vestimentaires',
-                            'Style preferences',
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _styles.map((style) {
-                          final selected = _selectedStyles.contains(style);
-                          return FilterChip(
-                            label: Text(style),
-                            selected: selected,
-                            selectedColor: Colors.cyan.withValues(alpha: 0.45),
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.08,
-                            ),
-                            labelStyle: const TextStyle(color: Colors.white),
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                            onSelected: (_) {
-                              setState(() {
-                                if (selected) {
-                                  if (_selectedStyles.length > 1) {
-                                    _selectedStyles.remove(style);
-                                  }
-                                } else {
-                                  _selectedStyles.add(style);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isSavingProfile
-                              ? null
-                              : _saveProfileBasics,
-                          icon: _isSavingProfile
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.save_outlined),
-                          label: Text(
-                            _tr(
-                              context,
-                              'Enregistrer les modifications',
-                              'Save changes',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                        }
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                GlassContainer(
-                  borderRadius: 18,
-                  blur: 24,
-                  opacity: 0.1,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _tr(context, 'Securité', 'Security'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _showChangePasswordDialog,
-                          icon: const Icon(Icons.lock_outline),
-                          label: Text(
-                            _tr(
-                              context,
-                              'Changer le mot de passe',
-                              'Change password',
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final navigator = Navigator.of(context);
-                            await Supabase.instance.client.auth.signOut();
-                            if (!mounted) {
-                              return;
-                            }
-                            navigator.pop();
-                          },
-                          icon: const Icon(Icons.logout),
-                          label: Text(
-                            _tr(context, 'Se déconnecter', 'Sign out'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GlassContainer(
-                  borderRadius: 18,
-                  blur: 24,
-                  opacity: 0.1,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (syncStatus == ProfileSyncStatus.syncing) ...[
-                        Row(
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _tr(
-                                  context,
-                                  'Chargement des donnees cloud...',
-                                  'Loading cloud data...',
-                                ),
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      Text(
-                        _tr(context, 'Synchronisation cloud', 'Cloud sync'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                ref
-                                    .read(userProfileProvider.notifier)
-                                    .syncToCloud();
-                              },
-                              icon: const Icon(Icons.cloud_upload),
-                              label: Text(_tr(context, 'Sauvegarder', 'Save')),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                await _refreshProfileFromCloud();
-                              },
-                              icon: const Icon(Icons.cloud_download),
-                              label: Text(_tr(context, 'Synchroniser', 'Sync')),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        syncMessage,
-                        style: TextStyle(
-                          color: _syncStatusColor(syncStatus),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${_tr(context, 'Dernière synchronisation', 'Last sync')}: ${_formatLastSync(lastSyncAt, context)}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-
-  Color _syncStatusColor(ProfileSyncStatus status) {
-    switch (status) {
-      case ProfileSyncStatus.success:
-        return Colors.greenAccent;
-      case ProfileSyncStatus.failure:
-        return Colors.redAccent;
-      case ProfileSyncStatus.syncing:
-        return Colors.amberAccent;
-      case ProfileSyncStatus.idle:
-        return Colors.white70;
-    }
-  }
-
-  String _formatLastSync(DateTime? dateTime, BuildContext context) {
-    if (dateTime == null) {
-      return _tr(context, 'Jamais', 'Never');
-    }
-    final local = dateTime.toLocal();
-    final dd = local.day.toString().padLeft(2, '0');
-    final mm = local.month.toString().padLeft(2, '0');
-    final yyyy = local.year.toString();
-    final hh = local.hour.toString().padLeft(2, '0');
-    final min = local.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy ${_tr(context, 'a', 'at')} $hh:$min';
-  }
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.7)),
       ),
     );
   }
