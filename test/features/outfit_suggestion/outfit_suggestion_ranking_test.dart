@@ -5,6 +5,7 @@ import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/data/services/agenda_supabase_service.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_providers.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/weather/data/models/weather_model.dart';
 import 'package:magicmirror/features/weather/data/services/weather_service.dart';
@@ -174,7 +175,7 @@ void main() {
     } catch (_) {
       await Supabase.initialize(
         url: 'https://example.supabase.co',
-        anonKey: 'test.test.test',
+        publishableKey: 'test.test.test',
       );
     }
   });
