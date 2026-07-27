@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:magicmirror/routes/route_names.dart';
-
 // Screens
 import 'package:magicmirror/presentation/screens/home_screen.dart';
 import 'package:magicmirror/features/mirror/presentation/screens/mirror_screen.dart';
