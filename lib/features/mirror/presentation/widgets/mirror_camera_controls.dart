@@ -226,13 +226,10 @@ class MirrorCameraControls extends ConsumerWidget {
                       size: 22,
                     ),
                     onPressed: () {
-                      _lightHaptic(null, minInterval: const Duration(milliseconds: 40));
+                      _lightHaptic(null,
+                          minInterval: const Duration(milliseconds: 40));
                       if (uiState.showCameraControls) {
-                        uiNotifier.setZoomUnsupported(false); // example
-                        ref.read(mirrorUIProvider.notifier).state = uiState.copyWith(
-                          showCameraControls: false,
-                          showExposureControl: false,
-                        );
+                        uiNotifier.hideCameraControls();
                       } else {
                         uiNotifier.showCameraControlsTemporarily();
                       }
