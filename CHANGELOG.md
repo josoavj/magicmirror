@@ -2,68 +2,33 @@
 
 Toutes les évolutions notables de Magic Mirror sont documentées dans ce fichier.
 
-## [1.1.0-beta] - 2026-05-05
+## [1.1.0] - 2026-07-28
+
+### Architecture & Modularité
+- **Refactoring Global** : Transformation de l'application en structure strictement modulaire (Feature-First).
+- **Extraction des Widgets** : Décomposition de tous les écrans monolithiques en composants réutilisables.
+- **Isolation du Domaine** : Création de services de domaine (ex: `OutfitRankingService`) pour séparer la logique métier de l'interface utilisateur.
+- **Standardisation des Providers** : Migration de tous les providers Riverpod vers des fichiers dédiés.
+
+### Tests & Qualité
+- **Suite de Tests Complète** : Implémentation de plus de 20 tests couvrant les modèles, la logique métier, le state management et les widgets.
+- **Infrastructure de Test** : Organisation hiérarchique du dossier `test/` (unit, presentation, data, widgets) et utilisation de `mocktail`.
+- **Analyse Statique** : Correction de tous les avertissements de l'analyseur Flutter (zéro issue).
+
+### UI/UX
+- **Contrôles Caméra** : Extraction et amélioration de l'interface de contrôle du zoom et de l'exposition dans le mode Miroir.
+- **Feedback Transparent** : Affichage des raisons de recommandation dans les suggestions de tenues.
+- **Stepper d'Authentification** : Refonte complète du flux d'inscription en 3 étapes claires.
+
+## [1.0.1-beta] - 2026-05-05
 
 ### Refactor & Performance
-- Optimisation majeure du moteur de recommandation de tenues (calcul différé via Provider).
-- Amélioration de la fluidité de l'interface (Butter-smooth UI).
+- Optimisation majeure du moteur de recommandation de tenues.
 - Stabilisation de la gestion du cycle de vie des dialogues dans l'agenda.
 
 ### Security
-- Migration des logs vers le répertoire privé de l'application (confidentialité).
-- Suppression des permissions de stockage externe superflues sur Android.
-- Verrouillage strict de la synchronisation cloud par ID utilisateur authentifié.
+- Migration des logs vers le répertoire privé de l'application.
+- Verrouillage strict de la synchronisation cloud par ID utilisateur.
 
-### Fix
-- Correction du décalage du cadre vert (bounding box) dans le suivi morphologique.
-- Correction du bug de double soumission lors de la création d'événements.
-- Résolution des erreurs techniques 'Duplicate GlobalKey' et 'TextEditingController used after dispose'.
-
-## [2026-03-31] - Migration agenda Supabase, comptes et documentation
-
-### feat(agenda)
-
-- Migration complète de l'agenda vers Supabase avec modèle enrichi (`userId`, `copyWith`, mapping DB).
-- Nouveau service agenda Supabase avec opérations CRUD liées au compte actif.
-- Refonte du provider agenda pour la gestion journalière, le rafraîchissement, la création, la mise à jour, la suppression et le statut terminé.
-- Refonte de l'écran agenda: sélection de date, ajout, édition, suppression, marquage terminé.
-- Mise à jour du widget HUD agenda pour les types d'événements utilisés côté app.
-
-### feat(auth, account, profile)
-
-- Ajout d'un flux d'authentification complet: connexion, inscription multi-étapes, vérification email, réinitialisation mot de passe.
-- Intégration d'un `AuthGate` Supabase au démarrage de l'application.
-- Ajout d'un écran dédié paramètres du compte (avatar, sécurité, synchronisation).
-- Introduction du domaine profil utilisateur (modèle, provider, sync service, écran) avec persistance locale + synchronisation Supabase.
-- Upload avatar vers Supabase Storage et synchronisation du profil cloud.
-
-### feat(app, settings, outfit)
-
-- Mise à jour du shell applicatif (`main.dart`) et des routes pour intégrer auth, profil et compte.
-- Paramètres: accès direct aux paramètres du compte et wording agenda cloud Supabase.
-- Suggestions de tenues: ranking personnalisé basé sur le profil utilisateur.
-
-### refactor
-
-- Suppression du mode fallback mock agenda dans la configuration applicative.
-
-### chore(deps)
-
-- Retrait des dépendances Google Calendar / Google Sign-In.
-- Régénération du lockfile après migration des dépendances vers la pile Supabase.
-
-### docs
-
-- Ajout du guide complet Supabase (`profiles`, `avatars`, `agenda_events`, RLS).
-- Mise à jour du README, de l'architecture, du guide de démarrage, de la doc caméra et du logging pour refléter la structure et les flux actuels.
-- Mise à jour de l'écran About et des messages de démarrage vers une terminologie Supabase.
-
-### removed
-
-- Suppression du service Google Calendar legacy.
-- Suppression du service mock calendrier legacy.
-
-## [Archive] - Historique antérieur
-
-Les entrées précédentes étaient centrées sur la phase Google Calendar/mock et ne reflètent plus l'architecture actuelle.
-Cette archive a été remplacée par un changelog orienté état réel de l'application au 31/03/2026.
+## [1.0.0] - 2026-03-31
+- Version initiale avec support Supabase (Auth, Profil, Agenda) et détection morphologique IA.
