@@ -11,22 +11,12 @@ class MockUser extends Mock implements User {}
 
 void main() {
   late ProviderContainer container;
-  late MockSupabaseClient mockClient;
-  late MockGoTrueClient mockAuth;
 
   setUpAll(() {
     registerFallbackValue(UserAttributes());
   });
 
   setUp(() {
-    mockClient = MockSupabaseClient();
-    mockAuth = MockGoTrueClient();
-    
-    // AuthProviders uses Supabase.instance.client globally.
-    // In a real project, we'd inject the client into AuthService.
-    // Since we can't easily change the global instance in tests without a wrapper,
-    // we test the state providers directly or mock the AuthService if needed.
-    
     container = ProviderContainer();
   });
 
