@@ -43,6 +43,18 @@ class OutfitListCard extends ConsumerWidget {
                     outfit.quickSummary,
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
+                  if (rankedOutfit.reasons.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        rankedOutfit.reasons.first,
+                        style: TextStyle(
+                          color: Colors.cyanAccent.withValues(alpha: 0.8),
+                          fontSize: 10,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

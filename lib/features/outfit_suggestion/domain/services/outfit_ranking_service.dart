@@ -713,8 +713,13 @@ class OutfitRankingService {
     required List<String> compatibleMorphologies,
   }) {
     if (compatibleMorphologies.contains('all')) return true;
-    final aliases = morphologyAliases(profileMorphology);
-    return compatibleMorphologies.any((m) => aliases.contains(m));
+    final normalizedProfile = normalizeToken(profileMorphology);
+    return compatibleMorphologies.any((m) {
+      if (m == 'all') return true;
+      final normalizedCompatible = normalizeToken(m);
+      return normalizedProfile.contains(normalizedCompatible) ||
+          normalizedCompatible.contains(normalizedProfile);
+    });
   }
 
   Set<String> morphologyAliases(String value) {

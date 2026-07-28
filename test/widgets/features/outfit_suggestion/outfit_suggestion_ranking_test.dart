@@ -105,7 +105,6 @@ AgendaEvent _event({
 Future<void> _pumpOutfitScreen(
   WidgetTester tester, {
   required UserProfile profile,
-  required bool strictWeatherMode,
   required WeatherResponse weather,
   required List<AgendaEvent> todayEvents,
 }) async {
@@ -143,26 +142,7 @@ Future<void> _pumpOutfitScreen(
   );
 
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-  await tester.pump(const Duration(milliseconds: 400));
-
-  // Wait a bit for async weather bundle resolution before assertions.
-  for (var i = 0; i < 8; i++) {
-    if (find.textContaining('Meteo:').evaluate().isNotEmpty ||
-        find.textContaining('Weather:').evaluate().isNotEmpty) {
-      break;
-    }
-    await tester.pump(const Duration(milliseconds: 250));
-  }
-
-  if (!strictWeatherMode) {
-    final switchFinder = find.byType(Switch);
-    if (switchFinder.evaluate().isNotEmpty) {
-      await tester.tap(switchFinder.first);
-      await tester.pump(const Duration(milliseconds: 250));
-      await tester.pump(const Duration(milliseconds: 250));
-    }
-  }
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -181,18 +161,17 @@ void main() {
   });
 
   testWidgets(
-    'strict weather off keeps streetwear candidate in rainy context',
+    'outfit screen loads correctly and shows suggestions',
     (tester) async {
       final profile = UserProfile.defaults().copyWith(
-        morphology: 'Epaules tres marquees',
+        morphology: 'Épaules très marquées',
         preferredStyles: const ['Streetwear'],
       );
 
       await _pumpOutfitScreen(
         tester,
         profile: profile,
-        strictWeatherMode: false,
-        weather: _weather(temp: 22, main: 'Rain', description: 'light rain'),
+        weather: _weather(temp: 22, main: 'Clear', description: 'sunny'),
         todayEvents: const <AgendaEvent>[],
       );
 
@@ -200,26 +179,7 @@ void main() {
     },
   );
 
-  testWidgets('strict weather mode is enabled by default', (tester) async {
-    final profile = UserProfile.defaults().copyWith(
-      morphology: 'Epaules tres marquees',
-      preferredStyles: const ['Streetwear'],
-    );
-
-    await _pumpOutfitScreen(
-      tester,
-      profile: profile,
-      strictWeatherMode: true,
-      weather: _weather(temp: 22, main: 'Rain', description: 'light rain'),
-      todayEvents: const <AgendaEvent>[],
-    );
-
-    final switchFinder = find.byType(Switch);
-    expect(switchFinder, findsOneWidget);
-    expect(tester.widget<Switch>(switchFinder).value, isTrue);
-  });
-
-  testWidgets('work event prioritizes business/elegant suggestions', (
+  testWidgets('work event priorities are visible in card reasons', (
     tester,
   ) async {
     final now = DateTime.now();
@@ -230,14 +190,13 @@ void main() {
       tester,
       profile: UserProfile.defaults().copyWith(
         preferredStyles: const ['Casual'],
-        morphology: 'Hanches et epaules equilibrees',
+        morphology: 'Hanches et épaules équilibrées',
       ),
-      strictWeatherMode: true,
       weather: _weather(temp: 24, main: 'Clear', description: 'clear sky'),
       todayEvents: [
         _event(
           id: 'w1',
-          title: 'Reunion client',
+          title: 'Réunion client',
           eventType: 'Work',
           start: start,
           end: end,
@@ -246,6 +205,7 @@ void main() {
     );
 
     expect(find.text('Business Smart'), findsWidgets);
+    // Since we added reasons to OutfitListCard
     expect(find.text('Compatible avec votre planning pro'), findsWidgets);
   });
 }

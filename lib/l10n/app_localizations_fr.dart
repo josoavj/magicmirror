@@ -9,7 +9,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'Magic Mirror iOS 26';
+  String get appTitle => 'Magic Mirror';
 
   @override
   String get settingsTitle => 'Paramètres';

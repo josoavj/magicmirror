@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Magic Mirror iOS 26'**
+  /// **'Magic Mirror'**
   String get appTitle;
 
   /// No description provided for @settingsTitle.
