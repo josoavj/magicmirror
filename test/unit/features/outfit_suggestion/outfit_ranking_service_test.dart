@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/entities/outfit.dart';
