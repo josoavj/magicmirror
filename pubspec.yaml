@@ -44,7 +44,7 @@ dependencies:
   # Permissions
 
   # ML Kit for morphology detection
-  google_ml_kit: ^0.21.0
+  google_ml_kit: ^0.22.0
 
   # HTTP & API
   dio: ^5.3.1

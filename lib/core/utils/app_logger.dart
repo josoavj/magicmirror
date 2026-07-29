@@ -1,17 +1,14 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'log_storage.dart';
 
 enum LogLevel { info, warning, error, debug }
 
 class AppLogger {
   static final AppLogger _instance = AppLogger._internal();
-  late Directory _logsDirectory;
-  late File _currentLogFile;
+  final LogStorage _storage = LogStorage();
   bool _isInitialized = false;
-  final int _maxLogFileSize = 5 * 1024 * 1024; // 5 MB
 
   factory AppLogger() {
     return _instance;
@@ -24,16 +21,7 @@ class AppLogger {
     if (_isInitialized) return;
 
     try {
-      _logsDirectory = await _getLogsDirectory();
-
-      if (!_logsDirectory.existsSync()) {
-        _logsDirectory.createSync(recursive: true);
-      }
-
-      _currentLogFile = File(
-        '${_logsDirectory.path}/magicmirror_${_getDateString()}.log',
-      );
-
+      await _storage.initialize();
       _isInitialized = true;
       _logToConsole(
         'Logger initialized',
@@ -43,24 +31,6 @@ class AppLogger {
     } catch (e) {
       debugPrint('[AppLogger] Erreur initialization: $e');
     }
-  }
-
-  /// Obtient le répertoire approprié selon la plateforme (privé et sécurisé)
-  Future<Directory> _getLogsDirectory() async {
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      final appDir = await getApplicationSupportDirectory();
-      return Directory('${appDir.path}/logs');
-    } else if (Platform.isLinux) {
-      final cacheDir = await getApplicationCacheDirectory();
-      return Directory('${cacheDir.path}/logs');
-    } else if (Platform.isWindows) {
-      final appDir = await getApplicationSupportDirectory();
-      return Directory('${appDir.path}/logs');
-    }
-
-    // Fallback sécurisé en stockage temporaire privé
-    final tempDir = await getTemporaryDirectory();
-    return Directory('${tempDir.path}/magicmirror/logs');
   }
 
   /// Enregistre un message dans les logs
@@ -75,11 +45,6 @@ class AppLogger {
       await initialize();
     }
 
-    if (!_isInitialized) {
-      _logToConsole(message, level: level, tag: tag, error: error);
-      return;
-    }
-
     final timestamp = DateFormat(
       'yyyy-MM-dd HH:mm:ss.SSS',
     ).format(DateTime.now());
@@ -89,36 +54,14 @@ class AppLogger {
     // Log dans la console en debug
     _logToConsole(message, level: level, tag: tag, error: error);
 
-    // Écrit dans le fichier
+    // Écrit dans le stockage (si supporté)
     try {
-      // Vérifie la taille du fichier courant
-      if (_currentLogFile.existsSync()) {
-        final fileSize = _currentLogFile.lengthSync();
-        if (fileSize > _maxLogFileSize) {
-          // Rotation du fichier
-          await _rotateLogFile();
-        }
-      }
-
-      // Écrit le message
-      await _currentLogFile.writeAsString(
-        '$logMessage\n',
-        mode: FileMode.append,
-      );
-
-      // Écrit le stack trace si disponible
+      await _storage.writeLog(logMessage);
       if (error != null) {
-        await _currentLogFile.writeAsString(
-          'Error: $error\n',
-          mode: FileMode.append,
-        );
+        await _storage.writeLog('Error: $error');
       }
-
       if (stackTrace != null) {
-        await _currentLogFile.writeAsString(
-          'StackTrace:\n$stackTrace\n',
-          mode: FileMode.append,
-        );
+        await _storage.writeLog('StackTrace:\n$stackTrace');
       }
     } catch (e) {
       debugPrint('[AppLogger] Erreur écriture log: $e');
@@ -151,46 +94,6 @@ class AppLogger {
   Future<void> debug(String message, {String tag = 'AppLogger'}) =>
       log(message, level: LogLevel.debug, tag: tag);
 
-  /// Effectue une rotation du fichier de log
-  Future<void> _rotateLogFile() async {
-    try {
-      final timestamp = DateFormat(
-        'yyyy-MM-dd_HH-mm-ss',
-      ).format(DateTime.now());
-      final archivedFile = File(
-        '${_logsDirectory.path}/magicmirror_archived_$timestamp.log',
-      );
-
-      await _currentLogFile.rename(archivedFile.path);
-      _currentLogFile = File(
-        '${_logsDirectory.path}/magicmirror_${_getDateString()}.log',
-      );
-
-      // Nettoie les anciens fichiers (garde seulement les 7 derniers)
-      await _cleanOldLogFiles();
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur rotation: $e');
-    }
-  }
-
-  /// Nettoie les anciens fichiers de log (garde les 7 derniers)
-  Future<void> _cleanOldLogFiles() async {
-    try {
-      final files = _logsDirectory.listSync().whereType<File>().toList();
-      files.sort(
-        (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
-      );
-
-      if (files.length > 7) {
-        for (int i = 7; i < files.length; i++) {
-          await files[i].delete();
-        }
-      }
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur nettoyage: $e');
-    }
-  }
-
   /// Affiche dans la console
   void _logToConsole(
     String message, {
@@ -215,87 +118,18 @@ class AppLogger {
     }
   }
 
-  /// Obtient la chaîne de date pour le nom du fichier
-  String _getDateString() {
-    return DateFormat('yyyy-MM-dd').format(DateTime.now());
-  }
-
   /// Retourne le chemin du répertoire de logs
-  String? getLogsDirectoryPath() {
-    if (_isInitialized) {
-      return _logsDirectory.path;
-    }
-    return null;
-  }
-
-  /// Retourne tous les fichiers de logs
-  List<File> getLogFiles() {
-    if (!_isInitialized) return [];
-    try {
-      return _logsDirectory
-          .listSync()
-          .whereType<File>()
-          .where((file) => file.path.endsWith('.log'))
-          .toList();
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur lecture fichiers: $e');
-      return [];
-    }
-  }
+  String? getLogsDirectoryPath() => _storage.directoryPath;
 
   /// Efface tous les logs
   Future<void> clearLogs() async {
-    if (!_isInitialized) return;
-    try {
-      final files = getLogFiles();
-      for (final file in files) {
-        await file.delete();
-      }
-      _currentLogFile = File(
-        '${_logsDirectory.path}/magicmirror_${_getDateString()}.log',
-      );
-      await info('Logs cleared', tag: 'AppLogger');
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur suppression: $e');
-    }
+    await _storage.clear();
+    await info('Logs cleared', tag: 'AppLogger');
   }
 
-  /// Exporte les logs dans un fichier texte
-  Future<String?> exportLogs() async {
-    if (!_isInitialized) return null;
-    try {
-      final files = getLogFiles();
-      final buffer = StringBuffer();
-
-      for (final file in files) {
-        final content = file.readAsStringSync();
-        buffer.writeln('=== ${file.path} ===');
-        buffer.writeln(content);
-        buffer.writeln('');
-      }
-
-      final exportFile = File(
-        '${_logsDirectory.path}/magicmirror_export_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now())}.txt',
-      );
-      await exportFile.writeAsString(buffer.toString());
-
-      return exportFile.path;
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur export: $e');
-      return null;
-    }
-  }
-
-  /// Ferme les ressources du logger (fichiers, etc.)
+  /// Ferme les ressources du logger
   Future<void> dispose() async {
-    try {
-      if (_currentLogFile.existsSync()) {
-        debugPrint('[AppLogger] Closing log file');
-      }
-      _isInitialized = false;
-    } catch (e) {
-      debugPrint('[AppLogger] Erreur dispose: $e');
-    }
+    _isInitialized = false;
   }
 }
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
+import 'package:magicmirror/core/utils/platform_helper.dart';
 
 class AppColors {
   // Primary colors
@@ -53,10 +53,10 @@ class AppColors {
   /// Optimizes blur value for the current platform
   /// Android keeps reduced blur for performance; iOS keeps a soft but readable depth.
   static double getOptimizedBlur(double blurValue) {
-    if (Platform.isAndroid) {
+    if (PlatformHelper.isAndroid) {
       return blurValue * 0.58;
     }
-    if (Platform.isIOS) {
+    if (PlatformHelper.isIOS) {
       return blurValue * 0.9;
     }
     return blurValue;
