@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'dart:ui';
 import 'package:magicmirror/core/theme/app_colors.dart';
+import 'package:magicmirror/core/utils/platform_helper.dart';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -21,7 +21,6 @@ class GlassContainer extends StatelessWidget {
     this.tintColor,
     this.borderWidth = 1.1,
     this.padding,
-    Object? width,
   });
 
   @override
@@ -36,7 +35,7 @@ class GlassContainer extends StatelessWidget {
     final baseTint = tintColor ?? AppColors.glassBackground;
     final highlightAlpha = isMobile ? 0.22 : 0.18;
     final edgeAlpha = isMobile ? 0.28 : 0.24;
-    final shadowAlpha = Platform.isAndroid ? 0.12 : 0.08;
+    final shadowAlpha = PlatformHelper.isAndroid ? 0.12 : 0.08;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
