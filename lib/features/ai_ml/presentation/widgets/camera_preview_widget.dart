@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/ml_provider.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
+import 'package:magicmirror/core/utils/platform_helper.dart';
 
 /// Widget pour afficher l'aperçu caméra avec traitement ML en temps réel
 class CameraPreviewWidget extends ConsumerStatefulWidget {
@@ -39,23 +39,23 @@ class _CameraPreviewWidgetState extends ConsumerState<CameraPreviewWidget> {
         camera,
         ResolutionPreset.medium,
         enableAudio: false,
-        // Optimisation spécifique par plateforme
-        imageFormatGroup: Platform.isAndroid
-            ? ImageFormatGroup.yuv420
-            : ImageFormatGroup.bgra8888,
+        imageFormatGroup:
+            PlatformHelper.isAndroid
+                ? ImageFormatGroup.yuv420
+                : ImageFormatGroup.bgra8888,
       );
 
       await _controller!.initialize();
 
       if (!mounted) return;
 
-      // Récupère le processeur via Riverpod
-      final processor = ref.read(mlFrameProcessorProvider(camera));
-
-      // Démarre le flux temps réel
-      await _controller!.startImageStream((CameraImage image) {
-        processor.processCameraFrame(image);
-      });
+      // Sur le Web, on ne démarre pas le stream d'images car google_ml_kit n'est pas supporté
+      if (!PlatformHelper.isWeb) {
+        final processor = ref.read(mlFrameProcessorProvider(camera));
+        await _controller!.startImageStream((CameraImage image) {
+          processor.processCameraFrame(image);
+        });
+      }
 
       setState(() => _isInitialized = true);
 
@@ -74,25 +74,17 @@ class _CameraPreviewWidgetState extends ConsumerState<CameraPreviewWidget> {
 
   @override
   void dispose() {
-    // BUG FIX #9: Arrêter le flux d'images avant dispose du controller
     try {
-      _controller?.stopImageStream();
-      logger.debug('Image stream arrêté', tag: 'CameraPreviewWidget');
-    } catch (e) {
-      logger.error(
-        'Erreur arrêt image stream',
-        tag: 'CameraPreviewWidget',
-        error: e,
-      );
-    }
-
+      if (!PlatformHelper.isWeb) {
+        _controller?.stopImageStream();
+      }
+    } catch (_) {}
     _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // BUG FIX #3: Double vérification inefficace - simplifier la logique
     if (_controller == null ||
         !_isInitialized ||
         !_controller!.value.isInitialized) {
