@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:magicmirror/config/app_config.dart';
+import 'package:magicmirror/core/services/storage_service.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/entities/outfit.dart';
@@ -11,7 +12,6 @@ import 'package:magicmirror/features/outfit_suggestion/presentation/providers/ou
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/weather/data/models/weather_model.dart';
 import 'package:magicmirror/features/weather/data/services/weather_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final agendaEventsForDayProvider =
@@ -127,12 +127,15 @@ final outfitPersonalizationProvider =
     StateNotifierProvider<OutfitPersonalizationNotifier, OutfitPersonalizationState>((
   ref,
 ) {
-  return OutfitPersonalizationNotifier();
+  final storageService = ref.watch(storageServiceProvider);
+  return OutfitPersonalizationNotifier(storageService);
 });
 
 class OutfitPersonalizationNotifier
     extends StateNotifier<OutfitPersonalizationState> {
-  OutfitPersonalizationNotifier()
+  final StorageService _storageService;
+
+  OutfitPersonalizationNotifier(this._storageService)
     : super(const OutfitPersonalizationState.initial()) {
     Future.microtask(_load);
   }
@@ -140,8 +143,7 @@ class OutfitPersonalizationNotifier
   static const _prefsKey = 'outfit.personalization.v1';
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_prefsKey);
+    final raw = await _storageService.getString(_prefsKey);
     if (raw == null || raw.isEmpty) return;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -161,8 +163,7 @@ class OutfitPersonalizationNotifier
   }
 
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    await _storageService.saveString(
       _prefsKey,
       jsonEncode({
         'styleBiasByStyle': state.styleBiasByStyle,
@@ -206,19 +207,21 @@ class OutfitPersonalizationNotifier
 
 final outfitFavoritesProvider =
     StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
-      return OutfitFavoritesNotifier();
+      final storageService = ref.watch(storageServiceProvider);
+      return OutfitFavoritesNotifier(storageService);
     });
 
 class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
-  OutfitFavoritesNotifier() : super(<String>{}) {
+  final StorageService _storageService;
+
+  OutfitFavoritesNotifier(this._storageService) : super(<String>{}) {
     _load();
   }
 
   static const _prefsKey = 'outfit.favorites.v1';
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_prefsKey);
+    final list = await _storageService.getList(_prefsKey);
     if (list != null) state = list.toSet();
   }
 
@@ -230,8 +233,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
       next.add(outfitId);
     }
     state = next;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_prefsKey, state.toList());
+    await _storageService.saveList(_prefsKey, state.toList());
   }
 }
 

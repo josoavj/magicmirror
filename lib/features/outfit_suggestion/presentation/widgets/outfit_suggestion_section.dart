@@ -28,6 +28,11 @@ class OutfitSuggestionSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Optimisation : arrondir l'heure au quart d'heure le plus proche pour maximiser le cache Riverpod
+    final now = DateTime.now();
+    final minutes = (now.minute / 15).round() * 15;
+    final roundedNow = DateTime(now.year, now.month, now.day, now.hour, minutes);
+
     return eventsAsync.when(
       data: (events) {
         final params = RankingParams(
@@ -45,7 +50,7 @@ class OutfitSuggestionSection extends ConsumerWidget {
           creativeExplorationShare: 0.1,
           creativeBoost: 10,
           excludedOutfitIds: const {},
-          referenceNow: DateTime.now(),
+          referenceNow: roundedNow,
         );
         final ranked = ref.watch(rankedOutfitsProvider(params));
         return Column(

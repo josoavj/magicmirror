@@ -30,6 +30,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   String _morphology = 'Silhouette non définie';
   final Set<String> _styles = {'Casual'};
 
+  // Gestion du compte à rebours de verrouillage
+  Timer? _countdownTimer;
+  int _secondsRemaining = 0;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -38,7 +42,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _displayNameController.dispose();
     _avatarUrlController.dispose();
     _signupPageController.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  void _startCountdown(DateTime expiry) {
+    _countdownTimer?.cancel();
+    _updateRemainingTime(expiry);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateRemainingTime(expiry);
+    });
+  }
+
+  void _updateRemainingTime(DateTime expiry) {
+    final diff = expiry.difference(DateTime.now()).inSeconds;
+    if (diff <= 0) {
+      _countdownTimer?.cancel();
+      if (mounted) {
+        setState(() => _secondsRemaining = 0);
+      }
+    } else {
+      if (mounted) {
+        setState(() => _secondsRemaining = diff);
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -78,6 +105,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final isLoading = ref.watch(authLoadingProvider);
     final error = ref.watch(authErrorProvider);
     final info = ref.watch(authInfoProvider);
+    final lockoutTime = ref.watch(authLockoutTimeProvider);
+
+    // Écouter les changements de verrouillage pour démarrer le timer
+    ref.listen<DateTime?>(authLockoutTimeProvider, (previous, next) {
+      if (next != null && next.isAfter(DateTime.now())) {
+        _startCountdown(next);
+      }
+    });
+
+    final isLockedOut = lockoutTime != null && _secondsRemaining > 0;
 
     return Scaffold(
       body: Container(
@@ -166,7 +203,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ],
                         ),
                       ),
-                    if (error != null)
+                    if (isLockedOut)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock_clock, color: Colors.redAccent, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Trop de tentatives. Veuillez patienter $_secondsRemaining secondes.',
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (error != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Text(
@@ -184,7 +245,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: isLoading ? null : _submit,
+                      onPressed: (isLoading || isLockedOut) ? null : _submit,
                       child:
                           isLoading
                               ? const CircularProgressIndicator()
@@ -198,7 +259,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     TextButton(
                       onPressed:
-                          () => setState(() {
+                          (isLoading || isLockedOut) 
+                          ? null 
+                          : () => setState(() {
                             _isLoginMode = !_isLoginMode;
                             _signupStep = 0;
                           }),

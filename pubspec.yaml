@@ -64,6 +64,7 @@ dependencies:
 
   # Date & Time
   intl: ^0.20.2
+  collection: ^1.18.0
 
   # Utils
   uuid: ^4.0.0

@@ -8,7 +8,7 @@ import 'package:magicmirror/features/user_profile/data/services/user_profile_syn
 import 'package:magicmirror/core/error/index.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:riverpod/riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:magicmirror/core/services/storage_service.dart';
 
 enum ProfileSyncStatus { idle, syncing, success, failure }
 
@@ -46,7 +46,12 @@ final profileSchemaWarningProvider = FutureProvider<String?>((ref) async {
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
       final syncService = ref.watch(userProfileSyncServiceProvider);
-      return UserProfileNotifier(ref: ref, syncService: syncService);
+      final storageService = ref.watch(storageServiceProvider);
+      return UserProfileNotifier(
+        ref: ref,
+        syncService: syncService,
+        storageService: storageService,
+      );
     });
 
 int _ageFromBirthDate(DateTime birthDate) {
@@ -131,14 +136,17 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   UserProfileNotifier({
     required Ref ref,
     required UserProfileSyncService syncService,
+    required StorageService storageService,
   }) : _ref = ref,
        _syncService = syncService,
+       _storageService = storageService,
        super(UserProfile.defaults()) {
     Future.microtask(_loadProfile);
   }
 
   final Ref _ref;
   final UserProfileSyncService _syncService;
+  final StorageService _storageService;
 
   UserProfile _normalizeDerivedFields(UserProfile profile) {
     final normalizedMorphology = _canonicalizeMorphology(profile.morphology);
@@ -155,36 +163,36 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _loadProfile() async {
-    const storage = FlutterSecureStorage();
     final localUserId =
-        await storage.read(key: 'profile.userId') ?? 'local-user';
+        await _storageService.getString('profile.userId', secure: true) ?? 'local-user';
     final userIdResult = await _syncService.resolveUserId(
       fallback: localUserId,
     );
     final resolvedUserId = userIdResult.getOrNull() ?? localUserId;
 
     final displayName =
-        await storage.read(key: 'profile.displayName') ?? 'Utilisateur';
-    final avatarUrl = await storage.read(key: 'profile.avatarUrl') ?? '';
-    final gender = await storage.read(key: 'profile.gender') ?? 'Non précise';
+        await _storageService.getString('profile.displayName', secure: true) ?? 'Utilisateur';
+    final avatarUrl = await _storageService.getString('profile.avatarUrl', secure: true) ?? '';
+    final gender = await _storageService.getString('profile.gender', secure: true) ?? 'Non précise';
 
-    final ageStr = await storage.read(key: 'profile.age');
+    final ageStr = await _storageService.getString('profile.age', secure: true);
     final age = ageStr != null ? int.tryParse(ageStr) ?? 25 : 25;
 
-    final heightCmStr = await storage.read(key: 'profile.heightCm');
+    final heightCmStr = await _storageService.getString('profile.heightCm', secure: true);
     final heightCm =
         (heightCmStr != null ? int.tryParse(heightCmStr) ?? 170 : 170).clamp(
           120,
           230,
         );
 
-    final birthDateStr = await storage.read(key: 'profile.birthDate');
+    final birthDateStr = await _storageService.getString('profile.birthDate', secure: true);
     final morphology =
-        await storage.read(key: 'profile.morphology') ??
+        await _storageService.getString('profile.morphology', secure: true) ??
         'Silhouette non définie';
 
-    final preferredStylesStr = await storage.read(
-      key: 'profile.preferredStyles',
+    final preferredStylesStr = await _storageService.getString(
+      'profile.preferredStyles',
+      secure: true,
     );
     final preferredStyles =
         preferredStylesStr != null && preferredStylesStr.isNotEmpty
@@ -248,24 +256,26 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _saveProfile() async {
-    const storage = FlutterSecureStorage();
-    await storage.write(key: 'profile.userId', value: state.userId);
-    await storage.write(key: 'profile.displayName', value: state.displayName);
-    await storage.write(key: 'profile.avatarUrl', value: state.avatarUrl);
-    await storage.write(key: 'profile.gender', value: state.gender);
-    await storage.write(key: 'profile.age', value: state.age.toString());
-    await storage.write(
-      key: 'profile.heightCm',
-      value: state.heightCm.toString(),
+    await _storageService.saveString('profile.userId', state.userId, secure: true);
+    await _storageService.saveString('profile.displayName', state.displayName, secure: true);
+    await _storageService.saveString('profile.avatarUrl', state.avatarUrl, secure: true);
+    await _storageService.saveString('profile.gender', state.gender, secure: true);
+    await _storageService.saveString('profile.age', state.age.toString(), secure: true);
+    await _storageService.saveString(
+      'profile.heightCm',
+      state.heightCm.toString(),
+      secure: true,
     );
-    await storage.write(
-      key: 'profile.birthDate',
-      value: state.birthDate?.toIso8601String() ?? '',
+    await _storageService.saveString(
+      'profile.birthDate',
+      state.birthDate?.toIso8601String() ?? '',
+      secure: true,
     );
-    await storage.write(key: 'profile.morphology', value: state.morphology);
-    await storage.write(
-      key: 'profile.preferredStyles',
-      value: state.preferredStyles.join('|||'),
+    await _storageService.saveString('profile.morphology', state.morphology, secure: true);
+    await _storageService.saveString(
+      'profile.preferredStyles',
+      state.preferredStyles.join('|||'),
+      secure: true,
     );
   }
 

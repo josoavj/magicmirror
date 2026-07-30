@@ -24,11 +24,17 @@ class WeatherService {
   static String get _apiKey => dotenv.env['OPENWEATHERMAP_API_KEY'] ?? 'demo';
 
   final Dio _dio = Dio();
+  SharedPreferences? _prefs;
 
   WeatherService() {
     _dio.options.connectTimeout = AppConfig.networkTimeout;
     _dio.options.sendTimeout = AppConfig.networkTimeout;
     _dio.options.receiveTimeout = AppConfig.networkTimeout;
+  }
+
+  Future<SharedPreferences> get _instance async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
   }
 
   String _coordBucket(double latitude, double longitude) {
@@ -58,7 +64,7 @@ class WeatherService {
     required String trackingKey,
     required String currentCacheKey,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _instance;
     final previous = prefs.getString(trackingKey);
     if (previous != null &&
         previous.isNotEmpty &&
@@ -92,7 +98,7 @@ class WeatherService {
     required Duration ttl,
   }) async {
     cacheService.set<Map<String, dynamic>>(cacheKey, payload, ttl: ttl);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _instance;
     await prefs.setString('$cacheKey.raw', jsonEncode(payload));
     await prefs.setInt(
       '$cacheKey.savedAtMs',
@@ -110,7 +116,7 @@ class WeatherService {
       return inMemory;
     }
 
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _instance;
     final raw = prefs.getString('$cacheKey.raw');
     final savedAtMs = prefs.getInt('$cacheKey.savedAtMs');
     if (raw == null || raw.isEmpty || savedAtMs == null) {

@@ -56,6 +56,17 @@ class SettingsScreen extends ConsumerWidget {
                             .setDarkMode(value);
                       },
                     ),
+                    SettingsToggle(
+                      icon: Icons.speed,
+                      label: 'Mode Performance',
+                      subtitle: 'Désactive les effets de flou pour plus de fluidité',
+                      value: settings.lowPerformanceMode,
+                      onChanged: (value) {
+                        ref
+                            .read(appSettingsProvider.notifier)
+                            .setLowPerformanceMode(value);
+                      },
+                    ),
                     SettingsDropdown<String>(
                       icon: Icons.language,
                       label: l10n.languageLabel,

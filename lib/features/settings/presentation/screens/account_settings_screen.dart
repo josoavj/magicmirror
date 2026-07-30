@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
+import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,6 +35,109 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     _displayNameController.dispose();
     _avatarUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final isLoading = ref.watch(authLoadingProvider);
+            final error = ref.watch(authErrorProvider);
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              title: const Text('Sécurité', style: TextStyle(color: Colors.white)),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AuthTextField(
+                        controller: oldPasswordController,
+                        label: 'Mot de passe actuel',
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 12),
+                      AuthTextField(
+                        controller: newPasswordController,
+                        label: 'Nouveau mot de passe',
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 12),
+                      AuthTextField(
+                        controller: confirmPasswordController,
+                        label: 'Confirmer le nouveau',
+                        obscureText: true,
+                      ),
+                      if (error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            error,
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (newPasswordController.text != confirmPasswordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Les mots de passe ne correspondent pas.')),
+                            );
+                            return;
+                          }
+                          if (newPasswordController.text.length < 6) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Minimum 6 caractères.')),
+                            );
+                            return;
+                          }
+
+                          final success = await ref.read(authServiceProvider).changePassword(
+                            oldPassword: oldPasswordController.text,
+                            newPassword: newPasswordController.text,
+                          );
+
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Mot de passe mis à jour !')),
+                            );
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Valider'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    oldPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
   }
 
   @override
@@ -108,6 +213,22 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                             );
                       },
                       child: Text(_tr(context, 'Enregistrer', 'Save')),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              AccountSettingsSection(
+                title: _tr(context, 'Sécurité', 'Security'),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.lock_outline, color: Colors.blueAccent),
+                      title: Text(
+                        _tr(context, 'Changer le mot de passe', 'Change password'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: _showChangePasswordDialog,
                     ),
                   ],
                 ),

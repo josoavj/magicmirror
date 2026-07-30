@@ -70,7 +70,7 @@ class MirrorUINotifier extends StateNotifier<MirrorUIState> {
 
   void _startHudTimer() {
     _hudTimer?.cancel();
-    _hudTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _hudTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _syncHudVisibility();
     });
     _syncHudVisibility(force: true);

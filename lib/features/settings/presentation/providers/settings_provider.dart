@@ -4,17 +4,20 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:magicmirror/config/app_config.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:magicmirror/core/utils/app_logger.dart';
+import 'package:magicmirror/core/services/storage_service.dart';
 import 'package:magicmirror/features/settings/data/models/app_settings_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider pour la gestion des réglages application
 final appSettingsProvider =
     StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) {
-      return AppSettingsNotifier();
+      final storageService = ref.watch(storageServiceProvider);
+      return AppSettingsNotifier(storageService);
     });
 
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
-  AppSettingsNotifier() : super(AppSettings.defaults()) {
+  final StorageService _storageService;
+
+  AppSettingsNotifier(this._storageService) : super(AppSettings.defaults()) {
     Future.microtask(_loadSettings);
   }
 
@@ -79,38 +82,37 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
         'auto';
   }
 
-  /// Charger les paramètres depuis shared_preferences
+  /// Charger les paramètres depuis le stockage
   Future<void> _loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
       final settings = AppSettings(
-        darkMode: prefs.getBool('darkMode') ?? true,
-        locale: _normalizeLocale(prefs.getString('locale')),
-        enableNotifications: prefs.getBool('enableNotifications') ?? true,
-        enableLocationTracking: prefs.getBool('enableLocationTracking') ?? true,
-        defaultCity: prefs.getString('defaultCity') ?? 'Antananarivo',
-        syncCalendarOnStartup: prefs.getBool('syncCalendarOnStartup') ?? true,
-        enableAudioFeedback: prefs.getBool('enableAudioFeedback') ?? true,
-        ttsEnabled: prefs.getBool('ttsEnabled') ?? true,
-        ttsLanguage: _normalizeTtsLanguage(prefs.getString('ttsLanguage')),
-        ttsAnnounceMorphology: prefs.getBool('ttsAnnounceMorphology') ?? true,
-        ttsSpeechRate: prefs.getDouble('ttsSpeechRate') ?? 0.50,
-        ttsPitch: prefs.getDouble('ttsPitch') ?? 1.00,
-        ttsMinRepeatSeconds: prefs.getInt('ttsMinRepeatSeconds') ?? 45,
-        ttsInterruptCurrent: prefs.getBool('ttsInterruptCurrent') ?? true,
-        cameraFlipped: prefs.getBool('cameraFlipped') ?? false,
-        cameraZoom: prefs.getDouble('cameraZoom') ?? 1.0,
-        cameraExposureOffset: prefs.getDouble('cameraExposureOffset') ?? 0.0,
+        darkMode: await _storageService.getBool('darkMode') ?? true,
+        locale: _normalizeLocale(await _storageService.getString('locale')),
+        enableNotifications: await _storageService.getBool('enableNotifications') ?? true,
+        enableLocationTracking: await _storageService.getBool('enableLocationTracking') ?? true,
+        defaultCity: await _storageService.getString('defaultCity') ?? 'Antananarivo',
+        syncCalendarOnStartup: await _storageService.getBool('syncCalendarOnStartup') ?? true,
+        enableAudioFeedback: await _storageService.getBool('enableAudioFeedback') ?? true,
+        ttsEnabled: await _storageService.getBool('ttsEnabled') ?? true,
+        ttsLanguage: _normalizeTtsLanguage(await _storageService.getString('ttsLanguage')),
+        ttsAnnounceMorphology: await _storageService.getBool('ttsAnnounceMorphology') ?? true,
+        ttsSpeechRate: await _storageService.getDouble('ttsSpeechRate') ?? 0.50,
+        ttsPitch: await _storageService.getDouble('ttsPitch') ?? 1.00,
+        ttsMinRepeatSeconds: await _storageService.getInt('ttsMinRepeatSeconds') ?? 45,
+        ttsInterruptCurrent: await _storageService.getBool('ttsInterruptCurrent') ?? true,
+        cameraFlipped: await _storageService.getBool('cameraFlipped') ?? false,
+        cameraZoom: await _storageService.getDouble('cameraZoom') ?? 1.0,
+        cameraExposureOffset: await _storageService.getDouble('cameraExposureOffset') ?? 0.0,
         cameraFlashMode: _normalizeFlashMode(
-          prefs.getString('cameraFlashMode'),
+          await _storageService.getString('cameraFlashMode'),
         ),
         cameraProfile: _normalizeCameraProfile(
-          prefs.getString('cameraProfile'),
+          await _storageService.getString('cameraProfile'),
         ),
-        mirrorHudDisplaySeconds: prefs.getInt('mirrorHudDisplaySeconds') ?? 30,
-        mirrorHudCycleMinutes: prefs.getInt('mirrorHudCycleMinutes') ?? 5,
+        mirrorHudDisplaySeconds: await _storageService.getInt('mirrorHudDisplaySeconds') ?? 30,
+        mirrorHudCycleMinutes: await _storageService.getInt('mirrorHudCycleMinutes') ?? 5,
         appVersion: AppConstants.appVersion,
+        lowPerformanceMode: await _storageService.getBool('lowPerformanceMode') ?? false,
       );
 
       state = settings;
@@ -126,36 +128,28 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   /// Sauvegarder les paramètres
   Future<void> _saveSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setBool('darkMode', state.darkMode);
-      await prefs.setString('locale', state.locale);
-      await prefs.setBool('enableNotifications', state.enableNotifications);
-      await prefs.setBool(
-        'enableLocationTracking',
-        state.enableLocationTracking,
-      );
-      await prefs.setString('defaultCity', state.defaultCity);
-      await prefs.setBool('syncCalendarOnStartup', state.syncCalendarOnStartup);
-      await prefs.setBool('enableAudioFeedback', state.enableAudioFeedback);
-      await prefs.setBool('ttsEnabled', state.ttsEnabled);
-      await prefs.setString('ttsLanguage', state.ttsLanguage);
-      await prefs.setBool('ttsAnnounceMorphology', state.ttsAnnounceMorphology);
-      await prefs.setDouble('ttsSpeechRate', state.ttsSpeechRate);
-      await prefs.setDouble('ttsPitch', state.ttsPitch);
-      await prefs.setInt('ttsMinRepeatSeconds', state.ttsMinRepeatSeconds);
-      await prefs.setBool('ttsInterruptCurrent', state.ttsInterruptCurrent);
-      await prefs.setBool('cameraFlipped', state.cameraFlipped);
-      await prefs.setDouble('cameraZoom', state.cameraZoom);
-      await prefs.setDouble('cameraExposureOffset', state.cameraExposureOffset);
-      await prefs.setString('cameraFlashMode', state.cameraFlashMode);
-      await prefs.setString('cameraProfile', state.cameraProfile);
-      await prefs.setInt(
-        'mirrorHudDisplaySeconds',
-        state.mirrorHudDisplaySeconds,
-      );
-      await prefs.setInt('mirrorHudCycleMinutes', state.mirrorHudCycleMinutes);
-      await prefs.setString('appVersion', state.appVersion);
+      await _storageService.saveBool('darkMode', state.darkMode);
+      await _storageService.saveString('locale', state.locale);
+      await _storageService.saveBool('enableNotifications', state.enableNotifications);
+      await _storageService.saveBool('enableLocationTracking', state.enableLocationTracking);
+      await _storageService.saveString('defaultCity', state.defaultCity);
+      await _storageService.saveBool('syncCalendarOnStartup', state.syncCalendarOnStartup);
+      await _storageService.saveBool('enableAudioFeedback', state.enableAudioFeedback);
+      await _storageService.saveBool('ttsEnabled', state.ttsEnabled);
+      await _storageService.saveString('ttsLanguage', state.ttsLanguage);
+      await _storageService.saveBool('ttsAnnounceMorphology', state.ttsAnnounceMorphology);
+      await _storageService.saveDouble('ttsSpeechRate', state.ttsSpeechRate);
+      await _storageService.saveDouble('ttsPitch', state.ttsPitch);
+      await _storageService.saveInt('ttsMinRepeatSeconds', state.ttsMinRepeatSeconds);
+      await _storageService.saveBool('ttsInterruptCurrent', state.ttsInterruptCurrent);
+      await _storageService.saveBool('cameraFlipped', state.cameraFlipped);
+      await _storageService.saveDouble('cameraZoom', state.cameraZoom);
+      await _storageService.saveDouble('cameraExposureOffset', state.cameraExposureOffset);
+      await _storageService.saveString('cameraFlashMode', state.cameraFlashMode);
+      await _storageService.saveString('cameraProfile', state.cameraProfile);
+      await _storageService.saveInt('mirrorHudDisplaySeconds', state.mirrorHudDisplaySeconds);
+      await _storageService.saveInt('mirrorHudCycleMinutes', state.mirrorHudCycleMinutes);
+      await _storageService.saveBool('lowPerformanceMode', state.lowPerformanceMode);
     } catch (e) {
       logger.error(
         'Erreur sauvegarde settings',
@@ -300,6 +294,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setMirrorHudCycleMinutes(int minutes) async {
     final clamped = minutes.clamp(1, 60);
     state = state.copyWith(mirrorHudCycleMinutes: clamped);
+    await _saveSettings();
+  }
+
+  /// Activer/désactiver le mode basse performance (désactive les flous)
+  Future<void> setLowPerformanceMode(bool value) async {
+    state = state.copyWith(lowPerformanceMode: value);
     await _saveSettings();
   }
 
