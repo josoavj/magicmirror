@@ -24,6 +24,7 @@ class AppSettings {
   final int mirrorHudDisplaySeconds;
   final int mirrorHudCycleMinutes;
   final String appVersion;
+  final bool lowPerformanceMode;
 
   AppSettings({
     required this.darkMode,
@@ -48,6 +49,7 @@ class AppSettings {
     required this.mirrorHudDisplaySeconds,
     required this.mirrorHudCycleMinutes,
     required this.appVersion,
+    this.lowPerformanceMode = false,
   });
 
   /// Valeurs par defaut
@@ -75,6 +77,7 @@ class AppSettings {
       mirrorHudDisplaySeconds: 30,
       mirrorHudCycleMinutes: 5,
       appVersion: AppConstants.appVersion,
+      lowPerformanceMode: false,
     );
   }
 
@@ -102,6 +105,7 @@ class AppSettings {
     int? mirrorHudDisplaySeconds,
     int? mirrorHudCycleMinutes,
     String? appVersion,
+    bool? lowPerformanceMode,
   }) {
     return AppSettings(
       darkMode: darkMode ?? this.darkMode,
@@ -131,6 +135,7 @@ class AppSettings {
       mirrorHudCycleMinutes:
           mirrorHudCycleMinutes ?? this.mirrorHudCycleMinutes,
       appVersion: appVersion ?? this.appVersion,
+      lowPerformanceMode: lowPerformanceMode ?? this.lowPerformanceMode,
     );
   }
 }
