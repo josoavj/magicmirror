@@ -88,19 +88,26 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 ## 📁 Structure du projet
 
-```
-lib/
-├── config/             # Feature flags & configuration globale
-├── core/               # Services transverses, Thème global, Utils
-├── features/           # Modules par fonctionnalité
-│   ├── auth/           # Authentification & Stepper d'inscription
-│   ├── mirror/         # Interface miroir & contrôles caméra
-│   ├── outfit_suggestion/ # Moteur de recommandation (Service + Entities)
-│   └── ...             # agenda, weather, ai_ml, user_profile, settings
-├── presentation/       # Composants globaux (Home, About)
-├── routes/             # Routage centralisé
-└── main.dart           # Point d'entrée & Initialisation
-```
+### 🌍 Racine
+- `assets/` : Ressources statiques (images, polices, configuration `.env`).
+- `docs/` : Documentation technique détaillée et guides de configuration.
+- `ml/` : Scripts Python pour le pipeline de Machine Learning (LightGBM).
+- `test/` : Suite de tests complète (Unit, Presentation, Data, Widgets).
+
+### 🏗️ Application (`lib/`)
+- **`config/`** : Centralisation des *Feature Flags* et configuration d'environnement.
+- **`core/`** : Socle technique transverse.
+    - `services/` : Moteurs de base (Storage, Cache, TTS, Permissions).
+    - `theme/` : Design system unifié (Glassmorphism, Couleurs).
+    - `utils/` : Utilitaires globaux (Logger, PlatformHelper, Responsive).
+    - `error/` : Gestion unifiée des exceptions et résultats.
+- **`features/`** : Modules organisés par domaine fonctionnel (Feature-First). Chaque module est découpé en :
+    - `domain/` : Entités pures et services de logique métier.
+    - `data/` : Modèles (DTO), repositories et services techniques (API/DB).
+    - `presentation/` : Widgets isolés, Providers (Riverpod) et Écrans d'assemblage.
+- **`presentation/`** : Composants et écrans globaux (Home, About).
+- **`routes/`** : Définition centralisée de la navigation.
+- **`main.dart`** : Point d'entrée, initialisation des services et injection de l'AuthGate.
 
 ---
 
@@ -114,4 +121,4 @@ lib/
 
 ---
 
-<p align="center">Made with ❤️ by <a href="https://github.com/josoavj">@josoavj</a></p>
+<p align="center">Made by <a href="https://github.com/josoavj">@josoavj</a></p>
