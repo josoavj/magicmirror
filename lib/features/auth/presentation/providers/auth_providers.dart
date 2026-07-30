@@ -7,6 +7,12 @@ final authLoadingProvider = StateProvider<bool>((ref) => false);
 final authErrorProvider = StateProvider<String?>((ref) => null);
 final authInfoProvider = StateProvider<String?>((ref) => null);
 
+/// Nombre de tentatives de connexion échouées consécutives
+final authFailedAttemptsProvider = StateProvider<int>((ref) => 0);
+
+/// Heure à laquelle le verrouillage expire
+final authLockoutTimeProvider = StateProvider<DateTime?>((ref) => null);
+
 final authServiceProvider = Provider((ref) => AuthService(ref));
 
 class AuthService {
@@ -16,6 +22,12 @@ class AuthService {
   SupabaseClient get _client => Supabase.instance.client;
 
   Future<void> signIn({required String email, required String password}) async {
+    // Vérifier si le verrouillage est actif
+    final lockoutTime = _ref.read(authLockoutTimeProvider);
+    if (lockoutTime != null && DateTime.now().isBefore(lockoutTime)) {
+      return;
+    }
+
     _ref.read(authLoadingProvider.notifier).state = true;
     _ref.read(authErrorProvider.notifier).state = null;
     _ref.read(authInfoProvider.notifier).state = null;
@@ -28,15 +40,39 @@ class AuthService {
 
       final userId = response.user?.id;
       if (userId != null) {
+        // Réinitialiser les compteurs sur succès
+        _ref.read(authFailedAttemptsProvider.notifier).state = 0;
+        _ref.read(authLockoutTimeProvider.notifier).state = null;
+        
         await _ref.read(userProfileProvider.notifier).setUserId(userId);
       }
     } on AuthException catch (e) {
-      _ref.read(authErrorProvider.notifier).state = e.message;
+      _handleSignInFailure(e.message);
     } catch (_) {
-      _ref.read(authErrorProvider.notifier).state =
-          'Une erreur est survenue, veuillez réessayer.';
+      _handleSignInFailure('Une erreur est survenue, veuillez réessayer.');
     } finally {
       _ref.read(authLoadingProvider.notifier).state = false;
+    }
+  }
+
+  void _handleSignInFailure(String message) {
+    _ref.read(authErrorProvider.notifier).state = message;
+    
+    final attempts = _ref.read(authFailedAttemptsProvider.notifier).state += 1;
+    
+    // Verrouillage progressif
+    if (attempts >= 10) {
+      // 15 minutes pour les cas extrêmes
+      _ref.read(authLockoutTimeProvider.notifier).state = 
+          DateTime.now().add(const Duration(minutes: 15));
+    } else if (attempts >= 5) {
+      // 5 minutes
+      _ref.read(authLockoutTimeProvider.notifier).state = 
+          DateTime.now().add(const Duration(minutes: 5));
+    } else if (attempts >= 3) {
+      // 30 secondes
+      _ref.read(authLockoutTimeProvider.notifier).state = 
+          DateTime.now().add(const Duration(seconds: 30));
     }
   }
 
