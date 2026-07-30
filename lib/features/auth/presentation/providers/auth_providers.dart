@@ -141,6 +141,40 @@ class AuthService {
     }
   }
 
+  /// Change le mot de passe de l'utilisateur après vérification de l'ancien
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    _ref.read(authLoadingProvider.notifier).state = true;
+    _ref.read(authErrorProvider.notifier).state = null;
+
+    try {
+      final email = _client.auth.currentUser?.email;
+      if (email == null) throw const AuthException('Utilisateur non identifié');
+
+      // 1. Vérification de l'ancien mot de passe (Re-authentification)
+      await _client.auth.signInWithPassword(
+        email: email,
+        password: oldPassword,
+      );
+
+      // 2. Si succès, mise à jour vers le nouveau
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+      
+      _ref.read(authInfoProvider.notifier).state = 'Mot de passe mis à jour avec succès.';
+      return true;
+    } on AuthException catch (e) {
+      _ref.read(authErrorProvider.notifier).state = e.message;
+      return false;
+    } catch (e) {
+      _ref.read(authErrorProvider.notifier).state = 'Erreur lors du changement de mot de passe.';
+      return false;
+    } finally {
+      _ref.read(authLoadingProvider.notifier).state = false;
+    }
+  }
+
   Future<void> signOut() async {
     await _client.auth.signOut();
     await _ref.read(userProfileProvider.notifier).setUserId('');
