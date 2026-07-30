@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/weather/data/models/weather_model.dart';
@@ -229,31 +230,39 @@ class RankingParams {
   });
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RankingParams &&
-          profile == other.profile &&
-          favoriteIds == other.favoriteIds &&
-          personalization == other.personalization &&
-          mlScoreMap == other.mlScoreMap &&
-          llmDetailsByOutfitId == other.llmDetailsByOutfitId &&
-          secondaryLlmEnabled == other.secondaryLlmEnabled &&
-          targetDay == other.targetDay &&
-          weatherContext == other.weatherContext &&
-          strictWeatherMode == other.strictWeatherMode &&
-          creativeMixEnabled == other.creativeMixEnabled &&
-          creativeExplorationShare == other.creativeExplorationShare &&
-          creativeBoost == other.creativeBoost &&
-          excludedOutfitIds == other.excludedOutfitIds &&
-          referenceNow == other.referenceNow);
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! RankingParams) return false;
+
+    const listEq = ListEquality();
+    const setEq = SetEquality();
+    const mapEq = MapEquality();
+
+    return profile == other.profile &&
+        listEq.equals(events, other.events) &&
+        setEq.equals(favoriteIds, other.favoriteIds) &&
+        personalization == other.personalization &&
+        mapEq.equals(mlScoreMap, other.mlScoreMap) &&
+        mapEq.equals(llmDetailsByOutfitId, other.llmDetailsByOutfitId) &&
+        secondaryLlmEnabled == other.secondaryLlmEnabled &&
+        targetDay == other.targetDay &&
+        weatherContext == other.weatherContext &&
+        strictWeatherMode == other.strictWeatherMode &&
+        creativeMixEnabled == other.creativeMixEnabled &&
+        creativeExplorationShare == other.creativeExplorationShare &&
+        creativeBoost == other.creativeBoost &&
+        setEq.equals(excludedOutfitIds, other.excludedOutfitIds) &&
+        referenceNow == other.referenceNow;
+  }
 
   @override
   int get hashCode => Object.hashAll([
     profile,
-    favoriteIds,
+    const ListEquality().hash(events),
+    const SetEquality().hash(favoriteIds),
     personalization,
-    mlScoreMap,
-    llmDetailsByOutfitId,
+    const MapEquality().hash(mlScoreMap),
+    const MapEquality().hash(llmDetailsByOutfitId),
     secondaryLlmEnabled,
     targetDay,
     weatherContext,
@@ -261,7 +270,7 @@ class RankingParams {
     creativeMixEnabled,
     creativeExplorationShare,
     creativeBoost,
-    excludedOutfitIds,
+    const SetEquality().hash(excludedOutfitIds),
     referenceNow,
   ]);
 }
