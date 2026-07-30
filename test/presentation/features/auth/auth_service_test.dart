@@ -59,5 +59,10 @@ void main() {
       final service = container.read(authServiceProvider);
       expect(service, isNotNull);
     });
+
+    test('changePassword is implemented', () {
+      final service = container.read(authServiceProvider);
+      expect(() => service.changePassword(oldPassword: 'a', newPassword: 'b'), returnsNormally);
+    });
   });
 }
