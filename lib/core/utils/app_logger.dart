@@ -106,14 +106,14 @@ class AppLogger {
       final output = '[$levelStr] [$tag] $message';
 
       if (level == LogLevel.error) {
-        debugPrint('❌ $output');
+        debugPrint('[ERROR] $output');
         if (error != null) debugPrint('   Error: $error');
       } else if (level == LogLevel.warning) {
-        debugPrint('⚠️  $output');
+        debugPrint('[WARN]  $output');
       } else if (level == LogLevel.debug) {
-        debugPrint('🔍 $output');
+        debugPrint('[DEBUG] $output');
       } else {
-        debugPrint('ℹ️  $output');
+        debugPrint('[INFO]  $output');
       }
     }
   }
