@@ -60,25 +60,25 @@ class WeatherWidget extends ConsumerWidget {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
-  /// Obtenir l'emoji de la météo
-  String _getWeatherEmoji(String condition) {
+  /// Obtenir l'icône de la météo
+  IconData _getWeatherIcon(String condition) {
     final lowerCondition = condition.toLowerCase();
     if (lowerCondition.contains('clear') || lowerCondition.contains('sunny')) {
-      return '☀️';
+      return Icons.wb_sunny_outlined;
     } else if (lowerCondition.contains('cloud')) {
-      return '☁️';
+      return Icons.cloud_outlined;
     } else if (lowerCondition.contains('rain') ||
         lowerCondition.contains('drizzle')) {
-      return '🌧️';
+      return Icons.umbrella_outlined;
     } else if (lowerCondition.contains('thunder')) {
-      return '⛈️';
+      return Icons.thunderstorm_outlined;
     } else if (lowerCondition.contains('snow')) {
-      return '❄️';
+      return Icons.ac_unit_outlined;
     } else if (lowerCondition.contains('mist') ||
         lowerCondition.contains('fog')) {
-      return '🌫️';
+      return Icons.visibility_outlined;
     }
-    return '🌤️';
+    return Icons.cloud_queue;
   }
 
   @override
@@ -180,14 +180,13 @@ class WeatherWidget extends ConsumerWidget {
                             ),
                             Padding(
                               padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                _getWeatherEmoji(weather.description),
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.resp(
-                                    context,
-                                    mobile: 24,
-                                    tablet: 32,
-                                  ),
+                              child: Icon(
+                                _getWeatherIcon(weather.description),
+                                color: Colors.white70,
+                                size: ResponsiveHelper.resp(
+                                  context,
+                                  mobile: 24,
+                                  tablet: 32,
                                 ),
                               ),
                             ),
@@ -219,14 +218,13 @@ class WeatherWidget extends ConsumerWidget {
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return Text(
-                          _getWeatherEmoji(weather.description),
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.resp(
-                              context,
-                              mobile: 48,
-                              tablet: 60,
-                            ),
+                        return Icon(
+                          _getWeatherIcon(weather.description),
+                          color: Colors.white,
+                          size: ResponsiveHelper.resp(
+                            context,
+                            mobile: 48,
+                            tablet: 60,
                           ),
                         );
                       },
