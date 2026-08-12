@@ -125,12 +125,12 @@ class AboutFeatureList extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       {
-        'icon': '🪞',
+        'icon': Icons.camera_alt_outlined,
         'title': isEnglish ? 'Smart Mirror' : 'Miroir Intelligent',
         'desc': isEnglish ? 'Real-time camera display' : 'Caméra temps réel',
       },
       {
-        'icon': '🤖',
+        'icon': Icons.psychology_outlined,
         'title': isEnglish ? 'Body Type AI' : 'Morphologie AI',
         'desc': isEnglish ? 'Pose detection' : 'Détection de pose',
       },
@@ -141,13 +141,13 @@ class AboutFeatureList extends StatelessWidget {
           features
               .map(
                 (f) => ListTile(
-                  leading: Text(f['icon']!, style: const TextStyle(fontSize: 24)),
+                  leading: Icon(f['icon'] as IconData, color: Colors.blueAccent, size: 28),
                   title: Text(
-                    f['title']!,
+                    f['title'] as String,
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    f['desc']!,
+                    f['desc'] as String,
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ),
