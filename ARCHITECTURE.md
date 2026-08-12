@@ -1,4 +1,4 @@
-# 🏗️ Architecture - Magic Mirror
+# Architecture - Magic Mirror
 
 ## Vision Modulaire
 
@@ -6,12 +6,12 @@ Magic Mirror adopte une architecture **Feature-First** et **Layered** (inspirée
 
 ## Structure des Dossiers (`lib/`)
 
-### 1. `core/` & `config/`
+### 1. core/ & config/
 - **Configuration** : `app_config.dart` centralise les *Feature Flags* et les constantes d'environnement.
 - **Thème** : `app_theme.dart` définit un design system unifié (Glassmorphism).
 - **Services** : Services transverses comme le `Logger`, `Cache` ou `TTS`.
 
-### 2. `features/` (Le cœur de l'app)
+### 2. features/ (Le cœur de l'app)
 Chaque feature (ex: `outfit_suggestion`) est organisée comme suit :
 
 - **`domain/`** : 
@@ -25,7 +25,7 @@ Chaque feature (ex: `outfit_suggestion`) est organisée comme suit :
     - `widgets/` : Composants UI spécifiques à la feature, extraits pour être légers.
     - `screens/` : Écrans d'assemblage (Points d'entrée des routes).
 
-### 3. `presentation/` (Global)
+### 3. presentation/ (Global)
 Regroupe les composants partagés par toute l'application (ex: `glass_container.dart`, `home_screen.dart`).
 
 ## Gestion d'État (Riverpod)
