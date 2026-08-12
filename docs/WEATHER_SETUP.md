@@ -1,4 +1,4 @@
-# Configuration météo — OpenWeatherMap API
+# Configuration météo - OpenWeatherMap API
 
 Intégration de l'API OpenWeatherMap dans Magic Mirror avec géolocalisation automatique et gestion sécurisée des clés.
 
@@ -8,19 +8,19 @@ Intégration de l'API OpenWeatherMap dans Magic Mirror avec géolocalisation aut
 
 | Fonctionnalité | Statut |
 |----------------|--------|
-| Géolocalisation automatique | ✅ |
-| Données météo en temps réel | ✅ |
-| Température, humidité, vent, description | ✅ |
-| Icônes officielles OpenWeatherMap | ✅ |
-| Fallback sur Paris si localisation échoue | ✅ |
-| Prévisions 5 jours (optionnel) | ✅ |
-| Clé API sécurisée via `flutter_dotenv` | ✅ |
+| Géolocalisation automatique | Oui |
+| Données météo en temps réel | Oui |
+| Température, humidité, vent, description | Oui |
+| Icônes officielles OpenWeatherMap | Oui |
+| Fallback sur Paris si localisation échoue | Oui |
+| Prévisions 5 jours (optionnel) | Oui |
+| Clé API sécurisée via `flutter_dotenv` | Oui |
 
 ---
 
 ## Configuration rapide
 
-### Étape 1 — Créer un compte OpenWeatherMap
+### Étape 1 - Créer un compte OpenWeatherMap
 
 1. Aller sur [https://openweathermap.org/api](https://openweathermap.org/api)
 2. Cliquer sur **Sign Up** en haut à droite
@@ -28,7 +28,7 @@ Intégration de l'API OpenWeatherMap dans Magic Mirror avec géolocalisation aut
 4. Accepter les conditions, puis cliquer sur **Create**
 5. Confirmer l'email reçu en cliquant sur le lien de confirmation
 
-### Étape 2 — Obtenir la clé API
+### Étape 2 - Obtenir la clé API
 
 1. Se connecter, puis aller sur [https://home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
 2. Copier la clé nommée **Default** :
@@ -39,7 +39,7 @@ abc123def456ghi789jkl0mnopqrst
 
 > **Note :** La clé peut prendre 5 à 10 minutes pour être activée après la création du compte.
 
-### Étape 3 — Configurer `.env`
+### Étape 3 - Configurer `.env`
 
 À la racine du projet, ouvrir le fichier `.env` et remplacer :
 
@@ -53,7 +53,7 @@ OPENWEATHERMAP_API_KEY=your_actual_api_key_here_1234567890ab
 
 > Vérifier qu'il n'y a **pas d'espace** avant ou après la clé.
 
-### Étape 4 — Vérifier la clé en navigateur
+### Étape 4 - Vérifier la clé en navigateur
 
 Avant de relancer l'app, tester la clé directement (remplacer `YOUR_KEY`) :
 
@@ -78,7 +78,7 @@ Réponse en cas d'erreur :
 { "cod": "401", "message": "Invalid API key" }
 ```
 
-### Étape 5 — Relancer l'app
+### Étape 5 - Relancer l'app
 
 ```bash
 # Arrêter l'app (Ctrl+C), puis :
@@ -106,7 +106,7 @@ flutter_dotenv: ^5.0.2    # Gestion des variables d'environnement
 
 ### Services
 
-**`WeatherService`** — `lib/features/weather/data/services/weather_service.dart`
+**`WeatherService`** - `lib/features/weather/data/services/weather_service.dart`
 
 Gère les appels API, la géolocalisation et les fallbacks.
 
@@ -126,7 +126,7 @@ Future<ForecastResponse?> getForecast(double lat, double lon)
 
 ### Modèles
 
-**`WeatherResponse`** — données météo actuelles :
+**`WeatherResponse`** - données météo actuelles :
 
 ```dart
 WeatherResponse(
@@ -143,7 +143,7 @@ WeatherResponse(
 )
 ```
 
-**`ForecastResponse`** — prévisions futures :
+**`ForecastResponse`** - prévisions futures :
 
 ```dart
 ForecastResponse(
@@ -216,7 +216,7 @@ final next24h = forecast?.getNext24Hours() ?? [];
 final daily = forecast?.getDaily() ?? [];
 ```
 
-### Debug — afficher les premières lettres de la clé API
+### Debug - afficher les premières lettres de la clé API
 
 ```dart
 static String get _apiKey {
@@ -228,16 +228,16 @@ static String get _apiKey {
 
 ---
 
-## Sécurité — gestion de la clé API
+## Sécurité - gestion de la clé API
 
 La clé API n'est jamais exposée dans le code source.
 
 | Fichier | Contenu | Commité sur Git | Accès |
 |--------|---------|-----------------|-------|
-| `.env` | Vraie clé | ❌ Non (gitignore) | Local uniquement |
-| `.env.example` | Template sans clé | ✅ Oui | Public |
-| `weather_service.dart` | Lit depuis dotenv | ✅ Oui | Pas de clé en dur |
-| `main.dart` | Charge `.env` | ✅ Oui | Pas sensible |
+| `.env` | Vraie clé | Non (gitignore) | Local uniquement |
+| `.env.example` | Template sans clé | Oui | Public |
+| `weather_service.dart` | Lit depuis dotenv | Oui | Pas de clé en dur |
+| `main.dart` | Charge `.env` | Oui | Pas sensible |
 
 Vérifier que le fichier `.env` est bien ignoré par Git :
 
@@ -249,12 +249,12 @@ git status              # Ne doit PAS afficher .env
 ### Utilisation selon l'environnement
 
 ```env
-# .env — développement local
+# .env - développement local
 OPENWEATHERMAP_API_KEY=ma_vraie_cle_secrete_1234
 ```
 
 ```bash
-# Production — variable système
+# Production - variable système
 export OPENWEATHERMAP_API_KEY=production_key_5678
 flutter run
 ```
@@ -267,16 +267,16 @@ flutter run
 |--------|--------|
 | Appels par minute | 60 |
 | Appels par mois | 1 000 000 |
-| Météo actuelle | ✅ |
-| Prévisions 5 jours | ✅ |
-| Historique | ❌ |
+| Météo actuelle | Oui |
+| Prévisions 5 jours | Oui |
+| Historique | Non |
 | Coût | 0 $/mois |
 
 ---
 
 ## Permissions requises
 
-### Android — `android/app/src/main/AndroidManifest.xml`
+### Android - `android/app/src/main/AndroidManifest.xml`
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
@@ -284,7 +284,7 @@ flutter run
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 ```
 
-### iOS — `ios/Runner/Info.plist`
+### iOS - `ios/Runner/Info.plist`
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
@@ -301,7 +301,7 @@ flutter run
 |-----------|--------------|
 | Géolocalisation refusée | Fallback sur Paris (48.8566, 2.3522) |
 | API indisponible | Retry après 2s, puis widget "Non disponible" |
-| Pas de connexion internet | Affichage des emojis météo en fallback |
+| Pas de connexion internet | Affichage de texte alternatif |
 | Permission GPS refusée | Fallback Paris, l'app ne se bloque pas |
 
 ---
@@ -320,22 +320,22 @@ flutter run
 4. Tester la clé directement dans le navigateur (voir étape 4)
 5. Relancer avec `flutter clean && flutter run`
 
-### Erreur 401 — "Invalid API key"
+### Erreur 401 - "Invalid API key"
 
-- La clé a été copiée incomplètement → revérifier sur [home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
-- La clé n'est pas encore activée → attendre 5 à 10 minutes
+- La clé a été copiée incomplètement -> revérifier sur [home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
+- La clé n'est pas encore activée -> attendre 5 à 10 minutes
 
-### Erreur 429 — rate limit dépassé
+### Erreur 429 - rate limit dépassé
 
 Le plan gratuit est limité à 60 appels/minute. Attendre quelques minutes avant de relancer.
 
-### "Permission denied" — géolocalisation
+### "Permission denied" - géolocalisation
 
 L'app bascule automatiquement sur Paris. Aucune erreur bloquante.
 
 ### Les icônes météo ne s'affichent pas
 
-Vérifier la connexion internet. L'app utilise des emojis (☀️ ☁️ 🌧️) en fallback automatique.
+Vérifier la connexion internet. L'app utilise des fallbacks textuels en cas d'absence d'icônes.
 
 ### Déboguer avec les logs détaillés
 
@@ -362,7 +362,7 @@ flutter run -v
 
 ## Prochains développements
 
-- [ ] Cache local avec `sqflite`
+- [ ] Cache local
 - [ ] Écran dédié aux prévisions 5 jours
 - [ ] Notifications d'alerte météo
 - [ ] Suggestions de tenue selon les conditions

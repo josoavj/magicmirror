@@ -32,12 +32,12 @@ Chaque entrée de log contient :
 
 ### Niveaux de log (mode développement)
 
-| Niveau    | Symbole |
+| Niveau    | Label |
 |-----------|---------|
-| `INFO`    | ℹ️      |
-| `WARNING` | ⚠️      |
-| `ERROR`   | ❌      |
-| `DEBUG`   | 🔍      |
+| `INFO`    | [INFO]  |
+| `WARNING` | [WARN]  |
+| `ERROR`   | [ERROR] |
+| `DEBUG`   | [DEBUG] |
 
 ---
 
@@ -49,7 +49,7 @@ Chaque entrée de log contient :
 import 'package:magicmirror/core/utils/app_logger.dart';
 ```
 
-### Initialisation — `main.dart`
+### Initialisation - `main.dart`
 
 ```dart
 void main() async {
@@ -120,16 +120,16 @@ StackTrace:
 
 | Statut   | Fichier                                                                               | Description                              |
 |----------|---------------------------------------------------------------------------------------|------------------------------------------|
-| ✅ Créé  | `lib/core/utils/app_logger.dart`                                                      | Système de logging centralisé            |
-| 📝 Modifié | `pubspec.yaml`                                                                      | Ajout de `path_provider`                 |
-| 📝 Modifié | `lib/main.dart`                                                                     | Initialisation du logger                 |
-| 📝 Modifié | `lib/config/app_config.dart`                                                        | Utilise logger pour `printStartupInfo`   |
-| 📝 Modifié | `lib/features/agenda/data/services/agenda_supabase_service.dart`                    | Utilise logger                           |
-| 📝 Modifié | `lib/features/mirror/presentation/providers/camera_provider.dart`                   | Utilise logger                           |
-| 📝 Modifié | `lib/features/weather/presentation/widgets/weather_widget.dart`                     | Utilise logger                           |
-| 📝 Modifié | `lib/features/ai_ml/data/services/morphology_service.dart`                          | Utilise logger                           |
-| 📝 Modifié | `lib/features/settings/presentation/providers/settings_provider.dart`               | Utilise logger                           |
-| 📝 Modifié | `lib/core/utils/logger.dart`                                                        | Export vers `app_logger.dart` (rétrocompatibilité) |
+| Créé     | `lib/core/utils/app_logger.dart`                                                      | Système de logging centralisé            |
+| Modifié  | `pubspec.yaml`                                                                      | Ajout de `path_provider`                 |
+| Modifié  | `lib/main.dart`                                                                     | Initialisation du logger                 |
+| Modifié  | `lib/config/app_config.dart`                                                        | Utilise logger pour `printStartupInfo`   |
+| Modifié  | `lib/features/agenda/data/services/agenda_supabase_service.dart`                    | Utilise logger                           |
+| Modifié  | `lib/features/mirror/presentation/providers/camera_provider.dart`                   | Utilise logger                           |
+| Modifié  | `lib/features/weather/presentation/widgets/weather_widget.dart`                     | Utilise logger                           |
+| Modifié  | `lib/features/ai_ml/data/services/morphology_service.dart`                          | Utilise logger                           |
+| Modifié  | `lib/features/settings/presentation/providers/settings_provider.dart`               | Utilise logger                           |
+| Modifié  | `lib/core/utils/logger.dart`                                                        | Export vers `app_logger.dart` (rétrocompatibilité) |
 
 ---
 
@@ -189,7 +189,7 @@ $ tail -f ~/.cache/magicmirror/logs/magicmirror_2026-03-05.log
 
 ---
 
-## 9. Migration `print()` → `logger`
+## 9. Migration `print()` -> `logger`
 
 **Avant :**
 

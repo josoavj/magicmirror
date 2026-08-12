@@ -329,7 +329,7 @@ class WeatherService {
     }
 
     try {
-      debugPrint('🌡️ Récupération météo pour $cityName...');
+      debugPrint('Recuperation météo pour $cityName...');
 
       final response = await _dio.get(
         '$_baseUrl/weather',
@@ -393,7 +393,7 @@ class WeatherService {
     }
 
     try {
-      debugPrint('🌡️ Récupération prévisions...');
+      debugPrint('Recuperation prévisions...');
 
       final response = await _dio.get(
         '$_baseUrl/forecast',

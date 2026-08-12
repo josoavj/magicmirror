@@ -63,7 +63,7 @@ La structure des tests est organisée comme suit :
 
 ---
 
-## ✅ Prochaines étapes
+## Prochaines étapes
 
 | Guide | Contenu |
 |---|---|

@@ -19,22 +19,22 @@
 
 ---
 
-## 📊 Vue d'ensemble des fonctionnalités
+## Vue d'ensemble des fonctionnalités
 
 | Fonctionnalité | Statut | Détails |
 |---|---|---|
-| 🪞 **Miroir caméra** | ✅ 100% | Caméra temps réel, détection morphologie, contrôles de zoom/exposition |
-| 📅 **Agenda / Calendrier** | ✅ 100% | Agenda cloud Supabase avec gestion complète (CRUD) |
-| 🌦️ **Météo** | ✅ 100% | API OpenWeatherMap + géolocalisation pour recommandations contextuelles |
-| 🤖 **Morphologie IA** | ✅ 100% | Google ML Kit — détection de pose et classification automatique |
-| 👔 **Suggestions de tenues** | ✅ 100% | Algorithme de ranking hybride (Heuristique + ML + LLM) |
-| 👤 **Profil utilisateur** | ✅ 100% | Synchronisation cloud complète (avatar, préférences, morphologie) |
-| 🧪 **Suite de Tests** | ✅ 100% | Tests unitaires, de state management (Riverpod) et de widgets |
-| 🗣️ **Synthèse vocale** | ✅ 100% | Feedback audio intelligent pour les recommandations |
+| **Miroir caméra** | 100% | Caméra temps réel, détection morphologie, contrôles de zoom/exposition |
+| **Agenda / Calendrier** | 100% | Agenda cloud Supabase avec gestion complète (CRUD) |
+| **Météo** | 100% | API OpenWeatherMap + géolocalisation pour recommandations contextuelles |
+| **Morphologie IA** | 100% | Google ML Kit — détection de pose et classification automatique |
+| **Suggestions de tenues** | 100% | Algorithme de ranking hybride (Heuristique + ML + LLM) |
+| **Profil utilisateur** | 100% | Synchronisation cloud complète (avatar, préférences, morphologie) |
+| **Suite de Tests** | 100% | Tests unitaires, de state management (Riverpod) et de widgets |
+| **Synthèse vocale** | 100% | Feedback audio intelligent pour les recommandations |
 
 ---
 
-## 🏗️ Architecture & Modularité
+## Architecture & Modularité
 
 L'application suit une architecture **Feature-first** strictement modulaire. Chaque fonctionnalité est isolée dans son propre module (`lib/features/`) et découpée en couches :
 
@@ -46,7 +46,7 @@ Cette structure garantit une haute maintenabilité et facilite l'ajout de nouvel
 
 ---
 
-## 🚀 Démarrage rapide
+## Démarrage rapide
 
 ### Installation
 
@@ -70,7 +70,7 @@ flutter run
 
 ---
 
-## 🧪 Tests & Qualité
+## Tests & Qualité
 
 Le projet inclut une suite de tests robuste pour garantir la stabilité :
 
@@ -86,15 +86,15 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 ---
 
-## 📁 Structure du projet
+## Structure du projet
 
-### 🌍 Racine
+### Racine
 - `assets/` : Ressources statiques (images, polices, configuration `.env`).
 - `docs/` : Documentation technique détaillée et guides de configuration.
 - `ml/` : Scripts Python pour le pipeline de Machine Learning (LightGBM).
 - `test/` : Suite de tests complète (Unit, Presentation, Data, Widgets).
 
-### 🏗️ Application (`lib/`)
+### Application (`lib/`)
 - **`config/`** : Centralisation des *Feature Flags* et configuration d'environnement.
 - **`core/`** : Socle technique transverse.
     - `services/` : Moteurs de base (Storage, Cache, TTS, Permissions).
@@ -111,13 +111,13 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 ---
 
-## 🌍 Support des plateformes
+## Support des plateformes
 
 | Plateforme | Statut | Caméra | Météo | Agenda |
 |---|---|---|---|---|
-| 📱 **Android / iOS** | ✅ | ✅ | ✅ | ✅ |
-| 🖥️ **macOS** | ✅ | ✅ | ✅ | ✅ |
-| 💻 **Linux / Windows**| ⚠️ | ⚠️ | ✅ | ✅ |
+| **Android / iOS** | Oui | Oui | Oui | Oui |
+| **macOS** | Oui | Oui | Oui | Oui |
+| **Linux / Windows**| Partiel | Partiel | Oui | Oui |
 
 ---
 
