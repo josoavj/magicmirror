@@ -64,3 +64,5 @@ ml/artifacts/*.json
 ml/__pycache__/
 # Garder le dossier artifacts/ tracké via .gitkeep
 !ml/artifacts/.gitkeep
+android/build/reports/problems/problems-report.html
+android/build/reports/problems/problems-report.html
