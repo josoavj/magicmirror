@@ -1,12 +1,13 @@
 plugins {
     id("com.android.application")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.apexnovalabs.magicmirror"
-    compileSdk = 35
-    ndkVersion = "25.2.9519653"
+    namespace = "com.apexnovalabs.magicmirror.magicmirror"
+    compileSdk = 37
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -14,9 +15,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.apexnovalabs.magicmirror"
+        applicationId = "com.apexnovalabs.magicmirror.magicmirror"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 37 // Aligné à 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -36,8 +37,4 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-dependencies {
-    implementation("androidx.appcompat:appcompat:1.7.0")
 }
