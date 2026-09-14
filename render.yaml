@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: reflecto-rag-backend
+    runtime: docker
+    rootDir: web-app/backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: PORT
+        value: 8000
