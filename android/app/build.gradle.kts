@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -16,8 +15,8 @@ android {
 
     defaultConfig {
         applicationId = "com.apexnovalabs.magicmirror.magicmirror"
-        minSdk = flutter.minSdkVersion
-        targetSdk = 37 // Aligné à 37
+        minSdk = 26
+        targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -25,13 +24,17 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
-}
 
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
     }
 }
 
