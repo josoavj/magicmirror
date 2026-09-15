@@ -76,7 +76,7 @@ firebase-debug.log
 # Docker (if used)
 # =========================
 .dockerignore
-Dockerfile*
+
 docker-compose*.yml
 
 # =========================

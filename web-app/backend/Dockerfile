@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Run vectorization training to generate .pkl files if they don't exist
-RUN python ml/train_and_vectorize.py
+# Ensure models exist (skip training if pre-generated .pkl are present)
+RUN python -c "import os; os.system('python ml/train_and_vectorize.py') if not (os.path.exists('models/vectorizer.pkl') and os.path.exists('models/fashion_embeddings.pkl')) else print('✅ Pre-trained models verified in models/')"
 
 EXPOSE 8000
 

@@ -1,0 +1,146 @@
+[
+  {
+    "id": "morph-a",
+    "category": "morphology",
+    "target": "A-Shape",
+    "tags": ["poire", "triangle", "hanches larges", "epaules etroites"],
+    "title": "Morphologie en A (Triangle / Poire)",
+    "rules": "Équilibrer en attirant l'attention sur le haut : privilégier hauts à épaulettes, cols bateau, vestes cintrées aux épaules marquées. Bas fluides et droits (palazzo, jupe trapèze). Couleurs vives en haut, tons sobres en bas."
+  },
+  {
+    "id": "morph-v",
+    "category": "morphology",
+    "target": "V-Shape",
+    "tags": ["triangle inverse", "epaules larges", "buste developpe", "jambes fines"],
+    "title": "Morphologie en V (Triangle Inversé)",
+    "rules": "Adoucir la carrure et donner du volume en bas : tops fluides à col V ou emmanchures raglan. Pantalons cargo, chinos larges à pinces, jupes patineuses ou imprimées. Éviter les épaulettes et les cols bateau horizontaux."
+  },
+  {
+    "id": "morph-h",
+    "category": "morphology",
+    "target": "H-Shape",
+    "tags": ["rectangle", "taille peu marquee", "longiligne", "silhouette droite"],
+    "title": "Morphologie en H (Rectangle)",
+    "rules": "Créer l'illusion d'une taille : vestes cintrées portées ouvertes, coupes droites élégantes, cache-cœur, pantalons droits ou carotte. Ceintures souples portées sur les hanches plutôt que serrées fort à la taille."
+  },
+  {
+    "id": "morph-x",
+    "category": "morphology",
+    "target": "X-Shape",
+    "tags": ["sablier", "taille fine", "harmonie", "proportions parfaites"],
+    "title": "Morphologie en X (Sablier)",
+    "rules": "Souligner la taille naturelle : robes ceinturées, hauts cache-cœur, pantalons et jupes taille haute, blazers ajustés. Éviter les coupes informes ou trop oversize qui masquent la silhouette."
+  },
+  {
+    "id": "morph-o",
+    "category": "morphology",
+    "target": "O-Shape",
+    "tags": ["ronde", "courbes généreuses", "ovale"],
+    "title": "Morphologie en O (Rondeur)",
+    "rules": "Allonger la silhouette : matières fluides au tombé impeccable, cols en V ou dégagés, vestes mi-longues ouvertes pour créer des lignes verticales, looks monochromes élégants. Éviter les matières brillantes ou stretch ultra-moulantes."
+  },
+  {
+    "id": "morph-8",
+    "category": "morphology",
+    "target": "8-Shape",
+    "tags": ["huit", "courbes pulpeuses", "sablier genereux"],
+    "title": "Morphologie en 8 (Huit)",
+    "rules": "Sublimer les courbes voluptueuses : robes drapées ajustées, jupes crayon, décolletés raffinés et coupes tailleur impeccables."
+  },
+  {
+    "id": "color-spring",
+    "category": "colorimetry",
+    "target": "Printemps",
+    "tags": ["chaud", "lumineux", "dore", "peche", "yeux clairs"],
+    "title": "Colorimétrie Printemps (Teint Chaud & Lumineux)",
+    "rules": "Palette chaude, claire et vibrante : corail, pêche, camel doré, ivoire, vert pomme, turquoise chaud. Bijoux or jaune brillant. Éviter le noir pur et le blanc froid."
+  },
+  {
+    "id": "color-summer",
+    "category": "colorimetry",
+    "target": "Été",
+    "tags": ["froid", "doux", "pastel", "rose", "blond cendre"],
+    "title": "Colorimétrie Été (Teint Froid & Doux)",
+    "rules": "Palette froide, poudrée et pastel : bleu ciel, lavande, vieux rose, framboise douce, vert sauge, gris perle. Bijoux argent mat ou platine. Éviter l'orange et le jaune moutarde."
+  },
+  {
+    "id": "color-autumn",
+    "category": "colorimetry",
+    "target": "Automne",
+    "tags": ["chaud", "profond", "epice", "dore", "roux", "auburn"],
+    "title": "Colorimétrie Automne (Teint Chaud & Épicé)",
+    "rules": "Palette chaude, terreuse et profonde : terracotta, rouille, vert forêt, olive, moutarde, camel foncé, marron chocolat. Bijoux or vieilli ou bronze. Éviter les bleus froids et roses fuchsia."
+  },
+  {
+    "id": "color-winter",
+    "category": "colorimetry",
+    "target": "Hiver",
+    "tags": ["froid", "contraste", "intense", "fonce", "ebene", "porcelaine"],
+    "title": "Colorimétrie Hiver (Teint Froid & Contrasté)",
+    "rules": "Palette froide, saturée et très contrastée : bleu roi, marine profond, rouge carmin, fuchsia éclatant, émeraude, noir pur et blanc optique éclatant. Bijoux argent brillant."
+  },
+  {
+    "id": "weather-cold",
+    "category": "weather",
+    "target": "Cold",
+    "tags": ["froid", "hiver", "gel", "neige", "temperature basse", "manteau"],
+    "title": "Climat Froid (< 10°C)",
+    "rules": "Règle des 3 couches : base respirante, pull mérinos ou col roulé fin, manteau long en drap de laine ou cachemire structuré. Pantalons flanelle ou velours, écharpe cachemire, bottines cuir semelle isolante."
+  },
+  {
+    "id": "weather-mild",
+    "category": "weather",
+    "target": "Mild",
+    "tags": ["tempere", "printemps", "automne", "blazer", "mi-saison"],
+    "title": "Climat Tempéré (10°C - 25°C)",
+    "rules": "Polyvalence et layering modulable : chemise coton peigné avec blazer déboutonné ou veste mi-saison (trench, suédine, harrington). Chinos, pantalons tailleur fluides, mocassins ou sneakers en cuir soignées."
+  },
+  {
+    "id": "weather-hot",
+    "category": "weather",
+    "target": "Hot",
+    "tags": ["chaud", "ete", "soleil", "chaleur", "lin", "leger"],
+    "title": "Chaleur & Été (> 25°C)",
+    "rules": "Fraîcheur et respirabilité : matières naturelles (lin pur, gaze de coton, seersucker, popeline fine). Couleurs claires (blanc, écru, sable) réfléchissant la chaleur. Pantalons lin légers, derbies tressées ou sandales cuir."
+  },
+  {
+    "id": "weather-rain",
+    "category": "weather",
+    "target": "Rain",
+    "tags": ["pluie", "averses", "humide", "imperméable"],
+    "title": "Conditions Pluvieuses",
+    "rules": "Privilégier un trench déperlant ou parka technique élégante. Éviter le daim/suédine non traité et les pantalons longs traînant. Chaussures cuir ciré avec semelles crantées."
+  },
+  {
+    "id": "event-business",
+    "category": "event",
+    "target": "Business",
+    "tags": ["travail", "entretien", "reunion", "bureau", "meeting", "corporate", "professionnel"],
+    "title": "Événement Professionnel & Business Formal",
+    "rules": "Rigueur et autorité bienveillante : tailleur pantalon ou costume deux pièces structuré (marine, anthracite), chemisier en soie ou chemise blanche immaculée, souliers de ville cirés, accessoires minimalistes haut de gamme."
+  },
+  {
+    "id": "event-gala",
+    "category": "event",
+    "target": "Gala",
+    "tags": ["gala", "soiree", "black tie", "ceremonie", "prestige", "luxe", "mariage"],
+    "title": "Gala, Black Tie & Événements Prestigieux",
+    "rules": "Luxe et distinction : smoking ou costume sombre haute qualité, robe longue de soirée ou smoking féminin cintré, souliers vernis, minaudière bijou et parure de joaillerie raffinée."
+  },
+  {
+    "id": "event-casual",
+    "category": "event",
+    "target": "Casual",
+    "tags": ["casual", "detente", "quotidien", "weekend", "amis", "dejeuner"],
+    "title": "Sortie Casual & Quotidien Stylé",
+    "rules": "Décontraction soignée : denim brut parfait ou chino bien coupé, t-shirt coton épais de qualité, surchemise ou blouson court, sneakers cuir propres ou bottines confortables."
+  },
+  {
+    "id": "event-smart-casual",
+    "category": "event",
+    "target": "Smart Casual",
+    "tags": ["smart casual", "afterwork", "cocktail", "diner"],
+    "title": "Smart Casual & Cocktail",
+    "rules": "Élégance décontractée : blazer texturé sans cravate, chemise à col ouvert ou maille fine sous veste, pantalon habillé et mocassins ou talons délicats."
+  }
+]

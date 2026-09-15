@@ -19,17 +19,21 @@ load_dotenv()
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
-DATA_DIR = os.path.join(BASE_DIR, "..", "frontend", "reflecto-app", "data", "knowledge")
+DATA_DIRS = [
+    os.path.join(BASE_DIR, "data", "knowledge"),
+    os.path.join(BASE_DIR, "..", "frontend", "reflecto-app", "data", "knowledge"),
+]
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 def load_knowledge_corpus():
     """Charge les fiches de connaissances et construit le corpus sémantique."""
-    json_path = os.path.join(DATA_DIR, "fashion_knowledge.json")
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    raise FileNotFoundError(f"Fichier de connaissances introuvable : {json_path}")
+    for d in DATA_DIRS:
+        json_path = os.path.join(d, "fashion_knowledge.json")
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    raise FileNotFoundError(f"Fichier de connaissances introuvable dans : {DATA_DIRS}")
 
 def get_openrouter_nemotron_embeddings(texts: list, api_key: str):
     """Génère des embeddings via OpenRouter avec le modèle nvidia/nemotron-3-embed-1b:free."""
