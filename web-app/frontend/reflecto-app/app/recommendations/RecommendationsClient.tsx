@@ -123,6 +123,7 @@ export const RecommendationsClient = ({ weather, date, eventContext }: Recommend
       }
 
       // 3. Generate fresh via LLM
+      let cameraAnalysis: any = null;
       try {
         const today = new Date().toISOString().split("T")[0];
         let events: any[] = [];
@@ -135,7 +136,6 @@ export const RecommendationsClient = ({ weather, date, eventContext }: Recommend
         }
 
         const cameraAnalysisRaw = typeof window !== "undefined" ? sessionStorage.getItem("reflecto_camera_analysis") : null;
-        let cameraAnalysis = null;
         try { 
           if (cameraAnalysisRaw) {
             cameraAnalysis = JSON.parse(cameraAnalysisRaw);
@@ -339,7 +339,7 @@ export const RecommendationsClient = ({ weather, date, eventContext }: Recommend
                 <Layers size={12} /> Morphologie : <strong>{detectedAttrs.morphology || "H-Shape"}</strong>
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-electric/15 text-cyan-electric border border-cyan-electric/30 flex items-center gap-1">
-                <Sun size={12} /> Teint : <strong>{detectedAttrs.skinTone || "Warm"}</strong>
+                <Sun size={12} /> Teint : <strong>{detectedAttrs.skinTone || "Warm"}</strong> {detectedAttrs.fitzpatrickScale ? `(${detectedAttrs.fitzpatrickScale.split("(")[0].trim()})` : ""}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <UserCheck size={12} /> Genre : <strong>{detectedAttrs.gender === "female" ? "Femme" : detectedAttrs.gender === "male" ? "Homme" : "Unisexe"}</strong>

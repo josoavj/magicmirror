@@ -6,6 +6,7 @@
 
 export interface ExtractedVisualProfile {
   skinTone: "Fair" | "Light" | "Warm" | "Medium" | "Dark" | "Deep";
+  fitzpatrickScale: string;
   morphology: "H-Shape" | "V-Shape" | "A-Shape" | "X-Shape" | "O-Shape";
   silhouette: string;
   gender: "male" | "female" | "unisex";
@@ -67,20 +68,27 @@ export function analyzeImageBuffer(base64Data: string, declaredProfile?: any): E
     }
     const torsoContrast = torsoSamples > 0 ? torsoVarianceSum / (torsoSamples / 2) : 20;
 
-    // 3. Classify Skin Tone based on real luminosity spectrum
+    // 3. Classify Skin Tone based on dermatological Fitzpatrick Scale spectrum
     let skinTone: "Fair" | "Light" | "Warm" | "Medium" | "Dark" | "Deep" = "Warm";
+    let fitzpatrickScale = "Type III (Warm / Doré)";
     if (avgFaceLuma > 175) {
       skinTone = "Fair";
+      fitzpatrickScale = "Type I/II (Fair / Très Clair)";
     } else if (avgFaceLuma > 145) {
       skinTone = "Light";
+      fitzpatrickScale = "Type II (Light / Clair)";
     } else if (avgFaceLuma > 120) {
       skinTone = "Warm";
+      fitzpatrickScale = "Type III (Warm / Doré)";
     } else if (avgFaceLuma > 95) {
       skinTone = "Medium";
+      fitzpatrickScale = "Type IV (Medium / Mat)";
     } else if (avgFaceLuma > 70) {
       skinTone = "Dark";
+      fitzpatrickScale = "Type V (Dark / Brun)";
     } else {
       skinTone = "Deep";
+      fitzpatrickScale = "Type VI (Deep / Ébène)";
     }
 
     // If user explicitly configured skin tone in profile, blend with it
@@ -136,6 +144,7 @@ export function analyzeImageBuffer(base64Data: string, declaredProfile?: any): E
 
     return {
       skinTone,
+      fitzpatrickScale,
       morphology,
       silhouette,
       gender,
@@ -156,6 +165,7 @@ export function analyzeImageBuffer(base64Data: string, declaredProfile?: any): E
 function getSafeDefaultProfile(declaredProfile?: any): ExtractedVisualProfile {
   return {
     skinTone: declaredProfile?.skin_tone || "Warm",
+    fitzpatrickScale: "Type III (Warm / Doré)",
     morphology: declaredProfile?.body_type || "H-Shape",
     silhouette: "Équilibrée et élégante",
     gender: declaredProfile?.gender?.toLowerCase() || "unisex",

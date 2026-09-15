@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { retrieveFashionRules, formatRAGPromptContext } from "@/lib/services/rag-service";
 import { generateCompletion, extractJSON } from "@/lib/services/llm-provider";
+import { fetchFastApiRecommendations } from "@/lib/services/fastapi-client";
 
 const RECOMMENDATIONS_SYSTEM_PROMPT = `Tu es "Reflecto Style Assistant", un expert consultant en mode haute couture et styliste personnel intégré dans une application de miroir intelligent.
 
@@ -34,31 +35,16 @@ export async function POST(request: Request) {
     const requestBody = await request.json();
     const { profile, weather, events, cameraAnalysis } = requestBody;
 
-    // OPTION A : Tentative d'appel au Microservice Python FastAPI s'il est configuré/actif
-    const fastApiUrl = process.env.FASTAPI_BACKEND_URL || "http://127.0.0.1:8000";
+    // OPTION A : Tentative d'appel prioritaire au Microservice Python FastAPI sur Render
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s max pour FastAPI
-      console.log(`[Next.js API] 🚀 Appel du Microservice Python FastAPI sur ${fastApiUrl}/api/v1/recommendations...`);
-      const fastApiRes = await fetch(`${fastApiUrl}/api/v1/recommendations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (fastApiRes.ok) {
-        const fastApiData = await fastApiRes.json();
-        console.log(`[Next.js API] ✅ Réponse reçue avec succès du backend Python FastAPI !`);
-        if (fastApiData && Array.isArray(fastApiData.recommendations) && fastApiData.recommendations.length > 0) {
-          return NextResponse.json(fastApiData);
-        }
-      } else {
-        console.warn(`[Next.js API] ⚠️ FastAPI Python a répondu avec code ${fastApiRes.status}`);
+      console.log("[Next.js API] 🚀 Appel prioritaire du Microservice Python FastAPI sur Render...");
+      const fastApiData = await fetchFastApiRecommendations(requestBody, 45000);
+      if (fastApiData && Array.isArray(fastApiData.recommendations) && fastApiData.recommendations.length > 0) {
+        console.log("[Next.js API] ✅ Recommandations RAG générées avec succès par le backend Python FastAPI !");
+        return NextResponse.json(fastApiData);
       }
     } catch (fastApiErr: any) {
-      console.warn(`[Next.js API] ℹ️ FastAPI Python non joignable (${fastApiErr.message}), exécution de la cascade RAG interne.`);
+      console.warn(`[Next.js API] ℹ️ FastAPI Python non joignable (${fastApiErr.message}), bascule sur la cascade interne.`);
     }
 
     // OPTION B : Exécution RAG & Cascade Multi-LLM Interne (Groq -> OpenRouter -> Gemini -> Local)

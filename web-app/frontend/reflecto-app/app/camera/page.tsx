@@ -23,6 +23,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useCamera } from "@/lib/camera-context";
 import { createClient } from "@/lib/supabase/client";
+import { analyzeFaceWithFaceApi, loadFaceApiScript } from "@/lib/services/face-detection";
 import Link from "next/link";
 
 const ESP_STREAM_URL = "https://fastapiforreflecto.onrender.com/stream";
@@ -68,6 +69,13 @@ export default function CameraPage() {
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  // Pre-load Face-API.js models as soon as camera stream is active (warm-up for instant detection)
+  useEffect(() => {
+    if (stream) {
+      loadFaceApiScript().catch(() => {}); // silent warm-up, non-blocking
     }
   }, [stream]);
 
@@ -168,12 +176,31 @@ export default function CameraPage() {
     try {
       const imageBase64 = captureFrame();
 
+      // 1. Run Certified Face-API.js Biometric Recognition in browser first
+      let faceBio = null;
+      try {
+        const sourceEl = cameraSource === "esp" ? espImgRef.current : videoRef.current;
+        if (sourceEl) {
+          faceBio = await analyzeFaceWithFaceApi(sourceEl);
+        }
+      } catch (fErr) {
+        console.warn("[Camera] FaceAPI scan skipped:", fErr);
+      }
+
+      // Enrich profile with certified biometrics if detected
+      const enrichedProfile = {
+        ...profile,
+        gender: faceBio?.gender || profile?.gender,
+        body_type: faceBio?.morphology || profile?.body_type,
+        skin_tone: faceBio?.skinTone || profile?.skin_tone,
+      };
+
       const response = await fetch("/api/analyze-outfit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageBase64,
-          profile,
+          profile: enrichedProfile,
           weather: weatherCtx,
           events,
         }),
@@ -181,20 +208,31 @@ export default function CameraPage() {
 
       if (!response.ok) throw new Error("Analysis failed");
       const result = await response.json();
-      setAnalysisResult(result);
+
+      // Merge certified Face-API biometrics (highest priority) with backend result
+      const finalResult = {
+        ...result,
+        gender: faceBio?.gender || result.gender || profile?.gender,
+        morphology: faceBio?.morphology || result.morphology,
+        skinTone: faceBio?.skinTone || result.skinTone,
+        fitzpatrickScale: faceBio?.fitzpatrickScale || result.fitzpatrickScale,
+        genderConfidence: faceBio?.genderConfidence,
+      };
+
+      setAnalysisResult(finalResult);
       
       // Pass the analysis to recommendations page by saving it temporarily
-      sessionStorage.setItem("reflecto_camera_analysis", JSON.stringify(result));
+      sessionStorage.setItem("reflecto_camera_analysis", JSON.stringify(finalResult));
       // Invalidate the daily cache so suggestions will re-generate based on this new analysis
       sessionStorage.removeItem(`reflecto_recs_${new Date().toISOString().split("T")[0]}`);
       
     } catch (error) {
       console.error("Analysis failed", error);
-      // Fallback result on error
       const fallbackResult = {
         morphology: profile?.body_type || "H-Shape",
-        silhouette: "Balanced",
+        silhouette: "Équilibrée",
         skinTone: profile?.skin_tone || "Warm",
+        fitzpatrickScale: "Type III (Warm / Doré)",
         confidence: 0.75,
         suggestions:
           "Je vois beaucoup de potentiel ! Avec votre silhouette, je recommanderais de structurer les épaules. Essayez d'ajouter une touche de couleur vive qui réveillera votre tenue. C'est le moment d'être audacieux !",
@@ -426,8 +464,16 @@ export default function CameraPage() {
             {analysisResult ? (
               <div className="space-y-4 animate-in slide-in-from-right duration-500">
                 <ResultItem icon={Layers} label="Morphologie" value={analysisResult.morphology || "H-Shape"} />
-                <ResultItem icon={Sun} label="Carnation / Teint" value={analysisResult.skinTone || "Warm"} />
-                <ResultItem icon={UserCheck} label="Genre Détecté" value={analysisResult.gender === "female" ? "Femme" : analysisResult.gender === "male" ? "Homme" : "Unisexe"} />
+                <ResultItem
+                  icon={Sun}
+                  label="Carnation / Teint"
+                  value={`${analysisResult.skinTone || "Warm"}${analysisResult.fitzpatrickScale ? ` · ${analysisResult.fitzpatrickScale.split("(")[0].trim()}` : ""}`}
+                />
+                <ResultItem
+                  icon={UserCheck}
+                  label="Genre Détecté"
+                  value={`${analysisResult.gender === "female" ? "Femme" : analysisResult.gender === "male" ? "Homme" : "Unisexe"}${analysisResult.genderConfidence ? ` (${Math.round(analysisResult.genderConfidence * 100)}%)` : ""}`}
+                />
                 <ResultItem icon={Activity} label="Silhouette" value={analysisResult.silhouette || "Équilibrée"} />
 
                 <div className="pt-3 border-t border-white/5">

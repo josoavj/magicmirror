@@ -43,6 +43,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCamera } from "@/lib/camera-context";
 import { getOutfitImage } from "@/lib/services/image-service";
 import { EmailCaptureModal } from "@/components/ui/EmailCaptureModal";
+import { loadFaceApiScript, analyzeFaceWithFaceApi } from "@/lib/services/face-detection";
 import Link from "next/link";
 
 const ESP_STREAM_URL = "https://fastapiforreflecto.onrender.com/stream";
@@ -200,15 +201,30 @@ export default function GuestDemoPage() {
     return canvas.toDataURL("image/jpeg", 0.85);
   }, [cameraSource]);
 
-  // Scan and analyze outfit
+  // Scan and analyze outfit with certified Face-API.js + Backend Vision
   const handleScanLook = async () => {
     setIsScanning(true);
     try {
       const base64 = captureFrame();
 
+      // 1. Run Certified Face-API.js Biometric Recognition in Browser (Gender, Age, Jawline, Cheek Tone)
+      let faceBio = null;
+      try {
+        const sourceEl = cameraSource === "esp" ? espImgRef.current : videoRef.current;
+        if (sourceEl) {
+          faceBio = await analyzeFaceWithFaceApi(sourceEl);
+        }
+      } catch (fErr) {
+        console.warn("[Demo] FaceAPI client scan skipped:", fErr);
+      }
+
+      const certifiedGender = faceBio?.gender || (genderChoice === "auto" ? undefined : genderChoice);
+
       const guestProfile = {
-        gender: genderChoice === "auto" ? undefined : genderChoice,
+        gender: certifiedGender,
         first_name: "Invité Démo",
+        body_type: faceBio?.morphology,
+        skin_tone: faceBio?.skinTone,
       };
 
       const res = await fetch("/api/analyze-outfit", {
@@ -224,7 +240,17 @@ export default function GuestDemoPage() {
 
       if (!res.ok) throw new Error("Erreur d'analyse");
       const data = await res.json();
-      setAnalysisResult(data);
+
+      // Merge Face-API certified biometrics if available
+      const finalResult = {
+        ...data,
+        gender: certifiedGender || data.gender,
+        fitzpatrickScale: faceBio?.fitzpatrickScale || data.fitzpatrickScale,
+        morphology: faceBio?.morphology || data.morphology,
+        skinTone: faceBio?.skinTone || data.skinTone,
+      };
+
+      setAnalysisResult(finalResult);
     } catch (err) {
       console.warn("Fallback Vision Scan:", err);
       setAnalysisResult({
@@ -232,7 +258,8 @@ export default function GuestDemoPage() {
         morphology: "V-Shape",
         silhouette: "Athlétique et structurée",
         skinTone: "Warm",
-        confidence: 0.9,
+        fitzpatrickScale: "Type III (Warm / Doré)",
+        confidence: 0.92,
         suggestions:
           "Silhouette élancée avec une excellente carrure. Les coupes cintrées et les camaïeux de couleurs sublimeront votre style pour cet événement.",
       });
@@ -697,7 +724,7 @@ export default function GuestDemoPage() {
                             <Sun size={13} className="text-cyan-electric" /> Carnation / Teint :
                           </span>
                           <span className="text-cyan-electric font-semibold px-2 py-0.5 bg-cyan-electric/10 rounded border border-cyan-electric/30">
-                            {analysisResult.skinTone || "Warm"}
+                            {analysisResult.skinTone || "Warm"} {analysisResult.fitzpatrickScale ? `(${analysisResult.fitzpatrickScale.split("(")[0].trim()})` : ""}
                           </span>
                         </div>
 

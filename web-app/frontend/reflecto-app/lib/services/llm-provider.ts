@@ -578,6 +578,7 @@ export async function generateVisionCompletion(options: VisionOptions): Promise<
     morphology: pixelProfile.morphology,
     silhouette: pixelProfile.silhouette,
     skinTone: pixelProfile.skinTone,
+    fitzpatrickScale: pixelProfile.fitzpatrickScale,
     currentOutfitColors: pixelProfile.currentOutfitColors,
     confidence: pixelProfile.confidence,
     suggestions: liveSuggestion,

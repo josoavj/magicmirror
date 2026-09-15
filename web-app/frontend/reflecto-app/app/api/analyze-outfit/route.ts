@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateVisionCompletion } from "@/lib/services/llm-provider";
+import { fetchFastApiVisionAnalyze } from "@/lib/services/fastapi-client";
 
 const ANALYSIS_SYSTEM_PROMPT = `Tu es "Reflecto Vision Assistant", un expert analyste de mode et morphologie corporelle intégré dans un miroir intelligent.
 
@@ -26,7 +27,8 @@ Format JSON attendu :
 
 export async function POST(request: Request) {
   try {
-    const { imageBase64, profile, weather, events } = await request.json();
+    const body = await request.json();
+    const { imageBase64, profile, weather, events } = body;
 
     if (!imageBase64) {
       return NextResponse.json({
@@ -38,6 +40,18 @@ export async function POST(request: Request) {
         confidence: 0.8,
         suggestions: "Prêt pour une journée stylée ! Vos préférences ont été appliquées pour composer votre tenue idéale.",
       });
+    }
+
+    // 1. Try Python FastAPI Backend on Render first (with automatic cold-start handling)
+    try {
+      console.log("[Analyze Outfit] Tentative d'appel du Vision Engine FastAPI sur Render...");
+      const fastApiResult = await fetchFastApiVisionAnalyze(body, 35000);
+      if (fastApiResult && (fastApiResult.morphology || fastApiResult.skinTone)) {
+        console.log("[Analyze Outfit] ✅ Analyse réussie via FastAPI Python sur Render !");
+        return NextResponse.json(fastApiResult);
+      }
+    } catch (e: any) {
+      console.warn(`[Analyze Outfit] FastAPI non joignable (${e.message}), bascule sur la cascade interne.`);
     }
 
     const profileContext = profile ? `
@@ -57,12 +71,12 @@ Profil utilisateur :
 
     const userPrompt = `Analyse cette personne et fournis la détection morphologique et de teint en français.\n${profileContext}\n${weatherContext}\n${eventsContext}`;
 
-    // Call Vision Cascade (OpenRouter Vision -> Gemini Vision -> Local Fallback)
+    // 2. Call Vision Cascade (Groq Vision -> Pixel Analyzer + Groq LLM Synthesis)
     const result = await generateVisionCompletion({
       imageBase64,
       systemPrompt: ANALYSIS_SYSTEM_PROMPT,
       userPrompt,
-      timeoutMs: 7000,
+      timeoutMs: 12000,
     });
 
     return NextResponse.json(result);
