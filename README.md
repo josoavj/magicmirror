@@ -3,6 +3,7 @@
 </p>
 
 <h1 align="center">Magic Mirror</h1>
+<h2 align="center">En phase de maintenance</h2>
 
 <p align="center">
   <strong>Miroir intelligent modulaire avec caméra, météo et recommandations IA</strong>
