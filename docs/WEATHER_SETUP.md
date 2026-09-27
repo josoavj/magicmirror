@@ -1,5 +1,8 @@
 # Configuration météo - OpenWeatherMap API
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Intégration de l'API OpenWeatherMap dans Magic Mirror avec géolocalisation automatique et gestion sécurisée des clés.
 
 ---

@@ -1,5 +1,8 @@
 # Pipeline ML — Ranking de tenues (LightGBM)
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Ce document décrit le pipeline de Machine Learning utilisé pour scorer et classer les tenues dans MagicMirror. Il remplace progressivement le scoring heuristique par des recommandations adaptatives.
 
 ---

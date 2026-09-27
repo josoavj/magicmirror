@@ -1,5 +1,8 @@
 # Configuration Supabase - MagicMirror
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Ce document couvre la configuration complète et opérationnelle de Supabase pour MagicMirror : authentification, profil cloud, agenda, stockage des avatars, favoris et scoring ML/LLM.
 
 > **Important :** Le script SQL fourni en section 2 est idempotent — il peut être exécuté plusieurs fois sans risque d'erreur ni de doublon.

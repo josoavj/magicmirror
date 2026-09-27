@@ -1,5 +1,8 @@
 # Démarrage rapide — Magic Mirror
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 > Ce guide vous permettra d'avoir Magic Mirror fonctionnel en local en moins de 5 minutes.
 
 ---

@@ -1,5 +1,8 @@
 # Configuration production — Magic Mirror
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 > Guide complet pour configurer et déployer Magic Mirror en environnement de production.
 
 ---

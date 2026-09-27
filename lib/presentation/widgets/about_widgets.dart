@@ -55,9 +55,9 @@ class AboutHeader extends StatelessWidget {
           'Magic Mirror',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 42,
+            fontSize: 32,
             fontWeight: FontWeight.w900,
-            letterSpacing: -1.5,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 8),
@@ -133,6 +133,31 @@ class AboutFeatureList extends StatelessWidget {
         'icon': Icons.psychology_outlined,
         'title': isEnglish ? 'Body Type AI' : 'Morphologie AI',
         'desc': isEnglish ? 'Pose detection' : 'Détection de pose',
+      },
+      {
+        'icon': Icons.calendar_month_outlined,
+        'title': isEnglish ? 'Agenda & Events' : 'Agenda & Événements',
+        'desc':
+            isEnglish
+                ? 'Sync with your schedule'
+                : 'Synchronisation du planning',
+      },
+      {
+        'icon': Icons.wb_sunny_outlined,
+        'title': isEnglish ? 'Weather Forecast' : 'Prévisions Météo',
+        'desc': isEnglish ? 'Local weather updates' : 'Météo locale en direct',
+      },
+      {
+        'icon': Icons.checkroom_outlined,
+        'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions de Tenue',
+        'desc':
+            isEnglish ? 'Smart fashion advice' : 'Conseils mode intelligents',
+      },
+      {
+        'icon': Icons.security_outlined,
+        'title': isEnglish ? 'Privacy First' : 'Confidentialité',
+        'desc':
+            isEnglish ? 'Your data stays yours' : 'Vos données restent privées',
       },
     ];
 
