@@ -33,22 +33,25 @@ class OutfitSuggestionSection extends ConsumerWidget {
     final minutes = (now.minute / 15).round() * 15;
     final roundedNow = DateTime(now.year, now.month, now.day, now.hour, minutes);
 
+    final llmDetailsAsync = ref.watch(outfitSecondaryLlmDetailsProvider);
+
     return eventsAsync.when(
       data: (events) {
+        final llmDetails = llmDetailsAsync.value ?? const {};
         final params = RankingParams(
           profile: profile,
           events: events,
           favoriteIds: favoriteIds,
           personalization: personalization,
           mlScoreMap: const {},
-          llmDetailsByOutfitId: const {},
-          secondaryLlmEnabled: false,
+          llmDetailsByOutfitId: llmDetails,
+          secondaryLlmEnabled: llmDetails.isNotEmpty,
           targetDay: targetDay,
           weatherContext: weatherContext,
           strictWeatherMode: true,
-          creativeMixEnabled: false,
-          creativeExplorationShare: 0.1,
-          creativeBoost: 10,
+          creativeMixEnabled: true,
+          creativeExplorationShare: 0.15,
+          creativeBoost: 12,
           excludedOutfitIds: const {},
           referenceNow: roundedNow,
         );

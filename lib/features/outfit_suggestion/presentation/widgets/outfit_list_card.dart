@@ -47,12 +47,15 @@ class OutfitListCard extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        rankedOutfit.reasons.first,
+                        rankedOutfit.reasons.take(2).join(' • '),
                         style: TextStyle(
-                          color: Colors.cyanAccent.withValues(alpha: 0.8),
+                          color: Colors.cyanAccent.withValues(alpha: 0.75),
                           fontSize: 10,
                           fontStyle: FontStyle.italic,
+                          letterSpacing: 0.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                 ],

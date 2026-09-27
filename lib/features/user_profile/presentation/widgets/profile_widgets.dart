@@ -59,12 +59,20 @@ class ProfileReadOnlyInfoRow extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(color: Colors.white)),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ],
           ),
         ),
@@ -90,30 +98,56 @@ class ProfileHeader extends StatelessWidget {
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Colors.white.withValues(alpha: 0.14),
-          backgroundImage: hasNetworkAvatar ? NetworkImage(avatarUrl) : null,
-          child:
-              hasNetworkAvatar
-                  ? null
-                  : Text(
-                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            displayName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
             ),
+          ),
+          child: CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundImage: hasNetworkAvatar ? NetworkImage(avatarUrl) : null,
+            child:
+                hasNetworkAvatar
+                    ? null
+                    : Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName.isNotEmpty ? displayName : 'Utilisateur',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                'Membre Magic Mirror',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ),
       ],

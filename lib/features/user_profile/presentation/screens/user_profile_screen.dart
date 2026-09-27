@@ -85,6 +85,56 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                ProfileSectionCard(
+                  title: _tr(context, 'Détails physiques', 'Physical Details'),
+                  child: Column(
+                    children: [
+                      ProfileReadOnlyInfoRow(
+                        icon: Icons.calendar_today,
+                        label: _tr(context, 'Âge', 'Age'),
+                        value: '${profile.age} ${_tr(context, 'ans', 'years')}',
+                      ),
+                      const SizedBox(height: 12),
+                      ProfileReadOnlyInfoRow(
+                        icon: Icons.straighten,
+                        label: _tr(context, 'Taille', 'Height'),
+                        value: '${profile.heightCm} cm',
+                      ),
+                      const SizedBox(height: 12),
+                      ProfileReadOnlyInfoRow(
+                        icon: Icons.accessibility_new,
+                        label: _tr(context, 'Morphologie', 'Body Type'),
+                        value: profile.morphology,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ProfileSectionCard(
+                  title: _tr(context, 'Styles préférés', 'Preferred Styles'),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children:
+                        profile.preferredStyles.map((style) {
+                          return Chip(
+                            label: Text(
+                              style,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            backgroundColor: Colors.white.withValues(alpha: 0.1),
+                            side: BorderSide.none,
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                  ),
+                ),
               ],
             ),
           ),
