@@ -1,5 +1,8 @@
 # Railway ML Batch + Supabase
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Ce guide deploie le pipeline ML batch sur Railway avec ecriture des scores dans Supabase.
 
 ## 1) Prerequis

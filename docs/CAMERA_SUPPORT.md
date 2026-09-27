@@ -1,5 +1,8 @@
 # Support caméra par plateforme
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Ce document décrit la compatibilité caméra de Magic Mirror selon les plateformes, les configurations requises, les options avancées et les procédures de dépannage.
 
 ---

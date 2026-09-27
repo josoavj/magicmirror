@@ -1,5 +1,8 @@
 # Architecture - Magic Mirror
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance. Seules les corrections de bugs critiques et la maintenance minimale sont assurées.
+
 ## Vision Modulaire
 
 Magic Mirror adopte une architecture **Feature-First** et **Layered** (inspirée de la Clean Architecture). L'objectif est d'isoler chaque domaine fonctionnel pour maximiser la testabilité et la réutilisabilité.

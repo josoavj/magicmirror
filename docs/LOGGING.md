@@ -1,5 +1,8 @@
 # Système de logging centralisé
 
+> [!IMPORTANT]
+> **Projet en phase de maintenance** — Ce projet est actuellement en phase de maintenance.
+
 Toutes les sorties de logs de l'application passent par un système de logging centralisé, asynchrone et non-bloquant.
 
 ---

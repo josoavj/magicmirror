@@ -12,10 +12,14 @@
   <img src="https://img.shields.io/badge/Flutter-%3E%3D3.1.0-blue?style=flat-square" alt="Flutter Version">
   <img src="https://img.shields.io/badge/Dart-%3E%3D3.10.4-blue?style=flat-square" alt="Dart Version">
   <img src="https://img.shields.io/badge/Version-1.1.0-orange?style=flat-square" alt="Version actuelle">
-  <img src="https://img.shields.io/badge/Status-Stable-green?style=flat-square" alt="Statut Stable">
+  <img src="https://img.shields.io/badge/Status-Maintenance-yellow?style=flat-square" alt="Statut Maintenance">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence">
   <img src="https://img.shields.io/github/last-commit/josoavj/magicmirror?style=flat-square" alt="Dernier commit">
 </p>
+
+> [!IMPORTANT]
+> **Projet en phase de maintenance**
+> Ce projet est actuellement en phase de maintenance. Seules les corrections de bugs critiques et les mises à jour de sécurité sont assurées.
 
 ---
 
