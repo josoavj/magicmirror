@@ -3,7 +3,7 @@ import '../../../../core/services/permission_service.dart';
 
 /// Provider qui vérifie si toutes les permissions nécessaires sont accordées
 final allPermissionsGrantedProvider = FutureProvider<bool>((ref) async {
-  final cameraGranted = await PermissionService.requestCameraPermission();
+  final cameraGranted = await PermissionService.isCameraPermissionGranted();
   return cameraGranted;
 });
 

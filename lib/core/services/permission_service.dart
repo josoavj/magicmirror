@@ -1,5 +1,5 @@
 import 'package:magicmirror/core/utils/platform_helper.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as permissions;
 
 class PermissionService {
   /// Demande les permissions nécessaires en fonction de la plateforme
@@ -11,7 +11,7 @@ class PermissionService {
     }
 
     if (PlatformHelper.isAndroid || PlatformHelper.isIOS) {
-      final status = await Permission.camera.request();
+      final status = await permissions.Permission.camera.request();
       return status.isGranted;
     }
 
@@ -20,12 +20,14 @@ class PermissionService {
 
   /// Vérifie si la permission est déjà accordée
   static Future<bool> isCameraPermissionGranted() async {
-    if (PlatformHelper.isWeb || PlatformHelper.isLinux || PlatformHelper.isWindows) {
+    if (PlatformHelper.isWeb ||
+        PlatformHelper.isLinux ||
+        PlatformHelper.isWindows) {
       return true;
     }
 
     if (PlatformHelper.isAndroid || PlatformHelper.isIOS) {
-      return await Permission.camera.isGranted;
+      return await permissions.Permission.camera.isGranted;
     }
 
     return true;
@@ -33,9 +35,11 @@ class PermissionService {
 
   /// Ouvre les paramètres de l'application
   Future<void> openAppSettings() async {
-    if (PlatformHelper.isWeb || PlatformHelper.isLinux || PlatformHelper.isWindows) {
+    if (PlatformHelper.isWeb ||
+        PlatformHelper.isLinux ||
+        PlatformHelper.isWindows) {
       return;
     }
-    await openAppSettings();
+    await permissions.openAppSettings();
   }
 }

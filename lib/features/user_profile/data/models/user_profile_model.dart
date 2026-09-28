@@ -73,7 +73,11 @@ class UserProfile {
   /// Vérifie si le profil contient les valeurs par défaut (non personnalisé)
   bool get isDefault {
     return displayName == 'Utilisateur' &&
+        avatarUrl.isEmpty &&
         gender == 'Non précise' &&
+        age == 25 &&
+        heightCm == 170 &&
+        birthDate == null &&
         morphology == 'Silhouette non définie' &&
         (preferredStyles.isEmpty ||
             (preferredStyles.length == 1 && preferredStyles.first == 'Casual'));
@@ -101,6 +105,7 @@ class UserProfile {
     int? age,
     int? heightCm,
     DateTime? birthDate,
+    bool clearBirthDate = false,
     String? morphology,
     List<String>? preferredStyles,
   }) {
@@ -111,7 +116,7 @@ class UserProfile {
       gender: gender ?? this.gender,
       age: age ?? this.age,
       heightCm: heightCm ?? this.heightCm,
-      birthDate: birthDate ?? this.birthDate,
+      birthDate: clearBirthDate ? null : birthDate ?? this.birthDate,
       morphology: morphology ?? this.morphology,
       preferredStyles: preferredStyles ?? this.preferredStyles,
     );

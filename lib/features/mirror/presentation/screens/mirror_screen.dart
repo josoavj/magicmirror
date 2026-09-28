@@ -16,8 +16,9 @@ import 'package:magicmirror/features/mirror/presentation/widgets/mirror_clock_ca
 import 'package:magicmirror/features/mirror/presentation/widgets/mirror_outfit_badge.dart';
 import 'package:magicmirror/features/mirror/presentation/widgets/mirror_overlay.dart';
 import 'package:magicmirror/features/mirror/presentation/widgets/mirror_status_badge.dart';
-import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_provider.dart';
+import 'package:magicmirror/features/mirror/presentation/widgets/permission_request_widget.dart';
 import 'package:magicmirror/features/settings/presentation/providers/settings_provider.dart';
+import 'package:magicmirror/core/utils/platform_helper.dart';
 import 'package:magicmirror/l10n/app_localizations.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
@@ -27,15 +28,50 @@ class MirrorScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final permissionsAsync = ref.watch(allPermissionsGrantedProvider);
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
     return permissionsAsync.when(
-      data: (granted) => const _MirrorBody(),
-      loading:
-          () => const Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(child: CircularProgressIndicator()),
+      data: (granted) => granted
+          ? const _MirrorBody()
+          : Scaffold(
+              backgroundColor: Colors.black,
+              body: PermissionRequestWidget(
+                title: isEnglish
+                    ? 'Camera permission required'
+                    : 'Permission caméra requise',
+                message: isEnglish
+                    ? 'Allow camera access to use the mirror.'
+                    : 'Autorisez l’accès à la caméra pour utiliser le miroir.',
+                permissionType: 'camera',
+                child: const SizedBox.shrink(),
+              ),
+            ),
+      loading: () => const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stackTrace) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isEnglish
+                    ? 'Camera permission status could not be checked.'
+                    : 'Impossible de vérifier la permission caméra.',
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(allPermissionsGrantedProvider),
+                icon: const Icon(Icons.refresh),
+                label: Text(isEnglish ? 'Retry' : 'Réessayer'),
+              ),
+            ],
           ),
-      error: (error, stackTrace) => const _MirrorBody(),
+        ),
+      ),
     );
   }
 }
@@ -50,6 +86,7 @@ class _MirrorBody extends ConsumerStatefulWidget {
 class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   CameraController? _mlController;
   bool _mlStreamStarted = false;
+  bool _mlStreamStarting = false;
   CameraController? _lastConfiguredController;
   double? _minZoomLevel;
   double? _maxZoomLevel;
@@ -112,9 +149,9 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
 
   bool _isOutfitReadySignal(MorphologyData? data) {
     if (data == null) return false;
-    final heightEstimate = _tryParseDouble(data.measurements['height_estimate']);
+    final bodyFrameRatio = _tryParseDouble(data.measurements['height_ratio']);
     final poseQuality = _tryParseDouble(data.measurements['pose_quality']);
-    return heightEstimate > 0 && poseQuality >= 60 && data.confidence >= 55;
+    return bodyFrameRatio >= 0.55 && poseQuality >= 60 && data.confidence >= 55;
   }
 
   double _tryParseDouble(dynamic value) {
@@ -130,37 +167,14 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final settings = ref.read(appSettingsProvider);
     final tts = ref.read(ttsServiceProvider);
-    final suggestions = ref.read(suggestedOutfitsProvider);
     final isEnglish = settings.ttsLanguage.startsWith('en');
     final includeMorphology = settings.ttsAnnounceMorphology;
-    final morphologyMessage =
-        includeMorphology
-            ? (l10n?.detectedBodyType(morphologyData.bodyType) ??
-                (isEnglish
-                    ? 'Detected body type: ${morphologyData.bodyType}. '
-                    : 'Morphologie détectée: ${morphologyData.bodyType}. '))
-            : '';
-
-    if (suggestions.isNotEmpty) {
-      final top = suggestions.first;
-      await tts.speak(
-        l10n?.fullBodyDetectedWithOutfit(
-              morphologyMessage,
-              top.title,
-              top.reason,
-            ) ??
-            (isEnglish
-                ? 'Full body detected. ${morphologyMessage}Recommended outfit: ${top.title}. ${top.reason}'
-                : 'Corps complet détecté. ${morphologyMessage}Tenue recommandée: ${top.title}. ${top.reason}'),
-        enabled: settings.enableAudioFeedback && settings.ttsEnabled,
-        interruptCurrent: settings.ttsInterruptCurrent,
-        language: settings.ttsLanguage,
-        speechRate: settings.ttsSpeechRate,
-        pitch: settings.ttsPitch,
-        minRepeatInterval: Duration(seconds: settings.ttsMinRepeatSeconds),
-      );
-      return;
-    }
+    final morphologyMessage = includeMorphology
+        ? (l10n?.detectedBodyType(morphologyData.bodyType) ??
+              (isEnglish
+                  ? 'Detected body type: ${morphologyData.bodyType}. '
+                  : 'Morphologie détectée: ${morphologyData.bodyType}. '))
+        : '';
 
     await tts.speak(
       l10n?.fullBodyDetectedWithoutOutfit(morphologyMessage) ??
@@ -219,16 +233,23 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     CameraDescription camera,
   ) async {
     if (!mounted) return;
+    if (PlatformHelper.isWeb) {
+      if (_mlStreamStarted && mounted) {
+        setState(() => _mlStreamStarted = false);
+      }
+      return;
+    }
+    if (_mlStreamStarting) return;
     if (_mlController == controller && controller.value.isStreamingImages) {
       if (!_mlStreamStarted) setState(() => _mlStreamStarted = true);
       return;
     }
 
-    if (_mlController != null && _mlController != controller) {
-      await _stopMlStream();
-    }
-
+    _mlStreamStarting = true;
     try {
+      if (_mlController != null && _mlController != controller) {
+        await _stopMlStream();
+      }
       final processor = ref.read(mlFrameProcessorProvider(camera));
       await controller.startImageStream((CameraImage image) {
         unawaited(processor.processCameraFrame(image));
@@ -237,6 +258,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       if (mounted) setState(() => _mlStreamStarted = true);
     } catch (_) {
       if (mounted) setState(() => _mlStreamStarted = false);
+    } finally {
+      _mlStreamStarting = false;
     }
   }
 
@@ -281,9 +304,18 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
         data: (camera) {
           if (camera == null) {
             return const Center(
-              child: Text(
-                'Pas de caméra détectée',
-                style: TextStyle(color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.videocam_off, color: Colors.white70, size: 44),
+                  SizedBox(height: 12),
+                  Text(
+                    'Aucune caméra détectée',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 12),
+                  _RetryCameraButton(),
+                ],
               ),
             );
           }
@@ -294,17 +326,50 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
               controllerAsync.when(
                 data: (controller) {
                   if (controller == null) {
-                    return const Center(child: Text('Erreur initialisation'));
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.white70,
+                            size: 44,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'Initialisation caméra échouée',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          SizedBox(height: 12),
+                          _RetryCameraButton(camera: camera),
+                        ],
+                      ),
+                    );
                   }
                   _configureCamera(controller);
                   if (controller.value.isInitialized) {
                     _ensureMlStream(controller, camera);
-                    return CameraView(controller: controller);
+                    return CameraView(
+                      controller: controller,
+                      showCaptureButton: false,
+                    );
                   }
                   return const Center(child: CircularProgressIndicator());
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, s) => Center(child: Text('Erreur Caméra: $e')),
+                error: (e, s) => Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Erreur caméra : $e',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 12),
+                      _RetryCameraButton(camera: camera),
+                    ],
+                  ),
+                ),
               ),
               if (trackingRect != null)
                 IgnorePointer(
@@ -312,7 +377,13 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                     painter: BodyTrackingPainter(normalizedRect: trackingRect),
                   ),
                 ),
-              const MirrorOverlay(),
+              MirrorOverlay(
+                compact: true,
+                mlSupported: !PlatformHelper.isWeb,
+                morphologyType: morphology?.bodyType,
+                confidence: morphology?.confidence,
+                measurements: morphology?.measurements,
+              ),
               if (uiState.showMobileHud)
                 SafeArea(
                   child: Padding(
@@ -327,8 +398,14 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 MirrorStatusBadge(
-                                  cameraReady: controllerAsync.hasValue,
+                                  cameraReady: controllerAsync.maybeWhen(
+                                    data: (controller) =>
+                                        controller?.value.isInitialized ??
+                                        false,
+                                    orElse: () => false,
+                                  ),
                                   mlStreamStarted: _mlStreamStarted,
+                                  mlSupported: !PlatformHelper.isWeb,
                                 ),
                                 const SizedBox(height: 8),
                                 _buildQuickSettingsButton(),
@@ -385,4 +462,21 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       ),
     );
   }
+}
+
+class _RetryCameraButton extends ConsumerWidget {
+  final CameraDescription? camera;
+
+  const _RetryCameraButton({this.camera});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => OutlinedButton.icon(
+    onPressed: () {
+      ref.invalidate(availableCamerasProvider);
+      ref.invalidate(frontCameraProvider);
+      if (camera != null) ref.invalidate(cameraControllerProvider(camera!));
+    },
+    icon: const Icon(Icons.refresh),
+    label: const Text('Réessayer'),
+  );
 }

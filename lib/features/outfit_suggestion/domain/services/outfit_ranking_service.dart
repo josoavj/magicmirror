@@ -101,10 +101,7 @@ class OutfitRankingService {
         icon: Icons.local_fire_department,
         color: Color(0xFFEC4899),
         styles: ['streetwear', 'casual'],
-        compatibleMorphologies: [
-          'Épaules très marquées',
-          'Silhouette droite',
-        ],
+        compatibleMorphologies: ['Épaules très marquées', 'Silhouette droite'],
         genderTargets: ['all'],
         minAge: 14,
         maxAge: 40,
@@ -157,7 +154,9 @@ class OutfitRankingService {
       preferLlm: secondaryLlmEnabled,
     );
 
-    final normalizedStyles = profile.preferredStyles.map(normalizeStyle).toSet();
+    final normalizedStyles = profile.preferredStyles
+        .map(normalizeStyle)
+        .toSet();
     final normalizedGender = profile.gender.toLowerCase();
     final planningSignals = extractPlanningSignals(events);
     final isWeekend = checkIsWeekend(targetDay);
@@ -166,30 +165,38 @@ class OutfitRankingService {
     final season = seasonFromMonth(targetDay.month);
     final localHourSlot = getLocalHourSlotLabel(referenceNow.hour);
 
-    var candidates = allOutfits.where((outfit) {
-      final ageOk = profile.age >= outfit.minAge && profile.age <= outfit.maxAge;
-      final morphologyOk = isMorphologyCompatible(profile.morphology, outfit);
-      return ageOk && morphologyOk;
-    }).toList();
-
-    final strictCandidates = candidates.where((outfit) {
-      return passesHardConstraints(
-        outfit: outfit,
-        weatherContext: weatherContext,
-        strictWeatherMode: strictWeatherMode,
-        planningSignals: planningSignals,
-        primaryContext: primaryContext,
-      );
-    }).toList();
-    if (strictCandidates.isNotEmpty) {
-      candidates = strictCandidates;
+    final ageEligible = allOutfits.where(
+      (outfit) => profile.age >= outfit.minAge && profile.age <= outfit.maxAge,
+    );
+    var candidates = params.favoritesOnly
+        ? allOutfits.where((outfit) => favoriteIds.contains(outfit.id)).toList()
+        : ageEligible
+              .where(
+                (outfit) => isMorphologyCompatible(profile.morphology, outfit),
+              )
+              .toList();
+    var morphologyFallbackUsed = false;
+    if (candidates.isEmpty && !params.favoritesOnly) {
+      candidates = ageEligible.toList();
+      morphologyFallbackUsed = candidates.isNotEmpty;
     }
 
-    final contextFiltered = candidates.where((outfit) {
-      return isContextCompatible(primaryContext, outfit.styles);
-    }).toList();
-    if (contextFiltered.isNotEmpty) {
-      candidates = contextFiltered;
+    if (!params.favoritesOnly) {
+      final strictCandidates = candidates.where((outfit) {
+        return passesHardConstraints(
+          outfit: outfit,
+          weatherContext: weatherContext,
+          strictWeatherMode: strictWeatherMode,
+          planningSignals: planningSignals,
+          primaryContext: primaryContext,
+        );
+      }).toList();
+      if (strictCandidates.isNotEmpty) candidates = strictCandidates;
+
+      final contextFiltered = candidates.where((outfit) {
+        return isContextCompatible(primaryContext, outfit.styles);
+      }).toList();
+      if (contextFiltered.isNotEmpty) candidates = contextFiltered;
     }
 
     if (excludedOutfitIds.isNotEmpty) {
@@ -201,13 +208,13 @@ class OutfitRankingService {
       }
     }
 
-    if (candidates.isEmpty) candidates = allOutfits;
-
     final ranked = candidates.map((outfit) {
       var score = 10;
       final reasonScores = <String, int>{};
-      final contextCompatible =
-          isContextCompatible(primaryContext, outfit.styles);
+      final contextCompatible = isContextCompatible(
+        primaryContext,
+        outfit.styles,
+      );
 
       void addReason(String reason, int weight) {
         final current = reasonScores[reason] ?? 0;
@@ -248,6 +255,12 @@ class OutfitRankingService {
       )) {
         score += 36;
         addReason('Compatible avec votre morphologie', 95);
+      }
+      if (morphologyFallbackUsed) {
+        addReason(
+          'Aucune correspondance morphologique exacte : tenue de repli',
+          25,
+        );
       }
 
       final isGenderMatch =
@@ -395,6 +408,8 @@ class OutfitRankingService {
       return RankedOutfit(outfit: outfit, score: score, reasons: reasons);
     }).toList()..sort((a, b) => b.score.compareTo(a.score));
 
+    if (params.favoritesOnly) return ranked;
+
     final diversePool = selectDiverseTopOutfits(
       ranked,
       maxCount: ranked.length < 8 ? ranked.length : 8,
@@ -436,8 +451,9 @@ class OutfitRankingService {
   }) {
     if (!useProfileContext) return true;
     final payload = row['profile_payload'];
-    final payloadMap =
-        payload is Map<String, dynamic> ? payload : <String, dynamic>{};
+    final payloadMap = payload is Map<String, dynamic>
+        ? payload
+        : <String, dynamic>{};
     final rowGenderRaw =
         row['target_gender'] ??
         row['gender_target'] ??
@@ -456,11 +472,16 @@ class OutfitRankingService {
     if (rowStyles.isNotEmpty && profileStyles.isNotEmpty) {
       if (!rowStyles.any(profileStyles.contains)) return false;
     }
-    final rowMorphologyRaw = row['target_morphology'] ?? payloadMap['morphology'];
+    final rowMorphologyRaw =
+        row['target_morphology'] ?? payloadMap['morphology'];
     final rowMorphology = rowMorphologyRaw?.toString().trim() ?? '';
     if (rowMorphology.isNotEmpty &&
-        !normalizeToken(rowMorphology).contains(normalizeToken(profile.morphology)) &&
-        !normalizeToken(profile.morphology).contains(normalizeToken(rowMorphology))) {
+        !normalizeToken(
+          rowMorphology,
+        ).contains(normalizeToken(profile.morphology)) &&
+        !normalizeToken(
+          profile.morphology,
+        ).contains(normalizeToken(rowMorphology))) {
       return false;
     }
     return true;
@@ -469,11 +490,18 @@ class OutfitRankingService {
   bool genderMatchesProfile(String targetGender, String profileGender) {
     final target = normalizeToken(targetGender);
     final profile = normalizeToken(profileGender);
-    if (target.isEmpty || target == 'all' || target == 'any' || target == 'unisex') {
+    if (target.isEmpty ||
+        target == 'all' ||
+        target == 'any' ||
+        target == 'unisex') {
       return true;
     }
-    if (target.contains('nonprecise') || target.contains('nonbinaire')) return true;
-    if (target.contains('femme') || target.contains('female') || target == 'f') {
+    if (target.contains('nonprecise') || target.contains('nonbinaire')) {
+      return true;
+    }
+    if (target.contains('femme') ||
+        target.contains('female') ||
+        target == 'f') {
       return profile.contains('femme') ||
           profile.contains('female') ||
           profile == 'f';
@@ -496,8 +524,9 @@ class OutfitRankingService {
     }
     final value = raw.toString().trim();
     if (value.isEmpty) return <String>{};
-    final splitter =
-        value.contains('|') ? '|' : (value.contains(',') ? ',' : ' ');
+    final splitter = value.contains('|')
+        ? '|'
+        : (value.contains(',') ? ',' : ' ');
     return value
         .split(splitter)
         .map(normalizeToken)
@@ -567,48 +596,53 @@ class OutfitRankingService {
           '${event.eventType} ${event.title} ${event.description ?? ''}'
               .toLowerCase();
 
-      if (containsAny(
-        eventBlob,
-        const ['work', 'travail', 'reunion', 'meeting', 'bureau', 'business'],
-      )) {
+      if (containsAny(eventBlob, const [
+        'work',
+        'travail',
+        'reunion',
+        'meeting',
+        'bureau',
+        'business',
+      ])) {
         hasWorkEvent = true;
       }
-      if (containsAny(
-        eventBlob,
-        const ['sport', 'gym', 'run', 'course', 'training'],
-      )) {
+      if (containsAny(eventBlob, const [
+        'sport',
+        'gym',
+        'run',
+        'course',
+        'training',
+      ])) {
         hasSportEvent = true;
       }
-      if (containsAny(
-        eventBlob,
-        const ['soiree', 'soir', 'diner', 'resto', 'event', 'sortie'],
-      )) {
+      if (containsAny(eventBlob, const [
+        'soiree',
+        'soir',
+        'diner',
+        'resto',
+        'event',
+        'sortie',
+      ])) {
         hasEveningEvent = true;
       }
-      if (containsAny(
-        eventBlob,
-        const [
-          'amis',
-          'detente',
-          'shopping',
-          'promenade',
-          'famille',
-          'loisir',
-          'casual',
-        ],
-      )) {
+      if (containsAny(eventBlob, const [
+        'amis',
+        'detente',
+        'shopping',
+        'promenade',
+        'famille',
+        'loisir',
+        'casual',
+      ])) {
         hasCasualEvent = true;
       }
-      if (containsAny(
-        eventBlob,
-        const [
-          'exterieur',
-          'outdoor',
-          'marche',
-          'balade',
-          'deplacement',
-        ],
-      )) {
+      if (containsAny(eventBlob, const [
+        'exterieur',
+        'outdoor',
+        'marche',
+        'balade',
+        'deplacement',
+      ])) {
         hasOutdoorEvent = true;
       }
       if (event.startTime.hour >= 18) hasEveningEvent = true;
@@ -634,7 +668,9 @@ class OutfitRankingService {
     final pending = events.where((event) => !event.isCompleted).toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
     for (final event in pending) {
-      if (!event.endTime.isBefore(now)) return slotFromHour(event.startTime.hour);
+      if (!event.endTime.isBefore(now)) {
+        return slotFromHour(event.startTime.hour);
+      }
     }
     return slotFromHour(now.hour);
   }
@@ -659,25 +695,42 @@ class OutfitRankingService {
   }
 
   PlanningContext contextFromEvent(AgendaEvent event) {
-    final blob =
-        '${event.eventType} ${event.title} ${event.description ?? ''}'
-            .toLowerCase();
-    if (containsAny(
-      blob,
-      const ['work', 'travail', 'meeting', 'reunion', 'business'],
-    )) {
+    final blob = '${event.eventType} ${event.title} ${event.description ?? ''}'
+        .toLowerCase();
+    if (containsAny(blob, const [
+      'work',
+      'travail',
+      'meeting',
+      'reunion',
+      'business',
+    ])) {
       return PlanningContext.work;
     }
-    if (containsAny(blob, const ['sport', 'gym', 'training', 'fitness', 'run'])) {
+    if (containsAny(blob, const [
+      'sport',
+      'gym',
+      'training',
+      'fitness',
+      'run',
+    ])) {
       return PlanningContext.sport;
     }
-    if (containsAny(blob, const ['soir', 'soiree', 'diner', 'event', 'sortie'])) {
+    if (containsAny(blob, const [
+      'soir',
+      'soiree',
+      'diner',
+      'event',
+      'sortie',
+    ])) {
       return PlanningContext.evening;
     }
-    if (containsAny(
-      blob,
-      const ['detente', 'famille', 'amis', 'shopping', 'loisir'],
-    )) {
+    if (containsAny(blob, const [
+      'detente',
+      'famille',
+      'amis',
+      'shopping',
+      'loisir',
+    ])) {
       return PlanningContext.casual;
     }
     return PlanningContext.mixed;
@@ -713,13 +766,13 @@ class OutfitRankingService {
     required List<String> compatibleMorphologies,
   }) {
     if (compatibleMorphologies.contains('all')) return true;
-    final normalizedProfile = normalizeToken(profileMorphology);
-    return compatibleMorphologies.any((m) {
-      if (m == 'all') return true;
-      final normalizedCompatible = normalizeToken(m);
-      return normalizedProfile.contains(normalizedCompatible) ||
-          normalizedCompatible.contains(normalizedProfile);
-    });
+    final profileAliases = morphologyAliases(
+      profileMorphology,
+    ).map(normalizeToken).toSet();
+    return compatibleMorphologies.any(
+      (m) =>
+          morphologyAliases(m).map(normalizeToken).any(profileAliases.contains),
+    );
   }
 
   Set<String> morphologyAliases(String value) {
@@ -732,12 +785,18 @@ class OutfitRankingService {
           'Hanches et épaules équilibrées',
           'Hanches et epaules equilibrees',
         };
+      case 'Sablier+ (X+)':
+      case 'Taille très marquée':
+        return {'Sablier+ (X+)', 'Taille très marquée'};
       case 'Poire (A)':
       case 'Hanches plus marquées':
+        return {'Poire (A)', 'Hanches plus marquées', 'Hanches plus marquees'};
+      case 'Poire+ (A+)':
+      case 'Hanches très marquées':
         return {
-          'Poire (A)',
-          'Hanches plus marquées',
-          'Hanches plus marquees',
+          'Poire+ (A+)',
+          'Hanches très marquées',
+          'Hanches tres marquees',
         };
       case 'Rectangulaire (H)':
       case 'Silhouette droite':
@@ -748,6 +807,13 @@ class OutfitRankingService {
           'Triangle Inverse (V)',
           'Épaules plus larges',
           'Epaules plus larges',
+        };
+      case 'Triangle Inverse+ (V+)':
+      case 'Épaules très marquées':
+        return {
+          'Triangle Inverse+ (V+)',
+          'Épaules très marquées',
+          'Epaules tres marquees',
         };
       default:
         return {normalized};
@@ -763,9 +829,10 @@ class OutfitRankingService {
   }) {
     final styles = outfit.styles;
     final enforceWorkGate =
-        (planningSignals.hasWorkEvent || primaryContext == PlanningContext.work) &&
-            !planningSignals.hasSportEvent &&
-            primaryContext != PlanningContext.mixed;
+        (planningSignals.hasWorkEvent ||
+            primaryContext == PlanningContext.work) &&
+        !planningSignals.hasSportEvent &&
+        primaryContext != PlanningContext.mixed;
     if (enforceWorkGate &&
         !styles.any((s) => s == 'business' || s == 'elegant')) {
       return false;
@@ -774,8 +841,12 @@ class OutfitRankingService {
     if (weatherContext == null || !strictWeatherMode) return true;
     final main = weatherContext.main.toLowerCase();
     final isRainy =
-        main.contains('rain') || main.contains('thunder') || main.contains('snow');
-    if (isRainy && styles.contains('streetwear') && !styles.contains('business')) {
+        main.contains('rain') ||
+        main.contains('thunder') ||
+        main.contains('snow');
+    if (isRainy &&
+        styles.contains('streetwear') &&
+        !styles.contains('business')) {
       return false;
     }
     if (weatherContext.temperature >= 31 &&
@@ -830,7 +901,9 @@ class OutfitRankingService {
   int slotScoreBoost(DayTimeSlot slot, List<String> styles) {
     switch (slot) {
       case DayTimeSlot.morning:
-        return styles.any((s) => s == 'business' || s == 'minimaliste') ? 14 : 0;
+        return styles.any((s) => s == 'business' || s == 'minimaliste')
+            ? 14
+            : 0;
       case DayTimeSlot.afternoon:
         return styles.any((s) => s == 'casual' || s == 'streetwear') ? 12 : 0;
       case DayTimeSlot.evening:
@@ -965,8 +1038,9 @@ class OutfitRankingService {
         bottomPiece: d.bottom ?? o.bottomPiece,
         shoesPiece: d.shoes ?? o.shoesPiece,
         layerPiece: d.outerwear ?? o.layerPiece,
-        accessoryPieces:
-            d.accessories.isNotEmpty ? d.accessories : o.accessoryPieces,
+        accessoryPieces: d.accessories.isNotEmpty
+            ? d.accessories
+            : o.accessoryPieces,
         outfitType: d.typeLabel ?? o.outfitType,
         description: d.summary ?? o.description,
       );

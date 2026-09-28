@@ -164,28 +164,36 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
 
   Future<void> _loadProfile() async {
     final localUserId =
-        await _storageService.getString('profile.userId', secure: true) ?? 'local-user';
-    final userIdResult = await _syncService.resolveUserId(
-      fallback: localUserId,
-    );
-    final resolvedUserId = userIdResult.getOrNull() ?? localUserId;
+        await _storageService.getString('profile.userId', secure: true) ??
+        'local-user';
 
     final displayName =
-        await _storageService.getString('profile.displayName', secure: true) ?? 'Utilisateur';
-    final avatarUrl = await _storageService.getString('profile.avatarUrl', secure: true) ?? '';
-    final gender = await _storageService.getString('profile.gender', secure: true) ?? 'Non précise';
+        await _storageService.getString('profile.displayName', secure: true) ??
+        'Utilisateur';
+    final avatarUrl =
+        await _storageService.getString('profile.avatarUrl', secure: true) ??
+        '';
+    final gender =
+        await _storageService.getString('profile.gender', secure: true) ??
+        'Non précise';
 
     final ageStr = await _storageService.getString('profile.age', secure: true);
     final age = ageStr != null ? int.tryParse(ageStr) ?? 25 : 25;
 
-    final heightCmStr = await _storageService.getString('profile.heightCm', secure: true);
+    final heightCmStr = await _storageService.getString(
+      'profile.heightCm',
+      secure: true,
+    );
     final heightCm =
         (heightCmStr != null ? int.tryParse(heightCmStr) ?? 170 : 170).clamp(
           120,
           230,
         );
 
-    final birthDateStr = await _storageService.getString('profile.birthDate', secure: true);
+    final birthDateStr = await _storageService.getString(
+      'profile.birthDate',
+      secure: true,
+    );
     final morphology =
         await _storageService.getString('profile.morphology', secure: true) ??
         'Silhouette non définie';
@@ -200,7 +208,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
         : ['Casual'];
 
     state = UserProfile(
-      userId: resolvedUserId,
+      userId: localUserId,
       displayName: displayName,
       avatarUrl: avatarUrl,
       gender: gender,
@@ -225,7 +233,12 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       if (authUserIdResult.isSuccess) {
         final authUserId = authUserIdResult.getOrNull()!;
         if (authUserId != state.userId) {
-          state = state.copyWith(userId: authUserId);
+          // Preserve anonymous onboarding data, but never carry one account's
+          // cached profile into another account.
+          state = state.userId == 'local-user'
+              ? state.copyWith(userId: authUserId)
+              : UserProfile.defaults().copyWith(userId: authUserId);
+          await _saveProfile();
         }
 
         if (state.isDefault) {
@@ -256,11 +269,31 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _saveProfile() async {
-    await _storageService.saveString('profile.userId', state.userId, secure: true);
-    await _storageService.saveString('profile.displayName', state.displayName, secure: true);
-    await _storageService.saveString('profile.avatarUrl', state.avatarUrl, secure: true);
-    await _storageService.saveString('profile.gender', state.gender, secure: true);
-    await _storageService.saveString('profile.age', state.age.toString(), secure: true);
+    await _storageService.saveString(
+      'profile.userId',
+      state.userId,
+      secure: true,
+    );
+    await _storageService.saveString(
+      'profile.displayName',
+      state.displayName,
+      secure: true,
+    );
+    await _storageService.saveString(
+      'profile.avatarUrl',
+      state.avatarUrl,
+      secure: true,
+    );
+    await _storageService.saveString(
+      'profile.gender',
+      state.gender,
+      secure: true,
+    );
+    await _storageService.saveString(
+      'profile.age',
+      state.age.toString(),
+      secure: true,
+    );
     await _storageService.saveString(
       'profile.heightCm',
       state.heightCm.toString(),
@@ -271,7 +304,11 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       state.birthDate?.toIso8601String() ?? '',
       secure: true,
     );
-    await _storageService.saveString('profile.morphology', state.morphology, secure: true);
+    await _storageService.saveString(
+      'profile.morphology',
+      state.morphology,
+      secure: true,
+    );
     await _storageService.saveString(
       'profile.preferredStyles',
       state.preferredStyles.join('|||'),
@@ -284,15 +321,18 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     String? avatarUrl,
     String? gender,
     DateTime? birthDate,
+    bool clearBirthDate = false,
     int? heightCm,
     String? morphology,
     List<String>? preferredStyles,
+    bool syncToCloudAfterUpdate = true,
   }) async {
     state = state.copyWith(
       displayName: displayName?.trim() ?? state.displayName,
       avatarUrl: avatarUrl?.trim() ?? state.avatarUrl,
       gender: gender ?? state.gender,
       birthDate: birthDate ?? state.birthDate,
+      clearBirthDate: clearBirthDate,
       age: birthDate != null ? _ageFromBirthDate(birthDate) : state.age,
       heightCm: heightCm?.clamp(120, 230) ?? state.heightCm,
       morphology: morphology != null
@@ -302,12 +342,29 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     );
 
     await _saveProfile();
-    await syncToCloud();
+    if (syncToCloudAfterUpdate) await syncToCloud();
   }
 
   Future<void> setUserId(String userId) async {
     final normalized = userId.trim();
     if (normalized.isEmpty) {
+      state = UserProfile.defaults();
+      await _saveProfile();
+      return;
+    }
+    final previousUserId = state.userId;
+    if (previousUserId != 'local-user' && previousUserId != normalized) {
+      state = UserProfile.defaults().copyWith(userId: normalized);
+      await _saveProfile();
+      try {
+        final remoteResult = await _syncService.fetchProfile(normalized);
+        if (remoteResult.isSuccess) {
+          state = _normalizeDerivedFields(remoteResult.getOrNull()!);
+          await _saveProfile();
+        }
+      } catch (_) {
+        // Keep the new account's empty local profile if its cloud fetch fails.
+      }
       return;
     }
     state = state.copyWith(userId: normalized);
@@ -407,6 +464,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
       heightCm: heightCm,
       morphology: morphology,
       preferredStyles: preferredStyles,
+      syncToCloudAfterUpdate: syncIfConnected,
     );
 
     if (userId != null && userId.trim().isNotEmpty) {
