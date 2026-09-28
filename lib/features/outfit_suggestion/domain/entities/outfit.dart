@@ -210,6 +210,7 @@ class RankingParams {
   final int creativeBoost;
   final Set<String> excludedOutfitIds;
   final DateTime referenceNow;
+  final bool favoritesOnly;
 
   const RankingParams({
     required this.profile,
@@ -227,6 +228,7 @@ class RankingParams {
     required this.creativeBoost,
     required this.excludedOutfitIds,
     required this.referenceNow,
+    this.favoritesOnly = false,
   });
 
   @override
@@ -252,6 +254,7 @@ class RankingParams {
         creativeExplorationShare == other.creativeExplorationShare &&
         creativeBoost == other.creativeBoost &&
         setEq.equals(excludedOutfitIds, other.excludedOutfitIds) &&
+        favoritesOnly == other.favoritesOnly &&
         referenceNow == other.referenceNow;
   }
 
@@ -271,6 +274,7 @@ class RankingParams {
     creativeExplorationShare,
     creativeBoost,
     const SetEquality().hash(excludedOutfitIds),
+    favoritesOnly,
     referenceNow,
   ]);
 }
