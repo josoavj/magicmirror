@@ -4,6 +4,7 @@ import 'package:magicmirror/features/auth/presentation/providers/auth_providers.
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
+import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
@@ -15,26 +16,8 @@ class AccountSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
-  final _displayNameController = TextEditingController();
-  final _avatarUrlController = TextEditingController();
-
   String _tr(BuildContext context, String fr, String en) {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final profile = ref.read(userProfileProvider);
-    _displayNameController.text = profile.displayName;
-    _avatarUrlController.text = profile.avatarUrl;
-  }
-
-  @override
-  void dispose() {
-    _displayNameController.dispose();
-    _avatarUrlController.dispose();
-    super.dispose();
   }
 
   Future<void> _showChangePasswordDialog() async {
@@ -54,7 +37,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
             return AlertDialog(
               backgroundColor: const Color(0xFF1E293B),
-              title: const Text('Sécurité', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Sécurité',
+                style: TextStyle(color: Colors.white),
+              ),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -83,7 +69,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           padding: const EdgeInsets.only(top: 10),
                           child: Text(
                             error,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                     ],
@@ -99,33 +88,48 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   onPressed: isLoading
                       ? null
                       : () async {
-                          if (newPasswordController.text != confirmPasswordController.text) {
+                          if (newPasswordController.text !=
+                              confirmPasswordController.text) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Les mots de passe ne correspondent pas.')),
+                              const SnackBar(
+                                content: Text(
+                                  'Les mots de passe ne correspondent pas.',
+                                ),
+                              ),
                             );
                             return;
                           }
                           if (newPasswordController.text.length < 6) {
-                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Minimum 6 caractères.')),
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Minimum 6 caractères.'),
+                              ),
                             );
                             return;
                           }
 
-                          final success = await ref.read(authServiceProvider).changePassword(
-                            oldPassword: oldPasswordController.text,
-                            newPassword: newPasswordController.text,
-                          );
+                          final success = await ref
+                              .read(authServiceProvider)
+                              .changePassword(
+                                oldPassword: oldPasswordController.text,
+                                newPassword: newPasswordController.text,
+                              );
 
                           if (success && context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Mot de passe mis à jour !')),
+                              const SnackBar(
+                                content: Text('Mot de passe mis à jour !'),
+                              ),
                             );
                           }
                         },
                   child: isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Valider'),
                 ),
               ],
@@ -144,6 +148,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final activeUser = Supabase.instance.client.auth.currentUser;
+    final profile = ref.watch(userProfileProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -162,7 +167,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         ),
         child: SafeArea(
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 72, 16, 32),
             children: [
               AccountSettingsSection(
                 title: _tr(context, 'Compte actif', 'Active account'),
@@ -188,31 +193,28 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
               AccountSettingsSection(
                 title: _tr(context, 'Profil', 'Profile'),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
-                      controller: _displayNameController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: accountInputDecoration(
-                        _tr(context, 'Nom affiché', 'Display name'),
-                      ),
+                    ProfileHeader(
+                      displayName: profile.displayName,
+                      avatarUrl: profile.avatarUrl,
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _avatarUrlController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: accountInputDecoration('Avatar URL'),
+                    Text(
+                      _tr(
+                        context,
+                        'Les informations personnelles se modifient depuis la page Profil.',
+                        'Personal information is edited from the Profile page.',
+                      ),
+                      style: const TextStyle(color: Colors.white70),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref
-                            .read(userProfileProvider.notifier)
-                            .updateProfile(
-                              displayName: _displayNameController.text,
-                              avatarUrl: _avatarUrlController.text,
-                            );
-                      },
-                      child: Text(_tr(context, 'Enregistrer', 'Save')),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/profile'),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: Text(
+                        _tr(context, 'Modifier le profil', 'Edit profile'),
+                      ),
                     ),
                   ],
                 ),
@@ -223,9 +225,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.lock_outline, color: Colors.blueAccent),
+                      leading: const Icon(
+                        Icons.lock_outline,
+                        color: Colors.blueAccent,
+                      ),
                       title: Text(
-                        _tr(context, 'Changer le mot de passe', 'Change password'),
+                        _tr(
+                          context,
+                          'Changer le mot de passe',
+                          'Change password',
+                        ),
                         style: const TextStyle(color: Colors.white),
                       ),
                       onTap: _showChangePasswordDialog,
@@ -239,13 +248,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.logout, color: Colors.redAccent),
+                      leading: const Icon(
+                        Icons.logout,
+                        color: Colors.redAccent,
+                      ),
                       title: Text(
                         _tr(context, 'Se déconnecter', 'Sign out'),
                         style: const TextStyle(color: Colors.white),
                       ),
                       onTap: () async {
-                        await Supabase.instance.client.auth.signOut();
+                        await ref.read(authServiceProvider).signOut();
                         if (mounted) {
                           if (context.mounted) {
                             Navigator.pop(context);
