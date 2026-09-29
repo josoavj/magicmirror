@@ -20,6 +20,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Localizations.localeOf(context).languageCode == 'en' ? en : fr;
   }
 
+  String _buildUsername(User? activeUser, String fallbackUserId) {
+    final email = activeUser?.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) {
+        return '@$localPart';
+      }
+    }
+
+    final fallback = fallbackUserId.trim();
+    return fallback.isNotEmpty ? '@$fallback' : '@utilisateur';
+  }
+
   Future<void> _showChangePasswordDialog() async {
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
@@ -149,6 +162,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final activeUser = Supabase.instance.client.auth.currentUser;
     final profile = ref.watch(userProfileProvider);
+    final username = _buildUsername(activeUser, profile.userId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -197,6 +211,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   children: [
                     ProfileHeader(
                       displayName: profile.displayName,
+                      username: username,
                       avatarUrl: profile.avatarUrl,
                     ),
                     const SizedBox(height: 12),
