@@ -152,10 +152,9 @@ class AboutFeatureList extends StatelessWidget {
       {
         'icon': Icons.calendar_month_outlined,
         'title': isEnglish ? 'Agenda & Events' : 'Agenda & Événements',
-        'desc':
-            isEnglish
-                ? 'Sync with your schedule'
-                : 'Synchronisation du planning',
+        'desc': isEnglish
+            ? 'Sync with your schedule'
+            : 'Synchronisation du planning',
       },
       {
         'icon': Icons.wb_sunny_outlined,
@@ -165,34 +164,39 @@ class AboutFeatureList extends StatelessWidget {
       {
         'icon': Icons.checkroom_outlined,
         'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions de Tenue',
-        'desc':
-            isEnglish ? 'Smart fashion advice' : 'Conseils mode intelligents',
+        'desc': isEnglish
+            ? 'Smart fashion advice'
+            : 'Conseils mode intelligents',
       },
       {
         'icon': Icons.security_outlined,
         'title': isEnglish ? 'Privacy First' : 'Confidentialité',
-        'desc':
-            isEnglish ? 'Your data stays yours' : 'Vos données restent privées',
+        'desc': isEnglish
+            ? 'Your data stays yours'
+            : 'Vos données restent privées',
       },
     ];
 
     return Column(
-      children:
-          features
-              .map(
-                (f) => ListTile(
-                  leading: Icon(f['icon'] as IconData, color: Colors.blueAccent, size: 28),
-                  title: Text(
-                    f['title'] as String,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    f['desc'] as String,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ),
-              )
-              .toList(),
+      children: features
+          .map(
+            (f) => ListTile(
+              leading: Icon(
+                f['icon'] as IconData,
+                color: Colors.blueAccent,
+                size: 28,
+              ),
+              title: Text(
+                f['title'] as String,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                f['desc'] as String,
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
