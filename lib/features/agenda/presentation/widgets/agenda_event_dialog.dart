@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 
@@ -57,7 +58,8 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
           0,
         );
     _endTime =
-        widget.editingEvent?.endTime ?? _startTime.add(const Duration(hours: 1));
+        widget.editingEvent?.endTime ??
+        _startTime.add(const Duration(hours: 1));
     _eventType = widget.editingEvent?.eventType ?? 'Personnel';
   }
 
@@ -141,7 +143,8 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                 initialValue: _eventType,
                 items: _eventTypes
                     .map(
-                      (item) => DropdownMenuItem(value: item, child: Text(item)),
+                      (item) =>
+                          DropdownMenuItem(value: item, child: Text(item)),
                     )
                     .toList(),
                 onChanged: (value) {
@@ -157,7 +160,7 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                       onPressed: () => _pickDateTime(forStart: true),
                       icon: const Icon(Icons.schedule),
                       label: Text(
-                        'Début\n${_startTime.day.toString().padLeft(2, '0')}/${_startTime.month.toString().padLeft(2, '0')} ${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+                        'Début\n${formatDisplayDateTime(_startTime, locale: Localizations.localeOf(context).toString(), includeYear: false)}',
                       ),
                     ),
                   ),
@@ -167,7 +170,7 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                       onPressed: () => _pickDateTime(forStart: false),
                       icon: const Icon(Icons.schedule_send),
                       label: Text(
-                        'Fin\n${_endTime.day.toString().padLeft(2, '0')}/${_endTime.month.toString().padLeft(2, '0')} ${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}',
+                        'Fin\n${formatDisplayDateTime(_endTime, locale: Localizations.localeOf(context).toString(), includeYear: false)}',
                       ),
                     ),
                   ),
@@ -230,9 +233,9 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                   } catch (e) {
                     if (context.mounted) {
                       setState(() => _isSaving = false);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erreur: $e')),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
                     }
                   }
                 },

@@ -51,14 +51,10 @@ class AuthCardContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.white.withValues(alpha: 0.08),
+      margin: EdgeInsets.zero,
       elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
-      ),
-      child: Padding(padding: const EdgeInsets.all(22), child: child),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(padding: const EdgeInsets.all(18), child: child),
     );
   }
 }

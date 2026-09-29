@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/entities/outfit.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_providers.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class OutfitListCard extends ConsumerWidget {
   final RankedOutfit rankedOutfit;
@@ -23,11 +22,9 @@ class OutfitListCard extends ConsumerWidget {
     final personalization = ref.read(outfitPersonalizationProvider.notifier);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
-        borderRadius: 16,
-        blur: 20,
-        opacity: 0.1,
-        padding: EdgeInsets.zero,
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

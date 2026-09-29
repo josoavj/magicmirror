@@ -1,8 +1,11 @@
+// ignore_for_file: unused_field, unused_element
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
@@ -55,6 +58,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   String _tr(BuildContext context, String fr, String en) =>
       _isEnglish(context) ? en : fr;
+
+  String _formatBirthDate(BuildContext context, DateTime date) {
+    final locale = _isEnglish(context) ? 'en_US' : 'fr_FR';
+    return formatDisplayDate(date, locale: locale);
+  }
 
   @override
   void dispose() {
@@ -223,6 +231,19 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _buildUsername(User? activeUser, UserProfile profile) {
+    final email = activeUser?.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) {
+        return '@$localPart';
+      }
+    }
+
+    final fallback = profile.userId.trim();
+    return fallback.isNotEmpty ? '@$fallback' : '@utilisateur';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -234,20 +255,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         .watch(profileSchemaWarningProvider)
         .maybeWhen(data: (warning) => warning, orElse: () => null);
     final activeUser = Supabase.instance.client.auth.currentUser;
+    final username = _buildUsername(activeUser, profile);
 
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
         title: Text(_tr(context, 'Mon profil', 'My profile')),
         elevation: 0,
-        actions: [
-          if (!_editing)
-            IconButton(
-              tooltip: _tr(context, 'Modifier le profil', 'Edit profile'),
-              onPressed: () => _startEditing(profile),
-              icon: const Icon(Icons.edit_outlined),
-            ),
-        ],
       ),
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -300,7 +314,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       _infoLine(
                         Icons.history,
                         _tr(context, 'Dernière synchronisation', 'Last sync'),
-                        '${MaterialLocalizations.of(context).formatMediumDate(lastSyncAt)} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(lastSyncAt))}',
+                        formatDisplayDateTime(
+                          lastSyncAt,
+                          locale: _isEnglish(context) ? 'en_US' : 'fr_FR',
+                        ),
                       ),
                     ],
                     if (schemaWarning != null && schemaWarning.isNotEmpty) ...[
@@ -327,28 +344,37 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                     ],
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
+                    Row(
                       children: [
-                        OutlinedButton.icon(
-                          onPressed:
-                              activeUser == null ||
-                                  syncStatus == ProfileSyncStatus.syncing
-                              ? null
-                              : () => ref
-                                    .read(userProfileProvider.notifier)
-                                    .syncToCloud(),
-                          icon: const Icon(Icons.cloud_upload_outlined),
-                          label: Text(_tr(context, 'Synchroniser', 'Sync now')),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                activeUser == null ||
+                                    syncStatus == ProfileSyncStatus.syncing
+                                ? null
+                                : () => ref
+                                      .read(userProfileProvider.notifier)
+                                      .syncToCloud(),
+                            icon: const Icon(Icons.cloud_upload_outlined),
+                            label: Text(
+                              _tr(context, 'Synchroniser', 'Sync now'),
+                            ),
+                          ),
                         ),
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/account-settings'),
-                          child: Text(
-                            _tr(
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pushNamed(
                               context,
-                              'Sécurité du compte',
-                              'Account security',
+                              '/account-settings',
+                            ),
+                            icon: const Icon(Icons.security_outlined),
+                            label: Text(
+                              _tr(
+                                context,
+                                'Sécurité du compte',
+                                'Account security',
+                              ),
                             ),
                           ),
                         ),
@@ -358,7 +384,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_editing) _buildEditor(profile) else _buildSummary(profile),
+              _buildSummary(profile, username),
             ],
           ),
         ),
@@ -366,9 +392,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     );
   }
 
-  Widget _buildSummary(UserProfile profile) {
+  Widget _buildSummary(UserProfile profile, String username) {
     final colors = Theme.of(context).colorScheme;
-    final isEnglish = _isEnglish(context);
     return Column(
       children: [
         ProfileSectionCard(
@@ -377,13 +402,20 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             children: [
               ProfileHeader(
                 displayName: profile.displayName,
+                username: username,
                 avatarUrl: profile.avatarUrl,
               ),
               const SizedBox(height: 18),
               _infoLine(
                 Icons.person_outline,
-                _tr(context, 'Nom affiché', 'Display name'),
+                _tr(context, 'Nom et prénom', 'Full name'),
                 profile.displayName,
+              ),
+              const SizedBox(height: 12),
+              _infoLine(
+                Icons.alternate_email,
+                _tr(context, 'Nom d’utilisateur', 'Username'),
+                username,
               ),
               const SizedBox(height: 12),
               _infoLine(
@@ -426,9 +458,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 _tr(context, 'Date de naissance', 'Birth date'),
                 profile.birthDate == null
                     ? _tr(context, 'Non renseignée', 'Not set')
-                    : MaterialLocalizations.of(
-                        context,
-                      ).formatMediumDate(profile.birthDate!),
+                    : _formatBirthDate(context, profile.birthDate!),
               ),
             ],
           ),
@@ -468,15 +498,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       )
                       .toList(),
                 ),
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () => _startEditing(profile),
-            icon: const Icon(Icons.edit_outlined),
-            label: Text(isEnglish ? 'Edit my profile' : 'Modifier mon profil'),
-          ),
         ),
       ],
     );
@@ -600,7 +621,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         'Ajouter une date de naissance',
                         'Add birth date',
                       )
-                    : '${_tr(context, 'Date de naissance', 'Birth date')} : ${MaterialLocalizations.of(context).formatMediumDate(_birthDate!)}',
+                    : '${_tr(context, 'Date de naissance', 'Birth date')} : ${_formatBirthDate(context, _birthDate!)}',
               ),
             ),
             if (_birthDate != null)

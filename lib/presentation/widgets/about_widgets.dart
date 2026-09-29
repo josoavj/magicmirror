@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class AboutHeader extends StatelessWidget {
   final bool isEnglish;
@@ -45,7 +44,22 @@ class AboutHeader extends StatelessWidget {
             child: ClipOval(
               child: Image.asset(
                 'assets/logo/magicmirrorlogo.png',
+                width: 104,
+                height: 104,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) {
+                  return const ColoredBox(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.white70,
+                        size: 42,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -81,36 +95,37 @@ class AboutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 24,
-      blur: 30,
-      opacity: 0.08,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isEnglish ? 'About The App' : 'À propos de l\'application',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isEnglish ? 'About The App' : 'À propos de l\'application',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isEnglish
-                ? 'Magic Mirror is a complete smart app that turns your screen into a sophisticated mirror with advanced AI capabilities.'
-                : 'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec des capacités d\'intelligence artificielle avancées.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 16,
-              height: 1.5,
-              letterSpacing: 0.2,
+            const SizedBox(height: 16),
+            Text(
+              isEnglish
+                  ? 'Magic Mirror is a complete smart app that turns your screen into a sophisticated mirror with advanced AI capabilities.'
+                  : 'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec des capacités d\'intelligence artificielles avancées.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 16,
+                height: 1.5,
+                letterSpacing: 0.2,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -137,10 +152,9 @@ class AboutFeatureList extends StatelessWidget {
       {
         'icon': Icons.calendar_month_outlined,
         'title': isEnglish ? 'Agenda & Events' : 'Agenda & Événements',
-        'desc':
-            isEnglish
-                ? 'Sync with your schedule'
-                : 'Synchronisation du planning',
+        'desc': isEnglish
+            ? 'Sync with your schedule'
+            : 'Synchronisation du planning',
       },
       {
         'icon': Icons.wb_sunny_outlined,
@@ -150,34 +164,39 @@ class AboutFeatureList extends StatelessWidget {
       {
         'icon': Icons.checkroom_outlined,
         'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions de Tenue',
-        'desc':
-            isEnglish ? 'Smart fashion advice' : 'Conseils mode intelligents',
+        'desc': isEnglish
+            ? 'Smart fashion advice'
+            : 'Conseils mode intelligents',
       },
       {
         'icon': Icons.security_outlined,
         'title': isEnglish ? 'Privacy First' : 'Confidentialité',
-        'desc':
-            isEnglish ? 'Your data stays yours' : 'Vos données restent privées',
+        'desc': isEnglish
+            ? 'Your data stays yours'
+            : 'Vos données restent privées',
       },
     ];
 
     return Column(
-      children:
-          features
-              .map(
-                (f) => ListTile(
-                  leading: Icon(f['icon'] as IconData, color: Colors.blueAccent, size: 28),
-                  title: Text(
-                    f['title'] as String,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    f['desc'] as String,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ),
-              )
-              .toList(),
+      children: features
+          .map(
+            (f) => ListTile(
+              leading: Icon(
+                f['icon'] as IconData,
+                color: Colors.blueAccent,
+                size: 28,
+              ),
+              title: Text(
+                f['title'] as String,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                f['desc'] as String,
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
