@@ -87,11 +87,13 @@ class ProfileReadOnlyInfoRow extends StatelessWidget {
 
 class ProfileHeader extends StatelessWidget {
   final String displayName;
+  final String username;
   final String avatarUrl;
 
   const ProfileHeader({
     super.key,
     required this.displayName,
+    required this.username,
     required this.avatarUrl,
   });
 
@@ -138,7 +140,7 @@ class ProfileHeader extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                'Magic Mirror',
+                username.isNotEmpty ? username : 'Utilisateur',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
