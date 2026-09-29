@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
@@ -61,11 +61,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   String _formatBirthDate(BuildContext context, DateTime date) {
     final locale = _isEnglish(context) ? 'en_US' : 'fr_FR';
-    final formatted = DateFormat('EEEE d MMMM y', locale).format(date);
-    if (formatted.isEmpty) {
-      return formatted;
-    }
-    return formatted[0].toUpperCase() + formatted.substring(1);
+    return formatDisplayDate(date, locale: locale);
   }
 
   @override
@@ -318,7 +314,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       _infoLine(
                         Icons.history,
                         _tr(context, 'Dernière synchronisation', 'Last sync'),
-                        '${MaterialLocalizations.of(context).formatMediumDate(lastSyncAt)} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(lastSyncAt))}',
+                        formatDisplayDateTime(
+                          lastSyncAt,
+                          locale: _isEnglish(context) ? 'en_US' : 'fr_FR',
+                        ),
                       ),
                     ],
                     if (schemaWarning != null && schemaWarning.isNotEmpty) ...[
