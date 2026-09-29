@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
@@ -345,7 +346,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           'Ajouter une date de naissance',
                           'Add birth date',
                         )
-                      : '${_tr(context, 'Date de naissance', 'Birth date')} : ${MaterialLocalizations.of(context).formatMediumDate(_birthDate!)}',
+                      : '${_tr(context, 'Date de naissance', 'Birth date')} : ${formatDisplayDate(_birthDate!, locale: Localizations.localeOf(context).languageCode == 'en' ? 'en_US' : 'fr_FR')}',
                 ),
               ),
               if (_birthDate != null)
