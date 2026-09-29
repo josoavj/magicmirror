@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 /// Widget pour une section de parametres
 class SettingsSection extends StatelessWidget {
@@ -45,13 +44,7 @@ class _SettingsGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: GlassContainer(
-        borderRadius: 16,
-        blur: 26,
-        opacity: 0.11,
-        padding: EdgeInsets.zero,
-        child: child,
-      ),
+      child: Card(margin: EdgeInsets.zero, elevation: 0, child: child),
     );
   }
 }
