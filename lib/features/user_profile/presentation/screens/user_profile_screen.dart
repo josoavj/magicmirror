@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field, unused_element
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -264,14 +266,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       appBar: AppBar(
         title: Text(_tr(context, 'Mon profil', 'My profile')),
         elevation: 0,
-        actions: [
-          if (!_editing)
-            IconButton(
-              tooltip: _tr(context, 'Modifier le profil', 'Edit profile'),
-              onPressed: () => _startEditing(profile),
-              icon: const Icon(Icons.edit_outlined),
-            ),
-        ],
       ),
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -391,10 +385,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_editing)
-                _buildEditor(profile)
-              else
-                _buildSummary(profile, username),
+              _buildSummary(profile, username),
             ],
           ),
         ),
