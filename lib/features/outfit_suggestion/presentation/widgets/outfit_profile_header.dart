@@ -80,7 +80,6 @@ class OutfitProfileHeader extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.edit_outlined, color: Colors.white54, size: 18),
         ],
       ),
     ),
