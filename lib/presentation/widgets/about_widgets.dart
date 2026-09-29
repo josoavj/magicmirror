@@ -45,7 +45,22 @@ class AboutHeader extends StatelessWidget {
             child: ClipOval(
               child: Image.asset(
                 'assets/logo/magicmirrorlogo.png',
+                width: 104,
+                height: 104,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (context, error, stackTrace) {
+                  return const ColoredBox(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.white70,
+                        size: 42,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
