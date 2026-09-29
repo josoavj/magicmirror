@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
@@ -55,6 +56,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   String _tr(BuildContext context, String fr, String en) =>
       _isEnglish(context) ? en : fr;
+
+  String _formatBirthDate(BuildContext context, DateTime date) {
+    final locale = _isEnglish(context) ? 'en_US' : 'fr_FR';
+    final formatted = DateFormat('EEEE d MMMM y', locale).format(date);
+    if (formatted.isEmpty) {
+      return formatted;
+    }
+    return formatted[0].toUpperCase() + formatted.substring(1);
+  }
 
   @override
   void dispose() {
@@ -385,7 +395,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   Widget _buildSummary(UserProfile profile, String username) {
     final colors = Theme.of(context).colorScheme;
-    final isEnglish = _isEnglish(context);
     return Column(
       children: [
         ProfileSectionCard(
@@ -450,9 +459,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 _tr(context, 'Date de naissance', 'Birth date'),
                 profile.birthDate == null
                     ? _tr(context, 'Non renseignée', 'Not set')
-                    : MaterialLocalizations.of(
-                        context,
-                      ).formatMediumDate(profile.birthDate!),
+                    : _formatBirthDate(context, profile.birthDate!),
               ),
             ],
           ),
@@ -615,7 +622,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         'Ajouter une date de naissance',
                         'Add birth date',
                       )
-                    : '${_tr(context, 'Date de naissance', 'Birth date')} : ${MaterialLocalizations.of(context).formatMediumDate(_birthDate!)}',
+                    : '${_tr(context, 'Date de naissance', 'Birth date')} : ${_formatBirthDate(context, _birthDate!)}',
               ),
             ),
             if (_birthDate != null)
