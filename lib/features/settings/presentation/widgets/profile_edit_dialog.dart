@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
@@ -329,7 +330,7 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
                   label: Text(
                     _birthDate == null
                         ? _tr('Ajouter une date de naissance', 'Add birth date')
-                        : '${_tr('Date de naissance', 'Birth date')} : ${MaterialLocalizations.of(context).formatMediumDate(_birthDate!)}',
+                        : '${_tr('Date de naissance', 'Birth date')} : ${formatDisplayDate(_birthDate!, locale: Localizations.localeOf(context).languageCode == 'en' ? 'en_US' : 'fr_FR')}',
                   ),
                 ),
                 if (_birthDate != null)
