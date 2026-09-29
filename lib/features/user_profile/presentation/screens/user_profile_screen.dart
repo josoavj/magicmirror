@@ -223,6 +223,19 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _buildUsername(User? activeUser, UserProfile profile) {
+    final email = activeUser?.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) {
+        return '@$localPart';
+      }
+    }
+
+    final fallback = profile.userId.trim();
+    return fallback.isNotEmpty ? '@$fallback' : '@utilisateur';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -234,6 +247,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         .watch(profileSchemaWarningProvider)
         .maybeWhen(data: (warning) => warning, orElse: () => null);
     final activeUser = Supabase.instance.client.auth.currentUser;
+    final username = _buildUsername(activeUser, profile);
 
     return Scaffold(
       backgroundColor: colors.surface,
@@ -358,7 +372,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_editing) _buildEditor(profile) else _buildSummary(profile),
+              if (_editing)
+                _buildEditor(profile)
+              else
+                _buildSummary(profile, username),
             ],
           ),
         ),
@@ -366,7 +383,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     );
   }
 
-  Widget _buildSummary(UserProfile profile) {
+  Widget _buildSummary(UserProfile profile, String username) {
     final colors = Theme.of(context).colorScheme;
     final isEnglish = _isEnglish(context);
     return Column(
@@ -377,13 +394,20 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             children: [
               ProfileHeader(
                 displayName: profile.displayName,
+                username: username,
                 avatarUrl: profile.avatarUrl,
               ),
               const SizedBox(height: 18),
               _infoLine(
                 Icons.person_outline,
-                _tr(context, 'Nom affiché', 'Display name'),
+                _tr(context, 'Nom et prénom', 'Full name'),
                 profile.displayName,
+              ),
+              const SizedBox(height: 12),
+              _infoLine(
+                Icons.alternate_email,
+                _tr(context, 'Nom d’utilisateur', 'Username'),
+                username,
               ),
               const SizedBox(height: 12),
               _infoLine(
@@ -468,15 +492,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       )
                       .toList(),
                 ),
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () => _startEditing(profile),
-            icon: const Icon(Icons.edit_outlined),
-            label: Text(isEnglish ? 'Edit my profile' : 'Modifier mon profil'),
-          ),
         ),
       ],
     );
