@@ -351,28 +351,37 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                     ],
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
+                    Row(
                       children: [
-                        OutlinedButton.icon(
-                          onPressed:
-                              activeUser == null ||
-                                  syncStatus == ProfileSyncStatus.syncing
-                              ? null
-                              : () => ref
-                                    .read(userProfileProvider.notifier)
-                                    .syncToCloud(),
-                          icon: const Icon(Icons.cloud_upload_outlined),
-                          label: Text(_tr(context, 'Synchroniser', 'Sync now')),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                activeUser == null ||
+                                    syncStatus == ProfileSyncStatus.syncing
+                                ? null
+                                : () => ref
+                                      .read(userProfileProvider.notifier)
+                                      .syncToCloud(),
+                            icon: const Icon(Icons.cloud_upload_outlined),
+                            label: Text(
+                              _tr(context, 'Synchroniser', 'Sync now'),
+                            ),
+                          ),
                         ),
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/account-settings'),
-                          child: Text(
-                            _tr(
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pushNamed(
                               context,
-                              'Sécurité du compte',
-                              'Account security',
+                              '/account-settings',
+                            ),
+                            icon: const Icon(Icons.security_outlined),
+                            label: Text(
+                              _tr(
+                                context,
+                                'Sécurité du compte',
+                                'Account security',
+                              ),
                             ),
                           ),
                         ),
