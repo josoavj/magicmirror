@@ -205,38 +205,6 @@ class OutfitPersonalizationNotifier
   }
 }
 
-final outfitFavoritesProvider =
-    StateNotifierProvider<OutfitFavoritesNotifier, Set<String>>((ref) {
-      final storageService = ref.watch(storageServiceProvider);
-      return OutfitFavoritesNotifier(storageService);
-    });
-
-class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
-  final StorageService _storageService;
-
-  OutfitFavoritesNotifier(this._storageService) : super(<String>{}) {
-    _load();
-  }
-
-  static const _prefsKey = 'outfit.favorites.v1';
-
-  Future<void> _load() async {
-    final list = await _storageService.getList(_prefsKey);
-    if (list != null) state = list.toSet();
-  }
-
-  Future<void> toggleFavorite(String outfitId) async {
-    final next = Set<String>.from(state);
-    if (next.contains(outfitId)) {
-      next.remove(outfitId);
-    } else {
-      next.add(outfitId);
-    }
-    state = next;
-    await _storageService.saveList(_prefsKey, state.toList());
-  }
-}
-
 // Extension to bridge ranking service helpers
 extension OutfitRankingServiceHelpers on OutfitRankingService {
   Future<ForecastCoordinates> resolveForecastCoordinates() async {
