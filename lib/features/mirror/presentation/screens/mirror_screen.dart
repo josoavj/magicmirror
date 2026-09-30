@@ -3,8 +3,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:magicmirror/core/services/tts_service.dart';
-import 'package:magicmirror/features/ai_ml/data/models/morphology_model.dart';
 import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
 import 'package:magicmirror/features/mirror/presentation/providers/camera_provider.dart';
 import 'package:magicmirror/features/mirror/presentation/providers/mirror_ui_state.dart';
@@ -17,9 +15,8 @@ import 'package:magicmirror/features/mirror/presentation/widgets/mirror_outfit_b
 import 'package:magicmirror/features/mirror/presentation/widgets/mirror_overlay.dart';
 import 'package:magicmirror/features/mirror/presentation/widgets/mirror_status_badge.dart';
 import 'package:magicmirror/features/mirror/presentation/widgets/permission_request_widget.dart';
-import 'package:magicmirror/features/settings/presentation/providers/settings_provider.dart';
+import 'package:magicmirror/features/mirror/presentation/services/mirror_readiness_announcer.dart';
 import 'package:magicmirror/core/utils/platform_helper.dart';
-import 'package:magicmirror/l10n/app_localizations.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class MirrorScreen extends ConsumerWidget {
@@ -92,19 +89,22 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   double? _maxZoomLevel;
   double? _minExposureOffset;
   double? _maxExposureOffset;
-  DateTime? _lastOutfitReadyTtsAt;
-  ProviderSubscription<MorphologyData?>? _morphologySubscription;
+  late final MirrorReadinessAnnouncer _readinessAnnouncer;
 
   @override
   void initState() {
     super.initState();
+    _readinessAnnouncer = MirrorReadinessAnnouncer(
+      ref: ref,
+      context: context,
+      isMounted: () => mounted,
+    )..start();
     unawaited(_enterMirrorImmersiveMode());
-    _listenOutfitReadyForTts();
   }
 
   @override
   void dispose() {
-    _morphologySubscription?.close();
+    _readinessAnnouncer.dispose();
     unawaited(_restoreSystemBars());
     _stopMlStream();
     super.dispose();
@@ -121,90 +121,6 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
-    );
-  }
-
-  void _listenOutfitReadyForTts() {
-    _morphologySubscription = ref.listenManual<MorphologyData?>(
-      currentMorphologyProvider,
-      (previous, next) {
-        if (!mounted || next == null) return;
-
-        final wasReady = previous != null && _isOutfitReadySignal(previous);
-        final isReady = _isOutfitReadySignal(next);
-        if (!isReady || wasReady) return;
-
-        final now = DateTime.now();
-        if (_lastOutfitReadyTtsAt != null &&
-            now.difference(_lastOutfitReadyTtsAt!) <
-                const Duration(seconds: 45)) {
-          return;
-        }
-
-        _lastOutfitReadyTtsAt = now;
-        _announceOutfitReadyTts(next);
-      },
-    );
-  }
-
-  bool _isOutfitReadySignal(MorphologyData? data) {
-    if (data == null) return false;
-    final bodyFrameRatio = _tryParseDouble(data.measurements['height_ratio']);
-    final poseQuality = _tryParseDouble(data.measurements['pose_quality']);
-    return bodyFrameRatio >= 0.55 && poseQuality >= 60 && data.confidence >= 55;
-  }
-
-  double _tryParseDouble(dynamic value) {
-    if (value == null) return 0;
-    if (value is num) return value.toDouble();
-    return double.tryParse(
-          value.toString().replaceAll('%', '').replaceAll(',', '.').trim(),
-        ) ??
-        0;
-  }
-
-  Future<void> _announceOutfitReadyTts(MorphologyData morphologyData) async {
-    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
-    final settings = ref.read(appSettingsProvider);
-    final tts = ref.read(ttsServiceProvider);
-    final isEnglish = settings.ttsLanguage.startsWith('en');
-    final includeMorphology = settings.ttsAnnounceMorphology;
-    final morphologyMessage = includeMorphology
-        ? (l10n?.detectedBodyType(morphologyData.bodyType) ??
-              (isEnglish
-                  ? 'Detected body type: ${morphologyData.bodyType}. '
-                  : 'Morphologie détectée: ${morphologyData.bodyType}. '))
-        : '';
-
-    await tts.speak(
-      l10n?.fullBodyDetectedWithoutOutfit(morphologyMessage) ??
-          (isEnglish
-              ? 'Full body detected. ${morphologyMessage}Your outfit suggestions are ready.'
-              : 'Corps complet détecté. ${morphologyMessage}Vos suggestions de tenues sont prêtes.'),
-      enabled: settings.enableAudioFeedback && settings.ttsEnabled,
-      interruptCurrent: settings.ttsInterruptCurrent,
-      language: settings.ttsLanguage,
-      speechRate: settings.ttsSpeechRate,
-      pitch: settings.ttsPitch,
-      minRepeatInterval: Duration(seconds: settings.ttsMinRepeatSeconds),
-    );
-  }
-
-  Rect? _extractTrackingRect(MorphologyData? morphologyData) {
-    if (morphologyData == null) return null;
-    final measurements = morphologyData.measurements;
-    final left = _tryParseDouble(measurements['bbox_left_n']);
-    final top = _tryParseDouble(measurements['bbox_top_n']);
-    final width = _tryParseDouble(measurements['bbox_width_n']);
-    final height = _tryParseDouble(measurements['bbox_height_n']);
-
-    if (width <= 0 || height <= 0) return null;
-
-    return Rect.fromLTWH(
-      left.clamp(0.0, 1.0),
-      top.clamp(0.0, 1.0),
-      width.clamp(0.05, 1.0),
-      height.clamp(0.05, 1.0),
     );
   }
 
@@ -296,7 +212,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
     final cameraDescAsync = ref.watch(frontCameraProvider);
     final morphology = ref.watch(currentMorphologyProvider);
     final uiState = ref.watch(mirrorUIProvider);
-    final trackingRect = _extractTrackingRect(morphology);
+    final trackingRect = _readinessAnnouncer.extractTrackingRect(morphology);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -414,7 +330,7 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                           ],
                         ),
                         const Spacer(),
-                        if (_isOutfitReadySignal(morphology))
+                        if (_readinessAnnouncer.isReady(morphology))
                           const MirrorOutfitBadge(),
                         const Spacer(),
                         MirrorCameraControls(

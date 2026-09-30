@@ -375,8 +375,9 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
                   onChanged: _saving
                       ? null
                       : (value) {
-                          if (value != null)
+                          if (value != null) {
                             setState(() => _morphology = value);
+                          }
                         },
                 ),
                 const SizedBox(height: 16),

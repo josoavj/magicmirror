@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_providers.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_favorites_provider.dart';
 import 'package:magicmirror/presentation/widgets/home_tile.dart';
 import 'package:magicmirror/routes/route_names.dart';
 
