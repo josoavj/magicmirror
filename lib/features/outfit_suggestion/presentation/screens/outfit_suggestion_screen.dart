@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/services/outfit_ranking_service.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/entities/outfit.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_providers.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_favorites_provider.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/widgets/outfit_profile_header.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/widgets/outfit_suggestion_section.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/ai_ml/presentation/providers/ml_provider.dart';
 
 class OutfitSuggestionScreen extends ConsumerStatefulWidget {
-  final bool initialShowFavorites;
-  const OutfitSuggestionScreen({super.key, this.initialShowFavorites = false});
+  const OutfitSuggestionScreen({super.key});
 
   @override
   ConsumerState<OutfitSuggestionScreen> createState() =>
@@ -20,12 +20,6 @@ class OutfitSuggestionScreen extends ConsumerStatefulWidget {
 class _OutfitSuggestionScreenState
     extends ConsumerState<OutfitSuggestionScreen> {
   bool _favoritesOnly = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _favoritesOnly = widget.initialShowFavorites;
-  }
 
   String _tr(BuildContext context, String fr, String en) =>
       Localizations.localeOf(context).languageCode == 'en' ? en : fr;
@@ -108,7 +102,9 @@ class _OutfitSuggestionScreenState
               ),
               const SizedBox(height: 20),
               OutfitSuggestionSection(
-                title: _tr(context, 'Aujourd’hui', 'Today'),
+                title: _favoritesOnly
+                    ? _tr(context, 'Favoris du jour', 'Today’s favorites')
+                    : _tr(context, 'Aujourd’hui', 'Today'),
                 targetDay: today,
                 profile: rankingProfile,
                 favoriteIds: favoriteIds,
@@ -123,23 +119,25 @@ class _OutfitSuggestionScreenState
                   orElse: () => null,
                 ),
               ),
-              const SizedBox(height: 24),
-              OutfitSuggestionSection(
-                title: _tr(context, 'Demain', 'Tomorrow'),
-                targetDay: tomorrow,
-                profile: rankingProfile,
-                favoriteIds: favoriteIds,
-                personalization: personalization,
-                eventsAsync: tomorrowEventsAsync,
-                favoritesOnly: _favoritesOnly,
-                weatherContext: weatherBundleAsync.maybeWhen(
-                  data: (bundle) =>
-                      OutfitRankingService.weatherContextFromForecast(
-                        bundle.tomorrowForecast,
-                      ),
-                  orElse: () => null,
+              if (!_favoritesOnly) ...[
+                const SizedBox(height: 24),
+                OutfitSuggestionSection(
+                  title: _tr(context, 'Demain', 'Tomorrow'),
+                  targetDay: tomorrow,
+                  profile: rankingProfile,
+                  favoriteIds: favoriteIds,
+                  personalization: personalization,
+                  eventsAsync: tomorrowEventsAsync,
+                  favoritesOnly: false,
+                  weatherContext: weatherBundleAsync.maybeWhen(
+                    data: (bundle) =>
+                        OutfitRankingService.weatherContextFromForecast(
+                          bundle.tomorrowForecast,
+                        ),
+                    orElse: () => null,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
