@@ -246,7 +246,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final profile = ref.watch(userProfileProvider);
     final syncStatus = ref.watch(profileSyncStatusProvider);
     final syncMessage = ref.watch(profileSyncMessageProvider);
@@ -255,6 +256,37 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         .watch(profileSchemaWarningProvider)
         .maybeWhen(data: (warning) => warning, orElse: () => null);
     final activeUser = Supabase.instance.client.auth.currentUser;
+    final syncColor = switch (syncStatus) {
+      ProfileSyncStatus.syncing || ProfileSyncStatus.success =>
+        theme.brightness == Brightness.dark
+            ? Colors.greenAccent
+            : Colors.green.shade700,
+      ProfileSyncStatus.failure =>
+        theme.brightness == Brightness.dark
+            ? Colors.redAccent
+            : Colors.red.shade700,
+      ProfileSyncStatus.idle => colors.primary,
+    };
+    final syncIcon = switch (syncStatus) {
+      ProfileSyncStatus.success => Icons.cloud_done_outlined,
+      ProfileSyncStatus.failure => Icons.cloud_off_outlined,
+      ProfileSyncStatus.idle ||
+      ProfileSyncStatus.syncing => Icons.cloud_sync_outlined,
+    };
+    final syncButtonColor = switch (syncStatus) {
+      ProfileSyncStatus.syncing || ProfileSyncStatus.failure => syncColor,
+      ProfileSyncStatus.idle || ProfileSyncStatus.success => colors.primary,
+    };
+    final syncButtonLabel = switch (syncStatus) {
+      ProfileSyncStatus.syncing => _tr(context, 'Synchronisation…', 'Syncing…'),
+      ProfileSyncStatus.failure => _tr(
+        context,
+        'Échec · Réessayer',
+        'Failed · Retry',
+      ),
+      ProfileSyncStatus.idle ||
+      ProfileSyncStatus.success => _tr(context, 'Synchroniser', 'Sync now'),
+    };
     final username = _buildUsername(activeUser, profile);
 
     return Scaffold(
@@ -290,21 +322,30 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(
-                          syncStatus == ProfileSyncStatus.success
-                              ? Icons.cloud_done_outlined
-                              : syncStatus == ProfileSyncStatus.syncing
-                              ? Icons.sync
-                              : syncStatus == ProfileSyncStatus.failure
-                              ? Icons.cloud_off_outlined
-                              : Icons.cloud_queue_outlined,
-                          color: colors.onSurfaceVariant,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          child: syncStatus == ProfileSyncStatus.syncing
+                              ? SizedBox(
+                                  key: const ValueKey('profile-sync-progress'),
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: syncColor,
+                                  ),
+                                )
+                              : Icon(
+                                  syncIcon,
+                                  key: ValueKey(syncStatus),
+                                  color: syncColor,
+                                  size: 20,
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             syncMessage,
-                            style: TextStyle(color: colors.onSurfaceVariant),
+                            style: TextStyle(color: syncColor),
                           ),
                         ),
                       ],
@@ -355,9 +396,40 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                                 : () => ref
                                       .read(userProfileProvider.notifier)
                                       .syncToCloud(),
-                            icon: const Icon(Icons.cloud_upload_outlined),
-                            label: Text(
-                              _tr(context, 'Synchroniser', 'Sync now'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: syncButtonColor,
+                              disabledForegroundColor: syncButtonColor,
+                              side: BorderSide(
+                                color: syncButtonColor.withValues(alpha: 0.65),
+                              ),
+                            ),
+                            icon: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: syncStatus == ProfileSyncStatus.syncing
+                                  ? SizedBox(
+                                      key: const ValueKey(
+                                        'sync-button-progress',
+                                      ),
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: syncButtonColor,
+                                      ),
+                                    )
+                                  : Icon(
+                                      syncStatus == ProfileSyncStatus.failure
+                                          ? Icons.cloud_off_outlined
+                                          : Icons.cloud_upload_outlined,
+                                      key: ValueKey('sync-button-$syncStatus'),
+                                    ),
+                            ),
+                            label: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: Text(
+                                syncButtonLabel,
+                                key: ValueKey('sync-label-$syncStatus'),
+                              ),
                             ),
                           ),
                         ),
