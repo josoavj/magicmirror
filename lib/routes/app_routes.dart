@@ -6,6 +6,7 @@ import 'package:magicmirror/features/mirror/presentation/screens/mirror_screen.d
 import 'package:magicmirror/features/agenda/presentation/screens/agenda_screen.dart';
 import 'package:magicmirror/features/weather/presentation/screens/weather_screen.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/screens/outfit_suggestion_screen.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/screens/outfit_favorites_screen.dart';
 import 'package:magicmirror/features/user_profile/presentation/screens/user_profile_screen.dart';
 import 'package:magicmirror/features/settings/presentation/screens/settings_screen.dart';
 import 'package:magicmirror/features/settings/presentation/screens/account_settings_screen.dart';
@@ -20,8 +21,7 @@ class AppRoutes {
       RouteNames.agenda: (context) => const AgendaScreen(),
       RouteNames.weather: (context) => const WeatherScreen(),
       RouteNames.outfitSuggestion: (context) => const OutfitSuggestionScreen(),
-      RouteNames.outfitFavorites: (context) =>
-          const OutfitSuggestionScreen(initialShowFavorites: true),
+      RouteNames.outfitFavorites: (context) => const OutfitFavoritesScreen(),
       RouteNames.profile: (context) => const UserProfileScreen(),
       RouteNames.accountSettings: (context) => const AccountSettingsScreen(),
       RouteNames.settings: (context) => const SettingsScreen(),
