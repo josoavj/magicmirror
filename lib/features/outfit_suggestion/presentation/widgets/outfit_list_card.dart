@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/outfit_suggestion/domain/entities/outfit.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_providers.dart';
+import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_favorites_provider.dart';
 
 class OutfitListCard extends ConsumerWidget {
   final RankedOutfit rankedOutfit;
