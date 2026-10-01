@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 
 class AgendaEventDialog extends ConsumerStatefulWidget {
   final AgendaEvent? editingEvent;
@@ -78,11 +79,13 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
       initialDate: source,
       firstDate: DateTime(widget.selectedDay.year - 1),
       lastDate: DateTime(widget.selectedDay.year + 2),
+      builder: glassDialogBuilder,
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(source),
+      builder: glassDialogBuilder,
     );
     if (time == null || !mounted) return;
     final value = DateTime(
@@ -185,7 +188,7 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
           onPressed: _isSaving ? null : () => Navigator.pop(context),
           child: Text(_tr(context, 'Annuler', 'Cancel')),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: _isSaving
               ? null
               : () async {
