@@ -24,7 +24,11 @@ class HomeScreen extends ConsumerWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
+                colors: [
+                  Color(0xFF0F172A),
+                  Color(0xFF1E293B),
+                  Color(0xFF334155),
+                ],
               ),
             ),
           ),
@@ -52,75 +56,106 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: gridMaxWidth),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Magic Mirror',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 44,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -2,
-                        ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 16,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 32,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: gridMaxWidth),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Magic Mirror',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 44,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -2,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: isMobile ? 24 : 40),
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            childAspectRatio: 1,
+                            crossAxisSpacing: isMobile ? 12 : 20,
+                            mainAxisSpacing: isMobile ? 12 : 20,
+                            children: [
+                              HomeTile(
+                                icon: Icons.auto_awesome_mosaic,
+                                label: isEnglish ? 'Mirror' : 'Miroir',
+                                color: Colors.blueAccent,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.mirror,
+                                ),
+                              ),
+                              HomeTile(
+                                icon: Icons.calendar_today_rounded,
+                                label: isEnglish ? 'Agenda' : 'Agenda',
+                                color: Colors.orangeAccent,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.agenda,
+                                ),
+                              ),
+                              HomeTile(
+                                icon: Icons.person_outline_rounded,
+                                label: isEnglish ? 'Profile' : 'Profil',
+                                color: Colors.tealAccent,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.profile,
+                                ),
+                              ),
+                              HomeTile(
+                                icon: Icons.checkroom_rounded,
+                                label: isEnglish ? 'Outfits' : 'Tenues',
+                                color: Colors.deepPurpleAccent,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.outfitSuggestion,
+                                ),
+                              ),
+                              HomeTile(
+                                icon: Icons.favorite_rounded,
+                                label: isEnglish ? 'Favorites' : 'Favoris',
+                                color: Colors.pinkAccent,
+                                badgeCount: favoritesCount,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.outfitFavorites,
+                                ),
+                              ),
+                              HomeTile(
+                                icon: Icons.settings_rounded,
+                                label: isEnglish ? 'Settings' : 'Réglages',
+                                color: Colors.grey,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  RouteNames.settings,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: isMobile ? 24 : 40),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      childAspectRatio: 1,
-                      crossAxisSpacing: isMobile ? 12 : 20,
-                      mainAxisSpacing: isMobile ? 12 : 20,
-                      children: [
-                        HomeTile(
-                          icon: Icons.auto_awesome_mosaic,
-                          label: isEnglish ? 'Mirror' : 'Miroir',
-                          color: Colors.blueAccent,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.mirror),
-                        ),
-                        HomeTile(
-                          icon: Icons.calendar_today_rounded,
-                          label: isEnglish ? 'Agenda' : 'Agenda',
-                          color: Colors.orangeAccent,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.agenda),
-                        ),
-                        HomeTile(
-                          icon: Icons.person_outline_rounded,
-                          label: isEnglish ? 'Profile' : 'Profil',
-                          color: Colors.tealAccent,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.profile),
-                        ),
-                        HomeTile(
-                          icon: Icons.checkroom_rounded,
-                          label: isEnglish ? 'Outfits' : 'Tenues',
-                          color: Colors.deepPurpleAccent,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.outfitSuggestion),
-                        ),
-                        HomeTile(
-                          icon: Icons.favorite_rounded,
-                          label: isEnglish ? 'Favorites' : 'Favoris',
-                          color: Colors.pinkAccent,
-                          badgeCount: favoritesCount,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.outfitFavorites),
-                        ),
-                        HomeTile(
-                          icon: Icons.settings_rounded,
-                          label: isEnglish ? 'Settings' : 'Réglages',
-                          color: Colors.grey,
-                          onTap: () => Navigator.pushNamed(context, RouteNames.settings),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
