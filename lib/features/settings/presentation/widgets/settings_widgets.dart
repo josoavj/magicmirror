@@ -91,12 +91,7 @@ class SettingsToggle extends StatelessWidget {
                 ),
               )
             : null,
-        trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: Colors.blue.withValues(alpha: 0.6),
-        ),
+        trailing: Switch(value: value, onChanged: onChanged),
       ),
     );
   }
@@ -296,20 +291,16 @@ class SettingsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return _SettingsGlassCard(
-      child: ElevatedButton.icon(
+      child: FilledButton.icon(
         onPressed: onPressed,
         icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
         label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: (color ?? Colors.blueAccent).withValues(alpha: 0.55),
-          foregroundColor: Colors.white,
-          elevation: 0,
+        style: FilledButton.styleFrom(
+          backgroundColor: color ?? colors.primary,
+          foregroundColor: colors.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-          ),
         ),
       ),
     );
