@@ -51,7 +51,7 @@ class AccountSettingsScreen extends ConsumerWidget {
     final username = _buildUsername(activeUser, profile.userId);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Text(isEnglish ? 'Account Settings' : 'Paramètres du compte'),
         elevation: 0,
@@ -66,8 +66,9 @@ class AccountSettingsScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 72, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               AccountSettingsSection(
                 title: _tr(context, 'Compte actif', 'Active account'),
