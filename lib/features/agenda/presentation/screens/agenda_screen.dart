@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_event_dialog.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_widgets.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
   const AgendaScreen({super.key});
@@ -33,6 +34,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
       initialDate: _selectedDay,
       firstDate: DateTime(now.year - 5),
       lastDate: DateTime(now.year + 5),
+      builder: glassDialogBuilder,
     );
     if (selected == null) return;
     setState(() {
@@ -42,7 +44,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   }
 
   Future<void> _showEventDialog({dynamic editingEvent}) async {
-    await showDialog<void>(
+    await showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AgendaEventDialog(
@@ -116,25 +118,35 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               ),
               Expanded(
                 child: agendaState.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(child: Text('Erreur: $err')),
                   data: (events) => ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16 : 24,
+                    ),
                     itemCount: events.length,
                     itemBuilder: (context, index) {
                       final event = events[index];
                       final now = DateTime.now();
-                      final isNow = now.isAfter(event.startTime) && now.isBefore(event.endTime);
+                      final isNow =
+                          now.isAfter(event.startTime) &&
+                          now.isBefore(event.endTime);
 
                       return AgendaGlassTile(
-                        time: '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+                        time:
+                            '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
                         title: event.title,
                         type: event.eventType,
                         isNow: isNow,
                         isCompleted: event.isCompleted,
                         onEdit: () => _showEventDialog(editingEvent: event),
-                        onDelete: () => ref.read(agendaEventsProvider.notifier).deleteEvent(event.id),
-                        onToggleComplete: () => ref.read(agendaEventsProvider.notifier).toggleComplete(event),
+                        onDelete: () => ref
+                            .read(agendaEventsProvider.notifier)
+                            .deleteEvent(event.id),
+                        onToggleComplete: () => ref
+                            .read(agendaEventsProvider.notifier)
+                            .toggleComplete(event),
                       );
                     },
                   ),
