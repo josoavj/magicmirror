@@ -6,6 +6,7 @@ import 'package:magicmirror/features/settings/presentation/widgets/change_passwo
 import 'package:magicmirror/features/settings/presentation/widgets/profile_edit_dialog.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
+import 'package:magicmirror/presentation/widgets/framed_list_tile.dart';
 import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -125,31 +126,39 @@ class AccountSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               AccountSettingsSection(
                 title: _tr(context, 'Sécurité', 'Security'),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.lock_outline,
-                    color: Colors.blueAccent,
+                child: FramedListTile(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.blueAccent,
+                    ),
+                    title: Text(
+                      _tr(
+                        context,
+                        'Changer le mot de passe',
+                        'Change password',
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () => _changePassword(context),
                   ),
-                  title: Text(
-                    _tr(context, 'Changer le mot de passe', 'Change password'),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onTap: () => _changePassword(context),
                 ),
               ),
               const SizedBox(height: 16),
               AccountSettingsSection(
                 title: _tr(context, 'Actions', 'Actions'),
-                child: ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text(
-                    _tr(context, 'Se déconnecter', 'Sign out'),
-                    style: const TextStyle(color: Colors.white),
+                child: FramedListTile(
+                  child: ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.redAccent),
+                    title: Text(
+                      _tr(context, 'Se déconnecter', 'Sign out'),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () async {
+                      await ref.read(authServiceProvider).signOut();
+                      if (context.mounted) Navigator.pop(context);
+                    },
                   ),
-                  onTap: () async {
-                    await ref.read(authServiceProvider).signOut();
-                    if (context.mounted) Navigator.pop(context);
-                  },
                 ),
               ),
             ],
