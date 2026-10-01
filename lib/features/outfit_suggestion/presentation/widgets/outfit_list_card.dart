@@ -29,6 +29,8 @@ class OutfitListCard extends ConsumerWidget {
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+          shape: const RoundedRectangleBorder(side: BorderSide.none),
           leading: CircleAvatar(
             backgroundColor: outfit.color.withValues(alpha: 0.2),
             child: Icon(outfit.icon, color: outfit.color),
