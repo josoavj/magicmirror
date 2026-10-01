@@ -68,9 +68,9 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          side: BorderSide(color: contentBorderColor),
+          shape: buttonShape,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
