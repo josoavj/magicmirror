@@ -103,6 +103,13 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
       actions: [
         TextButton(
           onPressed: isLoading ? null : () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outline,
+              width: 1.2,
+            ),
+          ),
           child: const Text('Annuler'),
         ),
         FilledButton(
