@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:magicmirror/core/theme/app_colors.dart';
 import 'package:magicmirror/features/weather/presentation/widgets/weather_widget.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class WeatherScreen extends StatelessWidget {
   const WeatherScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.1),
-              AppColors.secondary.withValues(alpha: 0.1),
-            ],
+            colors: [colors.surface, colors.surfaceContainerHighest],
           ),
         ),
         child: SafeArea(
@@ -31,14 +27,11 @@ class WeatherScreen extends StatelessWidget {
                     'Météo',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const GlassContainer(
-                    padding: EdgeInsets.all(18),
-                    child: WeatherWidget(),
-                  ),
+                  const WeatherWidget(),
                 ],
               ),
             ),
