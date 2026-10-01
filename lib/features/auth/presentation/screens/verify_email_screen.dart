@@ -110,7 +110,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Card(
-              color: Colors.white.withValues(alpha: 0.08),
               margin: const EdgeInsets.all(24),
               child: Padding(
                 padding: const EdgeInsets.all(20),
