@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_event_dialog.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_widgets.dart';
@@ -58,9 +59,45 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   Widget build(BuildContext context) {
     final agendaState = ref.watch(agendaEventsProvider);
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final locale = Localizations.localeOf(context).toString();
+    final formattedDay = formatDisplayDate(
+      _selectedDay,
+      locale: locale,
+      includeYear: false,
+    );
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        title: Text(_tr(context, 'Agenda', 'Calendar')),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          tooltip: _tr(context, 'Retour', 'Back'),
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        actions: [
+          IconButton(
+            tooltip: _tr(context, 'Choisir une date', 'Choose a date'),
+            onPressed: _pickDay,
+            icon: const Icon(Icons.calendar_month_outlined),
+          ),
+          IconButton(
+            tooltip: _tr(context, 'Actualiser', 'Refresh'),
+            onPressed: () => ref
+                .read(agendaEventsProvider.notifier)
+                .refresh(_selectedDay, true),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showEventDialog,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(_tr(context, 'Ajouter', 'Add')),
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -70,50 +107,24 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsets.all(isMobile ? 18 : 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _tr(context, 'Planning', 'Schedule'),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isMobile ? 30 : 34,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${_selectedDay.day.toString().padLeft(2, '0')}/${_selectedDay.month.toString().padLeft(2, '0')}/${_selectedDay.year}',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.58),
-                            fontSize: isMobile ? 16 : 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        AgendaGlassIconButton(
-                          icon: Icons.event,
-                          onPressed: _pickDay,
-                        ),
-                        const SizedBox(width: 10),
-                        AgendaGlassIconButton(
-                          icon: Icons.refresh,
-                          onPressed: () => ref
-                              .read(agendaEventsProvider.notifier)
-                              .refresh(_selectedDay, true),
-                        ),
-                      ],
-                    ),
-                  ],
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 18 : 24,
+                  16,
+                  isMobile ? 18 : 24,
+                  12,
+                ),
+                child: Text(
+                  '${_tr(context, 'Planning du', 'Schedule for')} $formattedDay',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: isMobile ? 16 : 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               Expanded(
@@ -122,8 +133,11 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                       const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(child: Text('Erreur: $err')),
                   data: (events) => ListView.builder(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 16 : 24,
+                    padding: EdgeInsets.fromLTRB(
+                      isMobile ? 16 : 24,
+                      0,
+                      isMobile ? 16 : 24,
+                      96,
                     ),
                     itemCount: events.length,
                     itemBuilder: (context, index) {
@@ -134,12 +148,8 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                           now.isBefore(event.endTime);
 
                       return AgendaGlassTile(
-                        time:
-                            '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
-                        title: event.title,
-                        type: event.eventType,
+                        event: event,
                         isNow: isNow,
-                        isCompleted: event.isCompleted,
                         onEdit: () => _showEventDialog(editingEvent: event),
                         onDelete: () => ref
                             .read(agendaEventsProvider.notifier)
@@ -150,28 +160,6 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                       );
                     },
                   ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(isMobile ? 16 : 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AgendaGlassButton(
-                        label: _tr(context, 'Retour', 'Back'),
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icons.arrow_back,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AgendaGlassButton(
-                        label: _tr(context, 'Ajouter', 'Add'),
-                        onPressed: _showEventDialog,
-                        icon: Icons.add,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
