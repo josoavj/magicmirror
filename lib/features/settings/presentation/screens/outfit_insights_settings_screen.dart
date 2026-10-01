@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_suggestion_shared_providers.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/outfit_settings_widgets.dart';
+import 'package:magicmirror/presentation/widgets/framed_list_tile.dart';
 
 class OutfitInsightsSettingsScreen extends ConsumerWidget {
   const OutfitInsightsSettingsScreen({super.key});
@@ -40,17 +41,23 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                 title: _tr(context, 'Moteur', 'Engine'),
                 child: Column(
                   children: [
-                    SwitchListTile(
-                      title: Text(
-                        _tr(context, 'Mode strict', 'Strict mode'),
-                        style: const TextStyle(color: Colors.white),
+                    FramedListTile(
+                      showBorder: false,
+                      child: SwitchListTile(
+                        title: Text(
+                          _tr(context, 'Mode strict', 'Strict mode'),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        value: strictMode,
+                        onChanged: (val) {
+                          ref
+                                  .read(
+                                    outfitStrictWeatherModeProvider.notifier,
+                                  )
+                                  .state =
+                              val;
+                        },
                       ),
-                      value: strictMode,
-                      onChanged: (val) {
-                        ref
-                            .read(outfitStrictWeatherModeProvider.notifier)
-                            .state = val;
-                      },
                     ),
                   ],
                 ),
@@ -74,11 +81,21 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        ref.read(outfitTelemetryProvider.notifier).reset();
-                      },
-                      child: Text(_tr(context, 'Réinitialiser', 'Reset')),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          ref.read(outfitTelemetryProvider.notifier).reset();
+                        },
+                        icon: const Icon(Icons.warning_amber_rounded),
+                        label: Text(_tr(context, 'Réinitialiser', 'Reset')),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onError,
+                        ),
+                      ),
                     ),
                   ],
                 ),
