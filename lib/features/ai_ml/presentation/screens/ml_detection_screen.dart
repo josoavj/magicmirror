@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/ml_provider.dart';
 import '../widgets/camera_preview_widget.dart';
-import '../../../../presentation/widgets/glass_container.dart';
 
 /// Screen de détection morphologie temps réel
 class MlDetectionScreen extends ConsumerWidget {
@@ -77,29 +76,30 @@ class MlDetectionScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        GlassContainer(
-          borderRadius: 16,
-          blur: 20,
-          opacity: 0.1,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _InfoRow(
-                label: 'Type de corps',
-                value: morphology.bodyType ?? 'Détection...',
-              ),
-              const SizedBox(height: 12),
-              _InfoRow(
-                label: 'Confiance',
-                value: '${(morphology.confidence ?? 0).toStringAsFixed(1)}%',
-              ),
-              const SizedBox(height: 12),
-              _InfoRow(
-                label: 'Hauteur',
-                value: '${(morphology.totalHeight ?? 0).toStringAsFixed(1)} cm',
-              ),
-            ],
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoRow(
+                  label: 'Type de corps',
+                  value: morphology.bodyType ?? 'Détection...',
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  label: 'Confiance',
+                  value: '${(morphology.confidence ?? 0).toStringAsFixed(1)}%',
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  label: 'Hauteur',
+                  value:
+                      '${(morphology.totalHeight ?? 0).toStringAsFixed(1)} cm',
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -111,31 +111,31 @@ class MlDetectionScreen extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 24),
-        GlassContainer(
-          borderRadius: 16,
-          blur: 20,
-          opacity: 0.1,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Analyse en cours...',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 16),
+                Text(
+                  'Analyse en cours...',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

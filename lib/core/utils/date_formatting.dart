@@ -5,8 +5,9 @@ String formatDisplayDate(
   required String locale,
   bool includeYear = true,
 }) {
-  final pattern = includeYear ? 'EEEE d MMMM y' : 'EEEE d MMMM';
-  final formatted = DateFormat(pattern, locale).format(date);
+  final formatted = includeYear
+      ? DateFormat.yMMMMEEEEd(locale).format(date)
+      : DateFormat.MMMMEEEEd(locale).format(date);
   return formatted
       .split(' ')
       .map(

@@ -6,6 +6,8 @@ import 'package:magicmirror/features/settings/presentation/widgets/change_passwo
 import 'package:magicmirror/features/settings/presentation/widgets/profile_edit_dialog.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
+import 'package:magicmirror/presentation/widgets/framed_list_tile.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountSettingsScreen extends ConsumerWidget {
@@ -26,7 +28,7 @@ class AccountSettingsScreen extends ConsumerWidget {
 
   void _editProfile(BuildContext context, WidgetRef ref) {
     final profile = ref.read(userProfileProvider);
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => ProfileEditDialog(profile: profile),
@@ -34,7 +36,7 @@ class AccountSettingsScreen extends ConsumerWidget {
   }
 
   void _changePassword(BuildContext context) {
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const ChangePasswordDialog(),
@@ -49,7 +51,7 @@ class AccountSettingsScreen extends ConsumerWidget {
     final username = _buildUsername(activeUser, profile.userId);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Text(isEnglish ? 'Account Settings' : 'Paramètres du compte'),
         elevation: 0,
@@ -64,8 +66,9 @@ class AccountSettingsScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 72, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               AccountSettingsSection(
                 title: _tr(context, 'Compte actif', 'Active account'),
@@ -108,11 +111,14 @@ class AccountSettingsScreen extends ConsumerWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => _editProfile(context, ref),
-                      icon: const Icon(Icons.edit_outlined),
-                      label: Text(
-                        _tr(context, 'Modifier le profil', 'Edit profile'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _editProfile(context, ref),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: Text(
+                          _tr(context, 'Modifier le profil', 'Edit profile'),
+                        ),
                       ),
                     ),
                   ],
@@ -121,31 +127,39 @@ class AccountSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               AccountSettingsSection(
                 title: _tr(context, 'Sécurité', 'Security'),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.lock_outline,
-                    color: Colors.blueAccent,
+                child: FramedListTile(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.blueAccent,
+                    ),
+                    title: Text(
+                      _tr(
+                        context,
+                        'Changer le mot de passe',
+                        'Change password',
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () => _changePassword(context),
                   ),
-                  title: Text(
-                    _tr(context, 'Changer le mot de passe', 'Change password'),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onTap: () => _changePassword(context),
                 ),
               ),
               const SizedBox(height: 16),
               AccountSettingsSection(
                 title: _tr(context, 'Actions', 'Actions'),
-                child: ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: Text(
-                    _tr(context, 'Se déconnecter', 'Sign out'),
-                    style: const TextStyle(color: Colors.white),
+                child: FramedListTile(
+                  child: ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.redAccent),
+                    title: Text(
+                      _tr(context, 'Se déconnecter', 'Sign out'),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () async {
+                      await ref.read(authServiceProvider).signOut();
+                      if (context.mounted) Navigator.pop(context);
+                    },
                   ),
-                  onTap: () async {
-                    await ref.read(authServiceProvider).signOut();
-                    if (context.mounted) Navigator.pop(context);
-                  },
                 ),
               ),
             ],

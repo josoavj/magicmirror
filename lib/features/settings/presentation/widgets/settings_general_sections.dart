@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/l10n/app_localizations.dart';
 import 'package:magicmirror/features/settings/presentation/providers/settings_provider.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/settings_widgets.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 
 class SettingsGeneralSections extends ConsumerWidget {
   const SettingsGeneralSections({super.key});
@@ -75,7 +76,7 @@ class SettingsGeneralSections extends ConsumerWidget {
     AppLocalizations l10n,
     String appVersion,
   ) {
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.appVersionDialogTitle),
@@ -85,7 +86,7 @@ class SettingsGeneralSections extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.closeButton),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               Navigator.pop(dialogContext);
               Navigator.pushNamed(context, '/about');
@@ -102,7 +103,7 @@ class SettingsGeneralSections extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.resetDialogTitle),
@@ -110,9 +111,18 @@ class SettingsGeneralSections extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(
+                dialogContext,
+              ).colorScheme.onSurfaceVariant,
+              side: BorderSide(
+                color: Theme.of(dialogContext).colorScheme.outline,
+                width: 1.2,
+              ),
+            ),
             child: Text(l10n.cancelButton),
           ),
-          TextButton(
+          TextButton.icon(
             onPressed: () {
               ref.read(appSettingsProvider.notifier).resetToDefaults();
               Navigator.pop(dialogContext);
@@ -120,7 +130,11 @@ class SettingsGeneralSections extends ConsumerWidget {
                 context,
               ).showSnackBar(SnackBar(content: Text(l10n.settingsResetToast)));
             },
-            child: Text(l10n.resetButton),
+            icon: const Icon(Icons.warning_amber_rounded),
+            label: Text(l10n.resetButton),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
           ),
         ],
       ),

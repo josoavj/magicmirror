@@ -36,15 +36,5 @@ class AccountSettingsSection extends StatelessWidget {
 }
 
 InputDecoration accountInputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(),
-    ),
-  );
+  return InputDecoration(labelText: label);
 }

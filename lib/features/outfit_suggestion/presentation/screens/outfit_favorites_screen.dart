@@ -29,8 +29,11 @@ class OutfitFavoritesScreen extends ConsumerWidget {
     final todayEventsAsync = ref.watch(agendaEventsForDayProvider(today));
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Text(_tr(context, 'Mes favoris', 'My favorites')),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
             tooltip: _tr(context, 'Actualiser', 'Refresh'),
@@ -42,25 +45,38 @@ class OutfitFavoritesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          OutfitSuggestionSection(
-            title: '',
-            targetDay: today,
-            profile: rankingProfile,
-            favoriteIds: favoriteIds,
-            personalization: personalization,
-            eventsAsync: todayEventsAsync,
-            favoritesOnly: true,
-            weatherContext: weatherBundleAsync.maybeWhen(
-              data: (bundle) => OutfitRankingService.weatherContextFromCurrent(
-                bundle.currentWeather,
-              ),
-              orElse: () => null,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
           ),
-        ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              OutfitSuggestionSection(
+                title: '',
+                targetDay: today,
+                profile: rankingProfile,
+                favoriteIds: favoriteIds,
+                personalization: personalization,
+                eventsAsync: todayEventsAsync,
+                favoritesOnly: true,
+                weatherContext: weatherBundleAsync.maybeWhen(
+                  data: (bundle) =>
+                      OutfitRankingService.weatherContextFromCurrent(
+                        bundle.currentWeather,
+                      ),
+                  orElse: () => null,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

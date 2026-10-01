@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class HomeTile extends StatelessWidget {
   final IconData icon;
@@ -24,13 +23,11 @@ class HomeTile extends StatelessWidget {
     final iconSize = isMobile ? 28.0 : 34.0;
     final labelFontSize = isMobile ? 14.0 : 17.0;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassContainer(
-        borderRadius: 30,
-        blur: 34,
-        opacity: 0.11,
-        tintColor: color,
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: isMobile ? 8 : 10,

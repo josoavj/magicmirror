@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/agenda/data/models/event_model.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 
 class AgendaEventDialog extends ConsumerStatefulWidget {
   final AgendaEvent? editingEvent;
@@ -78,11 +79,13 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
       initialDate: source,
       firstDate: DateTime(widget.selectedDay.year - 1),
       lastDate: DateTime(widget.selectedDay.year + 2),
+      builder: glassDialogBuilder,
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(source),
+      builder: glassDialogBuilder,
     );
     if (time == null || !mounted) return;
     final value = DateTime(
@@ -116,29 +119,39 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Titre'),
+                decoration: InputDecoration(
+                  labelText: _tr(context, 'Titre', 'Title'),
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Titre obligatoire';
+                    return _tr(context, 'Titre obligatoire', 'Title required');
                   }
                   return null;
                 },
               ),
+              const SizedBox(height: 14),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
+                decoration: InputDecoration(
+                  labelText: _tr(context, 'Description', 'Description'),
+                  alignLabelWithHint: true,
+                ),
                 minLines: 1,
                 maxLines: 3,
               ),
+              const SizedBox(height: 14),
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(labelText: 'Lieu'),
+                decoration: InputDecoration(
+                  labelText: _tr(context, 'Lieu', 'Location'),
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               DropdownButtonFormField<String>(
                 initialValue: _eventType,
                 items: _eventTypes
@@ -150,27 +163,47 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                 onChanged: (value) {
                   if (value != null) setState(() => _eventType = value);
                 },
-                decoration: const InputDecoration(labelText: 'Type'),
+                decoration: InputDecoration(
+                  labelText: _tr(context, 'Type', 'Type'),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
+              Text(
+                _tr(context, 'Date et horaires', 'Date and time'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: () => _pickDateTime(forStart: true),
-                      icon: const Icon(Icons.schedule),
-                      label: Text(
-                        'Début\n${formatDisplayDateTime(_startTime, locale: Localizations.localeOf(context).toString(), includeYear: false)}',
+                      child: _DateTimeButtonLabel(
+                        icon: Icons.schedule_rounded,
+                        title: _tr(context, 'Début', 'Start'),
+                        dateTime: formatDisplayDateTime(
+                          _startTime,
+                          locale: Localizations.localeOf(context).toString(),
+                          includeYear: false,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: () => _pickDateTime(forStart: false),
-                      icon: const Icon(Icons.schedule_send),
-                      label: Text(
-                        'Fin\n${formatDisplayDateTime(_endTime, locale: Localizations.localeOf(context).toString(), includeYear: false)}',
+                      child: _DateTimeButtonLabel(
+                        icon: Icons.schedule_send_rounded,
+                        title: _tr(context, 'Fin', 'End'),
+                        dateTime: formatDisplayDateTime(
+                          _endTime,
+                          locale: Localizations.localeOf(context).toString(),
+                          includeYear: false,
+                        ),
                       ),
                     ),
                   ),
@@ -183,9 +216,16 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outline,
+              width: 1.2,
+            ),
+          ),
           child: Text(_tr(context, 'Annuler', 'Cancel')),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: _isSaving
               ? null
               : () async {
@@ -244,6 +284,45 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
               : Text(_tr(context, 'Enregistrer', 'Save')),
         ),
       ],
+    );
+  }
+}
+
+class _DateTimeButtonLabel extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String dateTime;
+
+  const _DateTimeButtonLabel({
+    required this.icon,
+    required this.title,
+    required this.dateTime,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16),
+              const SizedBox(width: 6),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            dateTime,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 }

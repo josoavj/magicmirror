@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:magicmirror/presentation/widgets/framed_list_tile.dart';
 
 /// Widget pour une section de parametres
 class SettingsSection extends StatelessWidget {
@@ -28,7 +29,12 @@ class SettingsSection extends StatelessWidget {
             ),
           ),
         ),
-        ...children,
+        ...children.map(
+          (child) => ListTileBorderScope(
+            showBorder: title.trim().isNotEmpty || children.length > 1,
+            child: child,
+          ),
+        ),
         const SizedBox(height: 8),
       ],
     );
@@ -69,33 +75,34 @@ class SettingsToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SettingsGlassCard(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: icon != null
-            ? Icon(icon, color: Colors.white, size: 24)
-            : null,
-        title: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
+      child: FramedListTile(
+        showBorder: false,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
           ),
-        ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle!,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.62),
-                  fontSize: 13,
-                ),
-              )
-            : null,
-        trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: Colors.blue.withValues(alpha: 0.6),
+          leading: icon != null
+              ? Icon(icon, color: Colors.white, size: 24)
+              : null,
+          title: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: subtitle != null
+              ? Text(
+                  subtitle!,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    fontSize: 13,
+                  ),
+                )
+              : null,
+          trailing: Switch(value: value, onChanged: onChanged),
         ),
       ),
     );
@@ -141,56 +148,59 @@ class _SettingsTextFieldState extends State<SettingsTextField> {
   @override
   Widget build(BuildContext context) {
     return _SettingsGlassCard(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: widget.icon != null
-            ? Icon(widget.icon, color: Colors.white, size: 24)
-            : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
+      child: FramedListTile(
+        showBorder: false,
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          leading: widget.icon != null
+              ? Icon(widget.icon, color: Colors.white, size: 24)
+              : null,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              onChanged: widget.onChanged,
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.42),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.28),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                onChanged: widget.onChanged,
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.42),
                   ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.28),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.28),
+                    ),
                   ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.52),
-                    width: 1.2,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.28),
+                    ),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.52),
+                      width: 1.2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.08),
                 ),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.08),
+                style: const TextStyle(color: Colors.white),
               ),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -296,19 +306,18 @@ class SettingsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return _SettingsGlassCard(
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: (color ?? Colors.blueAccent).withValues(alpha: 0.55),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: FilledButton.icon(
+          onPressed: onPressed,
+          icon: icon != null ? Icon(icon) : const SizedBox.shrink(),
+          label: Text(label),
+          style: FilledButton.styleFrom(
+            backgroundColor: color ?? colors.primary,
+            foregroundColor: colors.onPrimary,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           ),
         ),
       ),
@@ -399,44 +408,50 @@ class SettingsInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SettingsGlassCard(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        onTap: onTap,
-        leading: icon != null
-            ? Icon(icon, color: Colors.white, size: 24)
-            : null,
-        title: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.84),
-                fontWeight: FontWeight.w500,
+      child: FramedListTile(
+        showBorder: false,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          onTap: onTap,
+          leading: icon != null
+              ? Icon(icon, color: Colors.white, size: 24)
+              : null,
+          title: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.84),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
+          trailing: onTap != null
+              ? const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white70,
+                  size: 24,
+                )
+              : null,
         ),
-        trailing: onTap != null
-            ? const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white70,
-                size: 24,
-              )
-            : null,
       ),
     );
   }
@@ -460,22 +475,28 @@ class SettingsActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SettingsGlassCard(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        onTap: onTap,
-        leading: icon != null
-            ? Icon(icon, color: iconColor ?? Colors.white, size: 24)
-            : null,
-        title: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white),
-        ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.white70,
-          size: 24,
+      child: FramedListTile(
+        showBorder: false,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          onTap: onTap,
+          leading: icon != null
+              ? Icon(icon, color: iconColor ?? Colors.white, size: 24)
+              : null,
+          title: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.white70,
+            size: 24,
+          ),
         ),
       ),
     );

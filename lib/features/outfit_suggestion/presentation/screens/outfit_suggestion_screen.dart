@@ -42,7 +42,7 @@ class _OutfitSuggestionScreenState
     final tomorrowEventsAsync = ref.watch(agendaEventsForDayProvider(tomorrow));
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Text(_tr(context, 'Mes tenues', 'My outfits')),
         backgroundColor: Colors.transparent,
@@ -68,8 +68,9 @@ class _OutfitSuggestionScreenState
           ),
         ),
         child: SafeArea(
+          top: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 64, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               OutfitProfileHeader(
                 profile: profile,
