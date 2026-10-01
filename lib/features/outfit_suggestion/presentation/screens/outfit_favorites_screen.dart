@@ -29,7 +29,7 @@ class OutfitFavoritesScreen extends ConsumerWidget {
     final todayEventsAsync = ref.watch(agendaEventsForDayProvider(today));
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Text(_tr(context, 'Mes favoris', 'My favorites')),
         backgroundColor: Colors.transparent,
@@ -54,8 +54,9 @@ class OutfitFavoritesScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 64, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               OutfitSuggestionSection(
                 title: '',
