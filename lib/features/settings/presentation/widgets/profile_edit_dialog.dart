@@ -7,6 +7,7 @@ import 'package:magicmirror/core/utils/date_formatting.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileEditDialog extends ConsumerStatefulWidget {
@@ -135,6 +136,7 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
       firstDate: firstDate,
       lastDate: lastDate,
       helpText: _tr('Date de naissance', 'Birth date'),
+      builder: glassDialogBuilder,
     );
 
     if (value != null) {
@@ -217,8 +219,6 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      backgroundColor: const Color(0xFF111827),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620),
         child: SingleChildScrollView(
