@@ -234,10 +234,10 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
                     Expanded(
                       child: Text(
                         _tr('Modifier le profil', 'Edit profile'),
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style:
+                            (theme.dialogTheme.titleTextStyle ??
+                                    theme.textTheme.titleLarge)
+                                ?.copyWith(color: colors.onSurface),
                       ),
                     ),
                     IconButton(
@@ -276,6 +276,7 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _nameController,
                   decoration: accountInputDecoration('Nom et prénom'),
@@ -418,6 +419,15 @@ class _ProfileEditDialogState extends ConsumerState<ProfileEditDialog> {
                         onPressed: _saving
                             ? null
                             : () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant,
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
+                            width: 1.2,
+                          ),
+                        ),
                         child: Text(_tr('Annuler', 'Cancel')),
                       ),
                     ),
