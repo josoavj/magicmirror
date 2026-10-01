@@ -29,14 +29,9 @@ class AgendaGlassTile extends StatelessWidget {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final accentColor = isNow ? Colors.cyanAccent : Colors.white;
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      child: GlassContainer(
-        borderRadius: 24,
-        blur: isNow ? 40 : 32,
-        opacity: isNow ? 0.16 : 0.1,
-        tintColor: isNow ? Colors.cyan.withValues(alpha: 0.8) : Colors.white,
-        borderWidth: isNow ? 2.0 : 1.1,
+      child: Padding(
         padding: EdgeInsets.all(isMobile ? 16 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,8 +40,10 @@ class AgendaGlassTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.cyanAccent.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
@@ -103,16 +100,14 @@ class AgendaGlassTile extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color:
-                          isCompleted
-                              ? Colors.white.withValues(alpha: 0.55)
-                              : Colors.white,
+                      color: isCompleted
+                          ? Colors.white.withValues(alpha: 0.55)
+                          : Colors.white,
                       fontSize: isMobile ? 16 : 18,
                       fontWeight: isNow ? FontWeight.bold : FontWeight.w500,
-                      decoration:
-                          isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
+                      decoration: isCompleted
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
                     ),
                   ),
                 ),
@@ -122,10 +117,9 @@ class AgendaGlassTile extends StatelessWidget {
                     isCompleted
                         ? Icons.check_circle
                         : Icons.radio_button_unchecked,
-                    color:
-                        isCompleted
-                            ? Colors.greenAccent
-                            : (isNow ? Colors.cyanAccent : Colors.white70),
+                    color: isCompleted
+                        ? Colors.greenAccent
+                        : (isNow ? Colors.cyanAccent : Colors.white70),
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -137,17 +131,16 @@ class AgendaGlassTile extends StatelessWidget {
                       onDelete();
                     }
                   },
-                  itemBuilder:
-                      (context) => [
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Text(isEnglish ? 'Edit' : 'Modifier'),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(isEnglish ? 'Delete' : 'Supprimer'),
-                        ),
-                      ],
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text(isEnglish ? 'Edit' : 'Modifier'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(isEnglish ? 'Delete' : 'Supprimer'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -202,30 +195,20 @@ class AgendaGlassButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-    return GestureDetector(
-      onTap: onPressed,
-      child: GlassContainer(
-        borderRadius: 24,
-        blur: 28,
-        opacity: 0.11,
-        padding: EdgeInsets.symmetric(vertical: isMobile ? 18 : 20),
-        child: SizedBox(
-          width: double.infinity,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 18),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isMobile ? 16 : 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(
+          label,
+          style: TextStyle(
+            fontSize: isMobile ? 16 : 18,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        style: FilledButton.styleFrom(
+          padding: EdgeInsets.symmetric(vertical: isMobile ? 18 : 20),
         ),
       ),
     );
