@@ -61,7 +61,6 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
     final error = ref.watch(authErrorProvider);
 
     return AlertDialog(
-      backgroundColor: const Color(0xFF1E293B),
       title: const Text('Sécurité', style: TextStyle(color: Colors.white)),
       content: Form(
         key: _formKey,
@@ -106,7 +105,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
           onPressed: isLoading ? null : () => Navigator.pop(context),
           child: const Text('Annuler'),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: isLoading ? null : _submit,
           child: isLoading
               ? const SizedBox(
