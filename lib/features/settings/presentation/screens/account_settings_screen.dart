@@ -6,6 +6,7 @@ import 'package:magicmirror/features/settings/presentation/widgets/change_passwo
 import 'package:magicmirror/features/settings/presentation/widgets/profile_edit_dialog.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountSettingsScreen extends ConsumerWidget {
@@ -26,7 +27,7 @@ class AccountSettingsScreen extends ConsumerWidget {
 
   void _editProfile(BuildContext context, WidgetRef ref) {
     final profile = ref.read(userProfileProvider);
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => ProfileEditDialog(profile: profile),
@@ -34,7 +35,7 @@ class AccountSettingsScreen extends ConsumerWidget {
   }
 
   void _changePassword(BuildContext context) {
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const ChangePasswordDialog(),
@@ -108,11 +109,14 @@ class AccountSettingsScreen extends ConsumerWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => _editProfile(context, ref),
-                      icon: const Icon(Icons.edit_outlined),
-                      label: Text(
-                        _tr(context, 'Modifier le profil', 'Edit profile'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _editProfile(context, ref),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: Text(
+                          _tr(context, 'Modifier le profil', 'Edit profile'),
+                        ),
                       ),
                     ),
                   ],
