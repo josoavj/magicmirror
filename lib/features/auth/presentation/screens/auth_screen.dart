@@ -6,6 +6,7 @@ import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_component
 import 'package:magicmirror/features/auth/presentation/widgets/login_form.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/signup_stepper.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/signup_steps.dart';
+import 'package:magicmirror/presentation/widgets/glass_dialog.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -173,23 +174,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   initialDate: DateTime(2000),
                                   firstDate: DateTime(1900),
                                   lastDate: DateTime.now(),
+                                  builder: glassDialogBuilder,
                                 );
                                 if (date != null) {
                                   setState(() => _birthDate = date);
                                 }
                               },
-                              onGenderChanged:
-                                  (val) => setState(() => _gender = val!),
-                              onHeightChanged:
-                                  (val) =>
-                                      setState(() => _heightCm = val.round()),
+                              onGenderChanged: (val) =>
+                                  setState(() => _gender = val!),
+                              onHeightChanged: (val) =>
+                                  setState(() => _heightCm = val.round()),
                               isLoading: isLoading,
                             ),
                             SignupPreferenceStep(
                               morphology: _morphology,
                               selectedStyles: _styles,
-                              onMorphologyChanged:
-                                  (val) => setState(() => _morphology = val!),
+                              onMorphologyChanged: (val) =>
+                                  setState(() => _morphology = val!),
                               onStyleToggled: (style, selected) {
                                 setState(() {
                                   if (selected) {
@@ -211,16 +212,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           decoration: BoxDecoration(
                             color: Colors.redAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: Colors.redAccent.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.lock_clock, color: Colors.redAccent, size: 20),
+                              const Icon(
+                                Icons.lock_clock,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   'Trop de tentatives. Veuillez patienter $_secondsRemaining secondes.',
-                                  style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -246,25 +257,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: (isLoading || isLockedOut) ? null : _submit,
-                      child:
-                          isLoading
-                              ? const CircularProgressIndicator()
-                              : Text(
-                                _isLoginMode
-                                    ? 'Se connecter'
-                                    : (_signupStep < 2
+                      child: isLoading
+                          ? const CircularProgressIndicator()
+                          : Text(
+                              _isLoginMode
+                                  ? 'Se connecter'
+                                  : (_signupStep < 2
                                         ? 'Suivant'
                                         : 'S\'inscrire'),
-                              ),
+                            ),
                     ),
                     TextButton(
-                      onPressed:
-                          (isLoading || isLockedOut) 
-                          ? null 
+                      onPressed: (isLoading || isLockedOut)
+                          ? null
                           : () => setState(() {
-                            _isLoginMode = !_isLoginMode;
-                            _signupStep = 0;
-                          }),
+                              _isLoginMode = !_isLoginMode;
+                              _signupStep = 0;
+                            }),
                       child: Text(
                         _isLoginMode
                             ? 'Pas de compte ? S\'inscrire'
