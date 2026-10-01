@@ -111,9 +111,18 @@ class SettingsGeneralSections extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(
+                dialogContext,
+              ).colorScheme.onSurfaceVariant,
+              side: BorderSide(
+                color: Theme.of(dialogContext).colorScheme.outline,
+                width: 1.2,
+              ),
+            ),
             child: Text(l10n.cancelButton),
           ),
-          FilledButton.icon(
+          TextButton.icon(
             onPressed: () {
               ref.read(appSettingsProvider.notifier).resetToDefaults();
               Navigator.pop(dialogContext);
@@ -123,9 +132,8 @@ class SettingsGeneralSections extends ConsumerWidget {
             },
             icon: const Icon(Icons.warning_amber_rounded),
             label: Text(l10n.resetButton),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
-              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
             ),
           ),
         ],
