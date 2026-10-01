@@ -83,17 +83,14 @@ class OutfitInsightsSettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
+                      child: TextButton.icon(
                         onPressed: () {
                           ref.read(outfitTelemetryProvider.notifier).reset();
                         },
                         icon: const Icon(Icons.warning_amber_rounded),
                         label: Text(_tr(context, 'Réinitialiser', 'Reset')),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onError,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ),
