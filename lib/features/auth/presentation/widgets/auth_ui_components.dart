@@ -53,7 +53,6 @@ class AuthCardContainer extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(padding: const EdgeInsets.all(18), child: child),
     );
   }
