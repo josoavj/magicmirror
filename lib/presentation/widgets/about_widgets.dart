@@ -104,7 +104,9 @@ class AboutCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isEnglish ? 'About The App' : 'À propos de l\'application',
+              isEnglish
+                  ? 'Your everyday style assistant'
+                  : 'Votre assistant style au quotidien',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -115,8 +117,8 @@ class AboutCard extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               isEnglish
-                  ? 'Magic Mirror is a complete smart app that turns your screen into a sophisticated mirror with advanced AI capabilities.'
-                  : 'Magic Mirror est une application intelligente complète qui transforme votre écran en miroir sophistiqué avec des capacités d\'intelligence artificielles avancées.',
+                  ? 'Magic Mirror brings your mirror, outfit ideas, weather and plans together. Explore each feature below to see how it can help you get ready and organize your day.'
+                  : 'Magic Mirror réunit votre miroir, des idées de tenues, la météo et votre agenda. Découvrez ci-dessous comment chaque fonctionnalité peut vous aider à vous préparer et à organiser votre journée.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 16,
@@ -138,65 +140,138 @@ class AboutFeatureList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final features = [
-      {
-        'icon': Icons.camera_alt_outlined,
-        'title': isEnglish ? 'Smart Mirror' : 'Miroir Intelligent',
-        'desc': isEnglish ? 'Real-time camera display' : 'Caméra temps réel',
-      },
-      {
-        'icon': Icons.psychology_outlined,
-        'title': isEnglish ? 'Body Type AI' : 'Morphologie AI',
-        'desc': isEnglish ? 'Pose detection' : 'Détection de pose',
-      },
-      {
-        'icon': Icons.calendar_month_outlined,
-        'title': isEnglish ? 'Agenda & Events' : 'Agenda & Événements',
-        'desc': isEnglish
-            ? 'Sync with your schedule'
-            : 'Synchronisation du planning',
-      },
-      {
-        'icon': Icons.wb_sunny_outlined,
-        'title': isEnglish ? 'Weather Forecast' : 'Prévisions Météo',
-        'desc': isEnglish ? 'Local weather updates' : 'Météo locale en direct',
-      },
-      {
-        'icon': Icons.checkroom_outlined,
-        'title': isEnglish ? 'Outfit Suggestions' : 'Suggestions de Tenue',
-        'desc': isEnglish
-            ? 'Smart fashion advice'
-            : 'Conseils mode intelligents',
-      },
-      {
-        'icon': Icons.security_outlined,
-        'title': isEnglish ? 'Privacy First' : 'Confidentialité',
-        'desc': isEnglish
-            ? 'Your data stays yours'
-            : 'Vos données restent privées',
-      },
+      (
+        Icons.camera_alt_outlined,
+        isEnglish ? 'See yourself in the mirror' : 'Retrouvez votre reflet',
+        isEnglish
+            ? 'Use the live camera view as a mirror. You can open the camera controls and manage access from the app settings.'
+            : 'Utilisez l’image de la caméra en direct comme miroir. Les commandes de la caméra et ses autorisations se gèrent depuis l’application.',
+      ),
+      (
+        Icons.accessibility_new_rounded,
+        isEnglish
+            ? 'Get recommendations tailored to you'
+            : 'Des conseils adaptés à votre profil',
+        isEnglish
+            ? 'The camera can estimate your body shape from your posture. This information helps refine the outfit suggestions.'
+            : 'La caméra peut estimer votre morphologie à partir de votre posture. Cette information aide à affiner les suggestions de tenues.',
+      ),
+      (
+        Icons.calendar_month_outlined,
+        isEnglish
+            ? 'Keep track of your plans'
+            : 'Gardez un œil sur votre agenda',
+        isEnglish
+            ? 'Add events, review what is coming up and use your plans when preparing for the day.'
+            : 'Ajoutez des événements, consultez ceux à venir et tenez compte de votre programme pour préparer la journée.',
+      ),
+      (
+        Icons.wb_sunny_outlined,
+        isEnglish ? 'Check the local weather' : 'Consultez la météo locale',
+        isEnglish
+            ? 'See current conditions and the forecast for your selected location.'
+            : 'Consultez les conditions actuelles et les prévisions pour le lieu sélectionné.',
+      ),
+      (
+        Icons.checkroom_outlined,
+        isEnglish
+            ? 'Find an outfit for the day'
+            : 'Trouvez une tenue pour la journée',
+        isEnglish
+            ? 'Browse outfit ideas and take the weather and your plans into account. Save the looks you want to find again in Favorites.'
+            : 'Parcourez des idées de tenues en tenant compte de la météo et de votre agenda. Ajoutez vos préférées aux Favoris pour les retrouver facilement.',
+      ),
+      (
+        Icons.inventory_2_outlined,
+        isEnglish
+            ? 'Keep track of your wardrobe'
+            : 'Retrouvez votre garde-robe',
+        isEnglish
+            ? 'The wardrobe takes the clothes and accessories you own or wear into account, so you can keep track of what is available and use those pieces in your outfit ideas.'
+            : 'La Garde-robe prend en compte les vêtements et accessoires que vous possédez ou utilisez. Vous pouvez ainsi retrouver les pièces disponibles et les intégrer à vos idées de tenues.',
+      ),
+      (
+        Icons.cloud_sync_outlined,
+        isEnglish
+            ? 'Manage your profile and sync'
+            : 'Gérez votre profil et sa synchronisation',
+        isEnglish
+            ? 'Update your profile in Settings. When you use an account, profile and favorites can be synchronized with the cloud.'
+            : 'Modifiez votre profil dans les Paramètres. Avec un compte, le profil et les favoris peuvent être synchronisés avec le Cloud.',
+      ),
     ];
 
     return Column(
-      children: features
-          .map(
-            (f) => ListTile(
-              leading: Icon(
-                f['icon'] as IconData,
-                color: Colors.blueAccent,
-                size: 28,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEnglish ? 'What you can do' : 'Ce que vous pouvez faire',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              title: Text(
-                f['title'] as String,
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                f['desc'] as String,
+              const SizedBox(height: 6),
+              Text(
+                isEnglish
+                    ? 'A quick guide to the main features.'
+                    : 'Un aperçu des principales fonctionnalités.',
                 style: const TextStyle(color: Colors.white70),
               ),
+            ],
+          ),
+        ),
+        for (final feature in features)
+          Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(feature.$1, color: Colors.blueAccent, size: 23),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          feature.$2,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          feature.$3,
+                          style: TextStyle(color: Colors.white70, height: 1.45),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )
-          .toList(),
+          ),
+      ],
     );
   }
 }
