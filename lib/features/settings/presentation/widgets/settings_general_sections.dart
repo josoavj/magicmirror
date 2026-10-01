@@ -113,7 +113,7 @@ class SettingsGeneralSections extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.cancelButton),
           ),
-          TextButton(
+          FilledButton.icon(
             onPressed: () {
               ref.read(appSettingsProvider.notifier).resetToDefaults();
               Navigator.pop(dialogContext);
@@ -121,7 +121,12 @@ class SettingsGeneralSections extends ConsumerWidget {
                 context,
               ).showSnackBar(SnackBar(content: Text(l10n.settingsResetToast)));
             },
-            child: Text(l10n.resetButton),
+            icon: const Icon(Icons.warning_amber_rounded),
+            label: Text(l10n.resetButton),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
           ),
         ],
       ),
