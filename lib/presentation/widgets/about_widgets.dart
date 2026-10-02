@@ -313,8 +313,8 @@ class AboutPublisherCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               isEnglish
-                  ? 'Publisher / maintainer: josoavj\nAddress: Antananarivo 101, Madagascar\nPublic contact: +261 33 60 223 60\nNo legal entity name or dedicated privacy email is specified.'
-                  : 'Éditeur / mainteneur : josoavj\nAdresse : Antananarivo 101, Madagascar\nContact public : +261 33 60 223 60\nAucune raison sociale ni adresse e-mail dédiée à la confidentialité n’est précisée.',
+                  ? 'Publisher and maintainer: josoavj\nAddress: Antananarivo 101, Madagascar\nPublic contact: +261 33 60 223 60\nNo legal entity name or dedicated privacy email is specified.'
+                  : 'Éditeur et mainteneur : josoavj\nAdresse : Antananarivo 101, Madagascar\nContact public : +261 33 60 223 60\nAucune raison sociale ni adresse e-mail dédiée à la confidentialité n’est précisée.',
               style: const TextStyle(color: Colors.white70, height: 1.45),
             ),
             const SizedBox(height: 8),
@@ -324,7 +324,9 @@ class AboutPublisherCard extends StatelessWidget {
                 mode: LaunchMode.externalApplication,
               ),
               icon: const Icon(Icons.open_in_new, size: 18),
-              label: Text(isEnglish ? 'Public GitHub profile' : 'Profil GitHub public'),
+              label: Text(
+                isEnglish ? 'Public GitHub profile' : 'Profil GitHub public',
+              ),
             ),
             TextButton.icon(
               onPressed: () => launchUrl(
