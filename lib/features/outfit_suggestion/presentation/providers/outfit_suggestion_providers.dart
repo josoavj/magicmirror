@@ -134,6 +134,7 @@ final outfitPersonalizationProvider =
 class OutfitPersonalizationNotifier
     extends StateNotifier<OutfitPersonalizationState> {
   final StorageService _storageService;
+  int _clearGeneration = 0;
 
   OutfitPersonalizationNotifier(this._storageService)
     : super(const OutfitPersonalizationState.initial()) {
@@ -143,8 +144,9 @@ class OutfitPersonalizationNotifier
   static const _prefsKey = 'outfit.personalization.v1';
 
   Future<void> _load() async {
+    final generation = _clearGeneration;
     final raw = await _storageService.getString(_prefsKey);
-    if (raw == null || raw.isEmpty) return;
+    if (_clearGeneration != generation || raw == null || raw.isEmpty) return;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       Map<String, int> parseIntMap(dynamic input) {
@@ -154,6 +156,7 @@ class OutfitPersonalizationNotifier
         );
       }
 
+      if (_clearGeneration != generation) return;
       state = OutfitPersonalizationState(
         styleBiasByStyle: parseIntMap(decoded['styleBiasByStyle']),
         outfitBiasById: parseIntMap(decoded['outfitBiasById']),
@@ -202,6 +205,12 @@ class OutfitPersonalizationNotifier
     nextSeen[outfitId] = DateTime.now().millisecondsSinceEpoch;
     state = state.copyWith(lastSeenAtMsByOutfitId: nextSeen);
     await _save();
+  }
+
+  Future<void> clearPersonalData() async {
+    _clearGeneration++;
+    state = const OutfitPersonalizationState.initial();
+    await _storageService.remove(_prefsKey);
   }
 }
 
