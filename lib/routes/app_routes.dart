@@ -12,6 +12,8 @@ import 'package:magicmirror/features/settings/presentation/screens/settings_scre
 import 'package:magicmirror/features/settings/presentation/screens/account_settings_screen.dart';
 import 'package:magicmirror/features/settings/presentation/screens/outfit_insights_settings_screen.dart';
 import 'package:magicmirror/presentation/screens/about_screen.dart';
+import 'package:magicmirror/presentation/screens/privacy_policy_screen.dart';
+import 'package:magicmirror/presentation/screens/terms_of_use_screen.dart';
 
 class AppRoutes {
   static Map<String, WidgetBuilder> getRoutes() {
@@ -28,6 +30,8 @@ class AppRoutes {
       RouteNames.outfitInsightsSettings: (context) =>
           const OutfitInsightsSettingsScreen(),
       RouteNames.about: (context) => const AboutScreen(),
+      RouteNames.privacy: (context) => const PrivacyPolicyScreen(),
+      RouteNames.terms: (context) => const TermsOfUseScreen(),
     };
   }
 }
