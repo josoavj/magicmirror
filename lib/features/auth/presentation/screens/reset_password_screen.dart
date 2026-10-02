@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,13 +30,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (password.length < 6) {
       setState(() {
-        _error = '6 caractères minimum.';
+        _error = _tr(
+          'Le mot de passe doit contenir au moins 6 caractères.',
+          'The password must contain at least 6 characters.',
+        );
       });
       return;
     }
     if (password != confirm) {
       setState(() {
-        _error = 'La confirmation ne correspond pas.';
+        _error = _tr(
+          'Les mots de passe ne correspondent pas.',
+          'The passwords do not match.',
+        );
       });
       return;
     }
@@ -57,12 +64,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = userFacingError(
+          context,
+          e,
+          frenchFallback:
+              'La mise à jour du mot de passe a échoué. Veuillez réessayer.',
+          englishFallback:
+              'We could not update your password. Please try again.',
+        );
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Erreur lors de la mise à jour du mot de passe.';
+        _error = _tr(
+          'La mise à jour du mot de passe a échoué. Veuillez réessayer.',
+          'We could not update your password. Please try again.',
+        );
       });
     } finally {
       if (mounted) {
@@ -72,6 +89,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       }
     }
   }
+
+  String _tr(String french, String english) =>
+      Localizations.localeOf(context).languageCode == 'en' ? english : french;
 
   @override
   Widget build(BuildContext context) {
@@ -130,10 +150,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _loading ? null : _updatePassword,
-                      child:
-                          _loading
-                              ? const CircularProgressIndicator()
-                              : const Text('Mettre à jour'),
+                      child: _loading
+                          ? const CircularProgressIndicator()
+                          : const Text('Mettre à jour'),
                     ),
                   ],
                 ),
