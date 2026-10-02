@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/password_policy.dart';
 import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
+import 'package:magicmirror/features/auth/presentation/widgets/password_rules_panel.dart';
+import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _loading = false;
@@ -27,21 +32,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Future<void> _updatePassword() async {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
-
-    if (password.length < 6) {
+    final profile = ref.read(userProfileProvider);
+    final issue = PasswordPolicy.validate(
+      password: password,
+      confirmation: confirm,
+      personalInfo: profile.isDefault ? '' : profile.displayName,
+    );
+    if (issue != null) {
       setState(() {
-        _error = _tr(
-          'Le mot de passe doit contenir au moins 6 caractères.',
-          'The password must contain at least 6 characters.',
-        );
-      });
-      return;
-    }
-    if (password != confirm) {
-      setState(() {
-        _error = _tr(
-          'Les mots de passe ne correspondent pas.',
-          'The passwords do not match.',
+        _error = PasswordPolicy.issueMessage(
+          issue,
+          isEnglish: Localizations.localeOf(context).languageCode == 'en',
         );
       });
       return;
@@ -95,6 +96,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final profile = ref.watch(userProfileProvider);
+    final displayName = profile.isDefault ? '' : profile.displayName;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -127,12 +131,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       controller: _passwordController,
                       label: 'Mot de passe',
                       obscureText: true,
+                      onChanged: (_) => setState(() => _error = null),
                     ),
+                    if (_passwordController.text.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      PasswordRulesPanel(
+                        password: _passwordController.text,
+                        personalInfo: displayName,
+                        isEnglish: isEnglish,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     AuthTextField(
                       controller: _confirmController,
                       label: 'Confirmer mot de passe',
                       obscureText: true,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    PasswordConfirmationStatus(
+                      password: _passwordController.text,
+                      confirmation: _confirmController.text,
+                      isEnglish: isEnglish,
                     ),
                     const SizedBox(height: 12),
                     if (_error != null)
