@@ -20,6 +20,18 @@ class WeatherService {
   static const String _prefsForecastCoordLastKey =
       'weather.cache.last.forecast.coord';
 
+  static Future<void> clearPersonalCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key
+        in prefs
+            .getKeys()
+            .where((key) => key.startsWith('weather.'))
+            .toList()) {
+      await prefs.remove(key);
+    }
+    cacheService.invalidatePattern('weather.');
+  }
+
   // Charger la clé API depuis .env
   static String get _apiKey => dotenv.env['OPENWEATHERMAP_API_KEY'] ?? 'demo';
 
