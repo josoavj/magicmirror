@@ -14,6 +14,53 @@ class ProfileAccountSyncSection extends ConsumerWidget {
   String _tr(BuildContext context, String fr, String en) =>
       _isEnglish(context) ? en : fr;
 
+  String _syncMessage(BuildContext context, String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('hors ligne') || normalized.contains('offline')) {
+      return _tr(
+        context,
+        'Vous êtes hors ligne. La synchronisation reprendra dès que la connexion sera rétablie.',
+        'You are offline. Sync will resume when your connection is restored.',
+      );
+    }
+    if (normalized.contains('authentification') ||
+        normalized.contains('sign in') ||
+        normalized.contains('auth')) {
+      return _tr(
+        context,
+        'Connectez-vous pour synchroniser votre profil.',
+        'Sign in to sync your profile.',
+      );
+    }
+    if (normalized.contains('déjà utilisé') || normalized.contains('already')) {
+      return _tr(
+        context,
+        'Ce profil est déjà associé à un autre compte.',
+        'This profile is already linked to another account.',
+      );
+    }
+    if (normalized.contains('introuvable') ||
+        normalized.contains('not found')) {
+      return _tr(
+        context,
+        'Aucun profil synchronisé n’a été trouvé.',
+        'No synchronized profile was found.',
+      );
+    }
+    if (normalized.contains('réseau') || normalized.contains('network')) {
+      return _tr(
+        context,
+        'La connexion a échoué. Vérifiez votre réseau et réessayez.',
+        'The connection failed. Check your network and try again.',
+      );
+    }
+    return _tr(
+      context,
+      'La synchronisation a échoué. Veuillez réessayer.',
+      'Synchronization failed. Please try again.',
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -51,7 +98,7 @@ class ProfileAccountSyncSection extends ConsumerWidget {
       ProfileSyncStatus.failure => _tr(
         context,
         'Échec · Réessayer',
-        'Failed · Retry',
+        'Sync failed · Retry',
       ),
       ProfileSyncStatus.idle ||
       ProfileSyncStatus.success => _tr(context, 'Synchroniser', 'Sync now'),
@@ -91,7 +138,12 @@ class ProfileAccountSyncSection extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(syncMessage, style: TextStyle(color: syncColor)),
+                child: Text(
+                  syncStatus == ProfileSyncStatus.failure
+                      ? _syncMessage(context, syncMessage)
+                      : syncMessage,
+                  style: TextStyle(color: syncColor),
+                ),
               ),
             ],
           ),
