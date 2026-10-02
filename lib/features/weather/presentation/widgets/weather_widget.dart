@@ -302,7 +302,7 @@ class WeatherWidget extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Erreur météo',
+                  _tr(context, 'Météo indisponible', 'Weather unavailable'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: ResponsiveHelper.resp(

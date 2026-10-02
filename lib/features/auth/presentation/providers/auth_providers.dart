@@ -43,7 +43,7 @@ class AuthService {
         // Réinitialiser les compteurs sur succès
         _ref.read(authFailedAttemptsProvider.notifier).state = 0;
         _ref.read(authLockoutTimeProvider.notifier).state = null;
-        
+
         await _ref.read(userProfileProvider.notifier).setUserId(userId);
       }
     } on AuthException catch (e) {
@@ -57,21 +57,21 @@ class AuthService {
 
   void _handleSignInFailure(String message) {
     _ref.read(authErrorProvider.notifier).state = message;
-    
+
     final attempts = _ref.read(authFailedAttemptsProvider.notifier).state += 1;
-    
+
     // Verrouillage progressif
     if (attempts >= 10) {
       // 15 minutes pour les cas extrêmes
-      _ref.read(authLockoutTimeProvider.notifier).state = 
+      _ref.read(authLockoutTimeProvider.notifier).state =
           DateTime.now().add(const Duration(minutes: 15));
     } else if (attempts >= 5) {
       // 5 minutes
-      _ref.read(authLockoutTimeProvider.notifier).state = 
+      _ref.read(authLockoutTimeProvider.notifier).state =
           DateTime.now().add(const Duration(minutes: 5));
     } else if (attempts >= 3) {
       // 30 secondes
-      _ref.read(authLockoutTimeProvider.notifier).state = 
+      _ref.read(authLockoutTimeProvider.notifier).state =
           DateTime.now().add(const Duration(seconds: 30));
     }
   }
@@ -81,19 +81,28 @@ class AuthService {
     required String password,
     required String displayName,
     required String gender,
-    required DateTime birthDate,
+    required DateTime? birthDate,
     required int heightCm,
     required String morphology,
     required List<String> preferredStyles,
+    required String termsVersion,
+    required String privacyNoticeVersion,
     String? avatarUrl,
   }) async {
     _ref.read(authLoadingProvider.notifier).state = true;
     _ref.read(authErrorProvider.notifier).state = null;
 
     try {
+      final consentAcceptedAt = DateTime.now().toUtc().toIso8601String();
       final response = await _client.auth.signUp(
         email: email.trim(),
         password: password,
+        data: {
+          'terms_accepted_at': consentAcceptedAt,
+          'privacy_notice_acknowledged_at': consentAcceptedAt,
+          'terms_version': termsVersion,
+          'privacy_notice_version': privacyNoticeVersion,
+        },
       );
 
       await _ref.read(userProfileProvider.notifier).applyOnboardingProfile(
@@ -161,7 +170,7 @@ class AuthService {
 
       // 2. Si succès, mise à jour vers le nouveau
       await _client.auth.updateUser(UserAttributes(password: newPassword));
-      
+
       _ref.read(authInfoProvider.notifier).state = 'Mot de passe mis à jour avec succès.';
       return true;
     } on AuthException catch (e) {

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/account_settings_widgets.dart';
+import 'package:magicmirror/features/settings/presentation/widgets/account_security_privacy_section.dart';
+import 'package:magicmirror/features/settings/presentation/widgets/account_data_action_dialog.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/change_password_dialog.dart';
+import 'package:magicmirror/features/settings/data/services/account_data_service.dart';
 import 'package:magicmirror/features/settings/presentation/widgets/profile_edit_dialog.dart';
 import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/features/user_profile/presentation/widgets/profile_widgets.dart';
@@ -40,6 +43,36 @@ class AccountSettingsScreen extends ConsumerWidget {
       context: context,
       barrierDismissible: false,
       builder: (_) => const ChangePasswordDialog(),
+    );
+  }
+
+  Future<void> _runAccountDataAction(
+    BuildContext context,
+    WidgetRef ref,
+    AccountDataAction action,
+  ) async {
+    final completed = await showAccountDataActionDialog(
+      context: context,
+      ref: ref,
+      action: action,
+    );
+    if (completed != true || !context.mounted) return;
+
+    if (action == AccountDataAction.deleteAccount) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _tr(
+            context,
+            'Tes données personnelles ont été effacées. Ton compte est conservé.',
+            'Your personal data has been erased. Your account remains active.',
+          ),
+        ),
+      ),
     );
   }
 
@@ -117,7 +150,11 @@ class AccountSettingsScreen extends ConsumerWidget {
                         onPressed: () => _editProfile(context, ref),
                         icon: const Icon(Icons.edit_outlined),
                         label: Text(
-                          _tr(context, 'Modifier le profil', 'Edit profile'),
+                          _tr(
+                            context,
+                            'Modifier mon profil',
+                            'Edit my profile',
+                          ),
                         ),
                       ),
                     ),
@@ -125,25 +162,20 @@ class AccountSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              AccountSettingsSection(
-                title: _tr(context, 'Sécurité', 'Security'),
-                child: FramedListTile(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.lock_outline,
-                      color: Colors.blueAccent,
-                    ),
-                    title: Text(
-                      _tr(
-                        context,
-                        'Changer le mot de passe',
-                        'Change password',
-                      ),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    onTap: () => _changePassword(context),
-                  ),
+              AccountSecurityPrivacySection(
+                isEnglish: isEnglish,
+                onChangePassword: () => _changePassword(context),
+                onEraseData: () => _runAccountDataAction(
+                  context,
+                  ref,
+                  AccountDataAction.erasePersonalData,
                 ),
+                onDeleteAccount: () => _runAccountDataAction(
+                  context,
+                  ref,
+                  AccountDataAction.deleteAccount,
+                ),
+                onOpenPrivacy: () => Navigator.pushNamed(context, '/privacy'),
               ),
               const SizedBox(height: 16),
               AccountSettingsSection(

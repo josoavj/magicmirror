@@ -334,6 +334,7 @@ class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
   }
 
   static const _prefsKey = 'outfit.telemetry.v1';
+  bool _hasBeenReset = false;
 
   SupabaseClient? get _client {
     try {
@@ -345,6 +346,7 @@ class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_hasBeenReset) return;
     final raw = prefs.getString(_prefsKey);
     if (raw == null || raw.isEmpty) {
       return;
@@ -434,6 +436,7 @@ class OutfitTelemetryNotifier extends StateNotifier<OutfitTelemetryState> {
   }
 
   Future<void> reset() async {
+    _hasBeenReset = true;
     state = const OutfitTelemetryState.initial();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);

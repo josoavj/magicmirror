@@ -2,6 +2,8 @@ class RouteNames {
   // Home & Navigation
   static const String home = '/home';
   static const String about = '/about';
+  static const String privacy = '/privacy';
+  static const String terms = '/terms';
 
   // Auth
   static const String auth = '/auth';

@@ -345,6 +345,28 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     if (syncToCloudAfterUpdate) await syncToCloud();
   }
 
+  Future<void> clearPersonalData() async {
+    state = UserProfile.defaults();
+    for (final key in [
+      'profile.userId',
+      'profile.displayName',
+      'profile.avatarUrl',
+      'profile.gender',
+      'profile.age',
+      'profile.heightCm',
+      'profile.birthDate',
+      'profile.morphology',
+      'profile.preferredStyles',
+    ]) {
+      await _storageService.remove(key, secure: true);
+    }
+    _ref.read(profileLastSyncAtProvider.notifier).state = null;
+    _ref.read(profileSyncStatusProvider.notifier).state =
+        ProfileSyncStatus.idle;
+    _ref.read(profileSyncMessageProvider.notifier).state =
+        'Aucune synchronisation';
+  }
+
   Future<void> setUserId(String userId) async {
     final normalized = userId.trim();
     if (normalized.isEmpty) {
@@ -449,7 +471,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     required String displayName,
     required String avatarUrl,
     required String gender,
-    required DateTime birthDate,
+    required DateTime? birthDate,
     required int heightCm,
     required String morphology,
     required List<String> preferredStyles,

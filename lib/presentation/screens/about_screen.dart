@@ -33,6 +33,26 @@ class AboutScreen extends StatelessWidget {
                 AboutCard(isEnglish: isEnglish),
                 const SizedBox(height: 24),
                 AboutFeatureList(isEnglish: isEnglish),
+                const SizedBox(height: 16),
+                AboutPublisherCard(isEnglish: isEnglish),
+                const SizedBox(height: 16),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: Text(
+                      isEnglish
+                          ? 'Privacy and personal data'
+                          : 'Confidentialité et données personnelles',
+                    ),
+                    subtitle: Text(
+                      isEnglish
+                          ? 'What the app uses, where it is stored and your rights'
+                          : 'Données utilisées, stockage et droits',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.pushNamed(context, '/privacy'),
+                  ),
+                ),
                 const SizedBox(height: 32),
               ],
             ),

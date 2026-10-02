@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/utils/date_formatting.dart';
+import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/features/agenda/presentation/providers/agenda_provider.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_event_dialog.dart';
 import 'package:magicmirror/features/agenda/presentation/widgets/agenda_widgets.dart';
@@ -131,7 +132,19 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                 child: agendaState.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(child: Text('Erreur: $err')),
+                  error: (err, stack) => Center(
+                    child: Text(
+                      userFacingError(
+                        context,
+                        err,
+                        frenchFallback:
+                            'Votre agenda n’a pas pu être chargé. Veuillez réessayer.',
+                        englishFallback:
+                            'Your calendar could not be loaded. Please try again.',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                   data: (events) => ListView.builder(
                     padding: EdgeInsets.fromLTRB(
                       isMobile ? 16 : 24,

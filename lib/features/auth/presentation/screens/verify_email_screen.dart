@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:magicmirror/config/app_config.dart';
+import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -19,7 +20,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     final email = user?.email;
     if (email == null || email.isEmpty) {
       setState(() {
-        _error = 'Email utilisateur introuvable.';
+        _error = _tr(
+          'L’adresse e-mail du compte est introuvable.',
+          'The account email address could not be found.',
+        );
       });
       return;
     }
@@ -47,14 +51,24 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
       setState(() {
-        _error = e.message;
+        _error = userFacingError(
+          context,
+          e,
+          frenchFallback:
+              'L’e-mail de vérification n’a pas pu être envoyé. Veuillez réessayer.',
+          englishFallback:
+              'We could not send the verification email. Please try again.',
+        );
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _error = 'Impossible de renvoyer l\'email.';
+        _error = _tr(
+          'L’e-mail de vérification n’a pas pu être renvoyé. Veuillez réessayer.',
+          'We could not resend the verification email. Please try again.',
+        );
       });
     } finally {
       if (mounted) {
@@ -88,10 +102,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
       setState(() {
-        _error = 'Impossible d\'actualiser la session.';
+        _error = _tr(
+          'La vérification n’a pas pu être actualisée. Veuillez réessayer.',
+          'We could not refresh the verification status. Please try again.',
+        );
       });
     }
   }
+
+  String _tr(String french, String english) =>
+      Localizations.localeOf(context).languageCode == 'en' ? english : french;
 
   @override
   Widget build(BuildContext context) {

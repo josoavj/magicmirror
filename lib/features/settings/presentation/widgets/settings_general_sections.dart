@@ -54,6 +54,14 @@ class SettingsGeneralSections extends ConsumerWidget {
               iconColor: Colors.blueAccent,
               onTap: () => Navigator.pushNamed(context, '/about'),
             ),
+            SettingsActionTile(
+              icon: Icons.privacy_tip_outlined,
+              label: Localizations.localeOf(context).languageCode == 'en'
+                  ? 'Privacy and personal data'
+                  : 'Confidentialité et données',
+              iconColor: Colors.teal,
+              onTap: () => Navigator.pushNamed(context, '/privacy'),
+            ),
           ],
         ),
         SettingsSection(

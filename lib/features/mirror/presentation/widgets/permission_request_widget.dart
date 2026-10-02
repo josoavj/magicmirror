@@ -62,7 +62,16 @@ class _PermissionRequestWidgetState
         return _buildPermissionRequest(context);
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Erreur: $error')),
+      error: (error, _) => Center(
+        child: Text(
+          _tr(
+            context,
+            'L’état de l’autorisation n’a pas pu être vérifié. Réessayez.',
+            'The permission status could not be checked. Please try again.',
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 

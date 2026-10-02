@@ -38,6 +38,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   Future<void> _cloudWriteQueue = Future<void>.value();
   String? _activeUserId;
   int _changeVersion = 0;
+  bool _privacyPurgeInProgress = false;
 
   Future<void> _loadLocal() async {
     final list = await _storageService.getList(_prefsKey);
@@ -49,7 +50,9 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
       _authSubscription = Supabase.instance.client.auth.onAuthStateChange
           .listen((authState) {
             final userId = authState.session?.user.id;
-            if (userId != null) unawaited(_loadCloud(userId));
+            if (userId != null && userId != _activeUserId) {
+              unawaited(_loadCloud(userId));
+            }
           });
     } catch (_) {
       // Favoris restent disponibles localement si Supabase n'est pas configuré.
@@ -64,6 +67,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
 
   Future<void> _loadCloud(String userId) async {
     await _localLoad;
+    if (_privacyPurgeInProgress) return;
     final isFirstSignIn = _activeUserId == null;
     if (_activeUserId != null && _activeUserId != userId) {
       state = <String>{};
@@ -74,6 +78,7 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
     final versionBeforeFetch = _changeVersion;
     try {
       final cloudFavorites = await _syncService.fetchFavorites(userId);
+      if (_privacyPurgeInProgress) return;
       if (versionBeforeFetch != _changeVersion) {
         await _queueCloudSave(userId, state);
       } else if (cloudFavorites == null) {
@@ -92,7 +97,9 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   }
 
   Future<void> toggleFavorite(String outfitId) async {
+    if (_privacyPurgeInProgress) return;
     await _localLoad;
+    if (_privacyPurgeInProgress) return;
     final next = Set<String>.from(state);
     if (!next.add(outfitId)) next.remove(outfitId);
 
@@ -112,7 +119,25 @@ class OutfitFavoritesNotifier extends StateNotifier<Set<String>> {
   Future<void> _saveLocal() =>
       _storageService.saveList(_prefsKey, state.toList());
 
+  Future<void> beginPrivacyPurge() async {
+    _privacyPurgeInProgress = true;
+    _changeVersion++;
+    await _cloudWriteQueue.catchError((_) {});
+  }
+
+  Future<void> finishPrivacyPurge() async {
+    _changeVersion++;
+    state = <String>{};
+    await _storageService.remove(_prefsKey);
+    _privacyPurgeInProgress = false;
+  }
+
+  void cancelPrivacyPurge() {
+    _privacyPurgeInProgress = false;
+  }
+
   Future<void> _queueCloudSave(String userId, Set<String> favoriteIds) {
+    if (_privacyPurgeInProgress) return Future<void>.value();
     final snapshot = Set<String>.from(favoriteIds);
     _cloudWriteQueue = _cloudWriteQueue
         .catchError((_) {})

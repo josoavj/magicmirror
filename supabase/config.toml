@@ -1,0 +1,2 @@
+[functions.account-data]
+verify_jwt = true

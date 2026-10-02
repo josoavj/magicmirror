@@ -129,7 +129,11 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return _tr(context, 'Titre obligatoire', 'Title required');
+                    return _tr(
+                      context,
+                      'Veuillez renseigner le titre de l’événement.',
+                      'Please enter an event title.',
+                    );
                   }
                   return null;
                 },
@@ -273,9 +277,17 @@ class _AgendaEventDialogState extends ConsumerState<AgendaEventDialog> {
                   } catch (e) {
                     if (context.mounted) {
                       setState(() => _isSaving = false);
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _tr(
+                              context,
+                              'L’événement n’a pas pu être enregistré. Veuillez réessayer.',
+                              'The event could not be saved. Please try again.',
+                            ),
+                          ),
+                        ),
+                      );
                     }
                   }
                 },
