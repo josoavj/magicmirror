@@ -17,6 +17,7 @@ import 'package:magicmirror/features/mirror/presentation/widgets/mirror_status_b
 import 'package:magicmirror/features/mirror/presentation/widgets/permission_request_widget.dart';
 import 'package:magicmirror/features/mirror/presentation/services/mirror_readiness_announcer.dart';
 import 'package:magicmirror/core/utils/platform_helper.dart';
+import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/presentation/widgets/glass_container.dart';
 
 class MirrorScreen extends ConsumerWidget {
@@ -90,6 +91,9 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
   double? _minExposureOffset;
   double? _maxExposureOffset;
   late final MirrorReadinessAnnouncer _readinessAnnouncer;
+
+  String _tr(String french, String english) =>
+      Localizations.localeOf(context).languageCode == 'en' ? english : french;
 
   @override
   void initState() {
@@ -219,15 +223,18 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
       body: cameraDescAsync.when(
         data: (camera) {
           if (camera == null) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.videocam_off, color: Colors.white70, size: 44),
                   SizedBox(height: 12),
                   Text(
-                    'Aucune caméra détectée',
-                    style: TextStyle(color: Colors.white),
+                    _tr(
+                      'Aucune caméra n’a été détectée.',
+                      'No camera was detected.',
+                    ),
+                    style: const TextStyle(color: Colors.white),
                   ),
                   SizedBox(height: 12),
                   _RetryCameraButton(),
@@ -253,7 +260,10 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                           ),
                           SizedBox(height: 12),
                           Text(
-                            'Initialisation caméra échouée',
+                            _tr(
+                              'La caméra n’a pas pu démarrer. Vérifiez son accès et réessayez.',
+                              'The camera could not start. Check camera access and try again.',
+                            ),
                             style: TextStyle(color: Colors.white),
                           ),
                           SizedBox(height: 12),
@@ -278,7 +288,14 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Erreur caméra : $e',
+                        userFacingError(
+                          context,
+                          e,
+                          frenchFallback:
+                              'La caméra n’a pas pu démarrer. Vérifiez son accès et réessayez.',
+                          englishFallback:
+                              'The camera could not start. Check camera access and try again.',
+                        ),
                         style: const TextStyle(color: Colors.white),
                       ),
                       const SizedBox(height: 12),
@@ -361,7 +378,14 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Erreur config: $e')),
+        error: (e, s) => Center(
+          child: Text(
+            _tr(
+              'Les réglages de la caméra n’ont pas pu être chargés.',
+              'Camera settings could not be loaded.',
+            ),
+          ),
+        ),
       ),
     );
   }
