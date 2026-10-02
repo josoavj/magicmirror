@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutHeader extends StatelessWidget {
   final bool isEnglish;
@@ -272,6 +273,70 @@ class AboutFeatureList extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class AboutPublisherCard extends StatelessWidget {
+  const AboutPublisherCard({super.key, required this.isEnglish});
+
+  final bool isEnglish;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isEnglish ? 'Publisher and project' : 'Éditeur et projet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isEnglish
+                  ? 'Publisher / maintainer: josoavj\nAddress: Antananarivo 101, Madagascar\nPublic contact: +261 33 60 223 60\nNo legal entity name or dedicated privacy email is specified.'
+                  : 'Éditeur / mainteneur : josoavj\nAdresse : Antananarivo 101, Madagascar\nContact public : +261 33 60 223 60\nAucune raison sociale ni adresse e-mail dédiée à la confidentialité n’est précisée.',
+              style: const TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse('https://github.com/josoavj'),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.open_in_new, size: 18),
+              label: Text(isEnglish ? 'Public GitHub profile' : 'Profil GitHub public'),
+            ),
+            TextButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse('tel:+261336022360'),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.call_outlined, size: 18),
+              label: const Text('+261 33 60 223 60'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
