@@ -124,7 +124,6 @@ class AppLogger {
   /// Efface tous les logs
   Future<void> clearLogs() async {
     await _storage.clear();
-    await info('Logs cleared', tag: 'AppLogger');
   }
 
   /// Ferme les ressources du logger
