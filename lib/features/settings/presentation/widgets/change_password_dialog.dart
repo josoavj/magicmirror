@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/password_policy.dart';
 import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
+import 'package:magicmirror/features/auth/presentation/widgets/password_rules_panel.dart';
+import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 
 class ChangePasswordDialog extends ConsumerStatefulWidget {
   const ChangePasswordDialog({super.key});
@@ -17,6 +20,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  String? _validationError;
 
   @override
   void dispose() {
@@ -27,24 +31,23 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
   }
 
   Future<void> _submit() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      _showMessage(
-        _tr(
-          'Les mots de passe ne correspondent pas.',
-          'The passwords do not match.',
-        ),
-      );
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final profile = ref.read(userProfileProvider);
+    final issue = PasswordPolicy.validate(
+      password: _newPasswordController.text,
+      confirmation: _confirmPasswordController.text,
+      personalInfo: profile.isDefault ? '' : profile.displayName,
+    );
+    if (issue != null) {
+      setState(() {
+        _validationError = PasswordPolicy.issueMessage(
+          issue,
+          isEnglish: isEnglish,
+        );
+      });
       return;
     }
-    if (_newPasswordController.text.length < 6) {
-      _showMessage(
-        _tr(
-          'Le mot de passe doit contenir au moins 6 caractères.',
-          'The password must contain at least 6 characters.',
-        ),
-      );
-      return;
-    }
+    setState(() => _validationError = null);
 
     final success = await ref
         .read(authServiceProvider)
@@ -60,19 +63,13 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
     ).showSnackBar(const SnackBar(content: Text('Mot de passe mis à jour !')));
   }
 
-  String _tr(String french, String english) =>
-      Localizations.localeOf(context).languageCode == 'en' ? english : french;
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authLoadingProvider);
     final error = ref.watch(authErrorProvider);
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final profile = ref.watch(userProfileProvider);
+    final displayName = profile.isDefault ? '' : profile.displayName;
 
     return AlertDialog(
       title: const Text('Sécurité', style: TextStyle(color: Colors.white)),
@@ -92,13 +89,41 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
                 controller: _newPasswordController,
                 label: 'Nouveau mot de passe',
                 obscureText: true,
+                onChanged: (_) => setState(() => _validationError = null),
               ),
+              if (_newPasswordController.text.isNotEmpty) ...[
+                const SizedBox(height: 9),
+                PasswordRulesPanel(
+                  password: _newPasswordController.text,
+                  personalInfo: displayName,
+                  isEnglish: isEnglish,
+                ),
+              ],
               const SizedBox(height: 12),
               AuthTextField(
                 controller: _confirmPasswordController,
                 label: 'Confirmer le nouveau',
                 obscureText: true,
+                onChanged: (_) => setState(() {}),
               ),
+              PasswordConfirmationStatus(
+                password: _newPasswordController.text,
+                confirmation: _confirmPasswordController.text,
+                isEnglish: isEnglish,
+              ),
+              if (_validationError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _validationError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
