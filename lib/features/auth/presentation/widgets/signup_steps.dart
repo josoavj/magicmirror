@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
+import 'package:magicmirror/features/auth/presentation/widgets/password_rules_panel.dart';
 
 class SignupAccountStep extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
+  final TextEditingController displayNameController;
+  final String? passwordError;
+  final VoidCallback onPasswordEdited;
 
   const SignupAccountStep({
     super.key,
     required this.emailController,
     required this.passwordController,
     required this.confirmPasswordController,
+    required this.displayNameController,
+    required this.onPasswordEdited,
+    this.passwordError,
   });
 
   @override
@@ -20,6 +27,7 @@ class SignupAccountStep extends StatefulWidget {
 class _SignupAccountStepState extends State<SignupAccountStep> {
   bool _showPassword = false;
   bool _showConfirmPassword = false;
+  bool _passwordHasFocus = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,23 +41,54 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
-          AuthTextField(
-            controller: widget.passwordController,
-            label: 'Mot de passe',
-            obscureText: !_showPassword,
-            suffixIcon: IconButton(
-              onPressed: () => setState(() => _showPassword = !_showPassword),
-              icon: Icon(
-                _showPassword ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white70,
+          Focus(
+            onFocusChange: (focused) =>
+                setState(() => _passwordHasFocus = focused),
+            child: AuthTextField(
+              controller: widget.passwordController,
+              label: 'Mot de passe',
+              obscureText: !_showPassword,
+              onChanged: (_) {
+                setState(() {});
+                widget.onPasswordEdited();
+              },
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => _showPassword = !_showPassword),
+                icon: Icon(
+                  _showPassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white70,
+                ),
               ),
             ),
           ),
+          if (_passwordHasFocus ||
+              widget.passwordController.text.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            PasswordRulesPanel(
+              password: widget.passwordController.text,
+              personalInfo: widget.displayNameController.text,
+              isEnglish: Localizations.localeOf(context).languageCode == 'en',
+            ),
+          ],
+          if (widget.passwordError != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.passwordError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           AuthTextField(
             controller: widget.confirmPasswordController,
             label: 'Confirmer mot de passe',
             obscureText: !_showConfirmPassword,
+            onChanged: (_) {
+              setState(() {});
+              widget.onPasswordEdited();
+            },
             suffixIcon: IconButton(
               onPressed: () =>
                   setState(() => _showConfirmPassword = !_showConfirmPassword),
@@ -58,6 +97,11 @@ class _SignupAccountStepState extends State<SignupAccountStep> {
                 color: Colors.white70,
               ),
             ),
+          ),
+          PasswordConfirmationStatus(
+            password: widget.passwordController.text,
+            confirmation: widget.confirmPasswordController.text,
+            isEnglish: Localizations.localeOf(context).languageCode == 'en',
           ),
         ],
       ),
@@ -73,8 +117,8 @@ class SignupProfileStep extends StatelessWidget {
   final int heightCm;
   final VoidCallback onPickAvatar;
   final VoidCallback onPickBirthDate;
+  final VoidCallback onPickHeight;
   final Function(String?) onGenderChanged;
-  final Function(double) onHeightChanged;
   final bool isLoading;
 
   const SignupProfileStep({
@@ -86,13 +130,14 @@ class SignupProfileStep extends StatelessWidget {
     required this.heightCm,
     required this.onPickAvatar,
     required this.onPickBirthDate,
+    required this.onPickHeight,
     required this.onGenderChanged,
-    required this.onHeightChanged,
     this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final birthDateLabel = birthDate == null
         ? 'Choisir une date'
         : '${birthDate!.day.toString().padLeft(2, '0')}/${birthDate!.month.toString().padLeft(2, '0')}/${birthDate!.year}';
@@ -112,7 +157,9 @@ class SignupProfileStep extends StatelessWidget {
           const SizedBox(height: 10),
           AuthTextField(
             controller: displayNameController,
-            label: 'Nom affiché',
+            label:
+                'Nom d'
+                'utilisateur',
           ),
           const SizedBox(height: 12),
           AuthTextField(controller: avatarUrlController, label: 'Photo (URL)'),
@@ -148,22 +195,17 @@ class SignupProfileStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Taille: $heightCm cm',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w600,
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: isLoading ? null : onPickHeight,
+              icon: const Icon(Icons.height),
+              label: Text(
+                isEnglish
+                    ? 'Choose height · $heightCm cm'
+                    : 'Choisir la taille · $heightCm cm',
               ),
             ),
-          ),
-          Slider(
-            min: 120,
-            max: 230,
-            divisions: 110,
-            value: heightCm.toDouble(),
-            onChanged: isLoading ? null : onHeightChanged,
           ),
         ],
       ),
