@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:magicmirror/core/utils/user_facing_error.dart';
 import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 
@@ -27,11 +28,21 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
 
   Future<void> _submit() async {
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      _showMessage('Les mots de passe ne correspondent pas.');
+      _showMessage(
+        _tr(
+          'Les mots de passe ne correspondent pas.',
+          'The passwords do not match.',
+        ),
+      );
       return;
     }
     if (_newPasswordController.text.length < 6) {
-      _showMessage('Minimum 6 caractères.');
+      _showMessage(
+        _tr(
+          'Le mot de passe doit contenir au moins 6 caractères.',
+          'The password must contain at least 6 characters.',
+        ),
+      );
       return;
     }
 
@@ -48,6 +59,9 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Mot de passe mis à jour !')));
   }
+
+  String _tr(String french, String english) =>
+      Localizations.localeOf(context).languageCode == 'en' ? english : french;
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(
@@ -89,7 +103,14 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: Text(
-                    error,
+                    userFacingError(
+                      context,
+                      error,
+                      frenchFallback:
+                          'La mise à jour du mot de passe a échoué. Veuillez réessayer.',
+                      englishFallback:
+                          'We could not update your password. Please try again.',
+                    ),
                     style: const TextStyle(
                       color: Colors.redAccent,
                       fontSize: 12,
