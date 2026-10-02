@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/utils/user_facing_error.dart';
+import 'package:magicmirror/core/utils/password_policy.dart';
 import 'package:magicmirror/features/auth/presentation/providers/auth_providers.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/auth_ui_components.dart';
 import 'package:magicmirror/features/auth/presentation/widgets/login_form.dart';
@@ -29,6 +31,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _privacyNoticeAcknowledged = false;
   bool _showTermsError = false;
   bool _showPrivacyError = false;
+  String? _passwordError;
   int _signupStep = 0;
   DateTime? _birthDate;
   int _heightCm = 170;
@@ -84,6 +87,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
 
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    if (_signupStep == 0 || _signupStep == 1 || _signupStep == 3) {
+      final issue = PasswordPolicy.validate(
+        password: _passwordController.text,
+        confirmation: _confirmPasswordController.text,
+        personalInfo: _displayNameController.text,
+      );
+      if (issue != null) {
+        setState(() {
+          _passwordError = PasswordPolicy.issueMessage(
+            issue,
+            isEnglish: isEnglish,
+          );
+          if (_signupStep != 0) _signupStep = 0;
+        });
+        if (_signupPageController.hasClients && _signupStep == 0) {
+          await _signupPageController.animateToPage(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+        return;
+      }
+    }
+
     if (_signupStep < 3) {
       ref.read(authErrorProvider.notifier).state = null;
       ref.read(authInfoProvider.notifier).state = null;
@@ -118,6 +147,88 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
   }
 
+  Future<void> _pickHeight() async {
+    var selectedHeight = _heightCm;
+    final scrollController = FixedExtentScrollController(
+      initialItem: _heightCm - 120,
+    );
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
+    final height = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final colors = Theme.of(context).colorScheme;
+          return Container(
+            height: 310,
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(color: colors.outline.withValues(alpha: 0.5)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            isEnglish
+                                ? 'Choose your height'
+                                : 'Choisir votre taille',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pop(context, selectedHeight),
+                          child: Text(isEnglish ? 'Confirm' : 'Confirmer'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: CupertinoPicker(
+                      scrollController: scrollController,
+                      itemExtent: 44,
+                      onSelectedItemChanged: (index) =>
+                          setSheetState(() => selectedHeight = index + 120),
+                      children: List.generate(
+                        111,
+                        (index) => Center(
+                          child: Text(
+                            '${index + 120} cm',
+                            style: TextStyle(
+                              color: colors.onSurface,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    scrollController.dispose();
+
+    if (height != null && mounted) {
+      setState(() => _heightCm = height);
+    }
+  }
+
   Future<void> _goToPreviousSignupStep() async {
     if (_signupStep == 0) return;
     ref.read(authErrorProvider.notifier).state = null;
@@ -132,6 +243,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final signupHeight = (MediaQuery.sizeOf(context).height * 0.66)
+        .clamp(440.0, 540.0)
+        .toDouble();
     final isLoading = ref.watch(authLoadingProvider);
     final error = ref.watch(authErrorProvider);
     final info = ref.watch(authInfoProvider);
@@ -179,7 +293,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       )
                     else
                       SizedBox(
-                        height: 400,
+                        height: signupHeight,
                         child: SignupStepper(
                           pageController: _signupPageController,
                           currentStep: _signupStep,
@@ -202,6 +316,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               passwordController: _passwordController,
                               confirmPasswordController:
                                   _confirmPasswordController,
+                              displayNameController: _displayNameController,
+                              passwordError: _passwordError,
+                              onPasswordEdited: () {
+                                if (_passwordError != null) {
+                                  setState(() => _passwordError = null);
+                                }
+                              },
                             ),
                             SignupProfileStep(
                               displayNameController: _displayNameController,
@@ -210,6 +331,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               birthDate: _birthDate,
                               heightCm: _heightCm,
                               onPickAvatar: () {}, // To be implemented
+                              onPickHeight: _pickHeight,
                               onPickBirthDate: () async {
                                 final date = await showDatePicker(
                                   context: context,
@@ -224,8 +346,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               },
                               onGenderChanged: (val) =>
                                   setState(() => _gender = val!),
-                              onHeightChanged: (val) =>
-                                  setState(() => _heightCm = val.round()),
                               isLoading: isLoading,
                             ),
                             SignupPreferenceStep(
