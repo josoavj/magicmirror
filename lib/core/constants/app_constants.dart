@@ -1,7 +1,7 @@
 class AppConstants {
   // App Info
   static const String appName = 'Magic Mirror';
-  static const String appVersion = '1.1.0-beta';
+  static const String appVersion = '1.1.0';
 
   // API Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
