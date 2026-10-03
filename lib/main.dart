@@ -16,14 +16,10 @@ import 'core/theme/app_theme.dart';
 bool _isSupabaseReady = false;
 
 void main() async {
-  // Initialiser Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser les données de locale pour la formatage des dates
-  // Cela résout l'erreur LocaleDataException sur Android
   await initializeDateFormatting();
 
-  // Charger les variables d'environnement depuis .env
   await dotenv.load(fileName: "assets/.env");
 
   final supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
@@ -33,10 +29,8 @@ void main() async {
     _isSupabaseReady = true;
   }
 
-  // Initialiser le logger
   await logger.initialize();
 
-  // Afficher la configuration au démarrage
   await AppConfig.printStartupInfo();
 
   SystemChannels.lifecycle.setMessageHandler((msg) async {
@@ -49,7 +43,6 @@ void main() async {
   runApp(const ProviderScope(child: MagicMirrorApp()));
 }
 
-/// Nettoie les ressources avant exit
 Future<void> _cleanupOnExit() async {
   try {
     logger.info('Nettoyage ressources avant exit...', tag: 'Main');
