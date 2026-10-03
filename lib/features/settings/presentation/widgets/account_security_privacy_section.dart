@@ -21,7 +21,7 @@ class AccountSecurityPrivacySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final tr = (String fr, String en) => isEnglish ? en : fr;
+    String tr(String fr, String en) => isEnglish ? en : fr;
     return AccountSettingsSection(
       title: tr('Sécurité et confidentialité', 'Security and privacy'),
       child: Column(
