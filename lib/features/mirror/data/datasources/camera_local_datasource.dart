@@ -34,7 +34,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
         tag: 'CameraDataSource',
         error: e,
       );
-      // BUG FIX #4: Exception custom avec contexte au lieu de Exception générique
       throw CameraException(
         message: 'Impossible de récupérer les caméras disponibles',
         code: 'GET_CAMERAS_FAILED',
@@ -56,7 +55,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
       return controller;
     } catch (e) {
       logger.error('Erreur init caméra', tag: 'CameraDataSource', error: e);
-      // BUG FIX #4: Exception custom
       throw CameraException(
         message: 'Impossible d\'initialiser la caméra',
         code: 'INIT_FAILED',
@@ -71,7 +69,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
       await controller.dispose();
     } catch (e) {
       logger.error('Erreur dispose caméra', tag: 'CameraDataSource', error: e);
-      // BUG FIX #4: Exception custom
       throw CameraException(
         message: 'Impossible de libérer la caméra',
         code: 'DISPOSE_FAILED',
@@ -89,7 +86,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
       return await controller.takePicture();
     } catch (e) {
       logger.error('Erreur capture', tag: 'CameraDataSource', error: e);
-      // BUG FIX #4: Exception custom
       throw CameraException(
         message: 'Erreur lors de la capture d\'image',
         code: 'CAPTURE_FAILED',
@@ -112,7 +108,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
         tag: 'CameraDataSource',
         error: e,
       );
-      // BUG FIX #4: Exception custom
       throw CameraException(
         message: 'Impossible de démarrer l\'enregistrement vidéo',
         code: 'RECORDING_START_FAILED',
@@ -134,7 +129,6 @@ class CameraLocalDataSourceImpl implements CameraLocalDataSource {
         tag: 'CameraDataSource',
         error: e,
       );
-      // BUG FIX #4: Exception custom
       throw CameraException(
         message: 'Impossible d\'arrêter l\'enregistrement vidéo',
         code: 'RECORDING_STOP_FAILED',
