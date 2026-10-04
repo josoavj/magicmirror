@@ -21,8 +21,6 @@ class ConnectivityServiceImpl implements ConnectivityService {
 
   @override
   Stream<bool> onConnectivityChanged() {
-    // BUG FIX #8: Implémenter correctement le Stream au lieu de Stream.value()
-    // Map stream de ConnectivityResult vers bool (connecté ou pas)
     return _connectivity.onConnectivityChanged
         .map((List<ConnectivityResult> result) {
           return result.contains(ConnectivityResult.mobile) ||
