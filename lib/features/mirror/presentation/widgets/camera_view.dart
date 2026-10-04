@@ -11,7 +11,7 @@ class CameraView extends StatelessWidget {
     super.key,
     required this.controller,
     this.onCapturePressed,
-    this.isFlipped = false,
+    this.isFlipped = true,
     this.showCaptureButton = true,
   });
 
@@ -22,12 +22,51 @@ class CameraView extends StatelessWidget {
     }
 
     return Stack(
+      fit: StackFit.expand,
       children: [
-        // Camera Preview
-        Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.diagonal3Values(isFlipped ? -1.0 : 1.0, 1.0, 1.0),
-          child: CameraPreview(controller),
+        // Camera Preview - Centré et plein écran sans déformation
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            final screenHeight = constraints.maxHeight;
+
+            if (screenWidth <= 0 || screenHeight <= 0) {
+              return const SizedBox.shrink();
+            }
+
+            double cameraAspectRatio = controller.value.aspectRatio;
+            final isPortrait =
+                MediaQuery.of(context).orientation == Orientation.portrait;
+
+            // Correction du ratio d'aspect selon l'orientation
+            if (isPortrait && cameraAspectRatio > 1) {
+              cameraAspectRatio = 1 / cameraAspectRatio;
+            } else if (!isPortrait && cameraAspectRatio < 1) {
+              cameraAspectRatio = 1 / cameraAspectRatio;
+            }
+
+            final screenAspectRatio = screenWidth / screenHeight;
+
+            // Calcul du facteur d'échelle pour remplir l'écran sans étirer/déformer
+            double scale = screenAspectRatio > cameraAspectRatio
+                ? screenAspectRatio / cameraAspectRatio
+                : cameraAspectRatio / screenAspectRatio;
+            if (scale < 1.0) scale = 1.0;
+
+            return ClipRect(
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(
+                  (isFlipped ? -1.0 : 1.0) * scale,
+                  scale,
+                  1.0,
+                ),
+                child: Center(
+                  child: CameraPreview(controller),
+                ),
+              ),
+            );
+          },
         ),
 
         if (showCaptureButton)
