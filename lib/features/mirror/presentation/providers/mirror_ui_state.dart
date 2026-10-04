@@ -16,7 +16,7 @@ class MirrorUIState {
 
   const MirrorUIState({
     this.showMobileHud = true,
-    this.showCameraControls = false,
+    this.showCameraControls = true,
     this.showExposureControl = false,
     this.showResetCameraBadge = false,
     this.currentZoomLevel = 1.0,
@@ -97,18 +97,17 @@ class MirrorUINotifier extends StateNotifier<MirrorUIState> {
     }
   }
 
+  void toggleExposureControl() {
+    state = state.copyWith(
+      showExposureControl: !state.showExposureControl,
+    );
+  }
+
   void showCameraControlsTemporarily({bool withExposure = false}) {
     state = state.copyWith(
       showCameraControls: true,
       showExposureControl: withExposure,
     );
-    _cameraControlsTimer?.cancel();
-    _cameraControlsTimer = Timer(const Duration(seconds: 4), () {
-      state = state.copyWith(
-        showCameraControls: false,
-        showExposureControl: false,
-      );
-    });
   }
 
   void showResetFeedbackBadge() {

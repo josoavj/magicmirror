@@ -17,26 +17,21 @@ void main() {
   });
 
   group('MirrorUINotifier', () {
-    test('initial state should have mobile HUD visible', () {
+    test('initial state should have mobile HUD and camera controls visible', () {
       final state = container.read(mirrorUIProvider);
       expect(state.showMobileHud, isTrue);
-      expect(state.showCameraControls, isFalse);
+      expect(state.showCameraControls, isTrue);
     });
 
-    test('showCameraControlsTemporarily should update state and then reset after delay', () async {
+    test('toggleExposureControl should toggle exposure control state', () {
       final notifier = container.read(mirrorUIProvider.notifier);
       
-      notifier.showCameraControlsTemporarily(withExposure: true);
-      
+      notifier.toggleExposureControl();
       var state = container.read(mirrorUIProvider);
-      expect(state.showCameraControls, isTrue);
       expect(state.showExposureControl, isTrue);
 
-      // Wait for the timer (4 seconds)
-      await Future.delayed(const Duration(seconds: 4, milliseconds: 100));
-      
+      notifier.toggleExposureControl();
       state = container.read(mirrorUIProvider);
-      expect(state.showCameraControls, isFalse);
       expect(state.showExposureControl, isFalse);
     });
 

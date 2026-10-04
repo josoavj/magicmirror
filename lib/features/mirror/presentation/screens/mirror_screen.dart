@@ -277,6 +277,8 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                     _ensureMlStream(controller, camera);
                     return CameraView(
                       controller: controller,
+                      isFlipped:
+                          camera.lensDirection == CameraLensDirection.front,
                       showCaptureButton: false,
                     );
                   }
@@ -317,53 +319,74 @@ class _MirrorBodyState extends ConsumerState<_MirrorBody> {
                 confidence: morphology?.confidence,
                 measurements: morphology?.measurements,
               ),
-              if (uiState.showMobileHud)
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const MirrorClockCard(),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                MirrorStatusBadge(
-                                  cameraReady: controllerAsync.maybeWhen(
-                                    data: (controller) =>
-                                        controller?.value.isInitialized ??
-                                        false,
-                                    orElse: () => false,
-                                  ),
-                                  mlStreamStarted: _mlStreamStarted,
-                                  mlSupported: !PlatformHelper.isWeb,
-                                ),
-                                const SizedBox(height: 8),
-                                _buildQuickSettingsButton(),
-                              ],
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Horloge et Date (haut-gauche) : animées selon la visibilité du HUD
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 300),
+                            opacity: uiState.showMobileHud ? 1.0 : 0.0,
+                            child: IgnorePointer(
+                              ignoring: !uiState.showMobileHud,
+                              child: const MirrorClockCard(),
                             ),
-                          ],
-                        ),
-                        const Spacer(),
-                        if (_readinessAnnouncer.isReady(morphology))
-                          const MirrorOutfitBadge(),
-                        const Spacer(),
-                        MirrorCameraControls(
-                          minZoom: _minZoomLevel ?? 1.0,
-                          maxZoom: _maxZoomLevel ?? 1.0,
-                          minExposure: _minExposureOffset ?? 0.0,
-                          maxExposure: _maxExposureOffset ?? 0.0,
-                          canControlZoom: !uiState.zoomUnsupported,
-                          canControlExposure: !uiState.exposureUnsupported,
-                          onZoomChanged: _setZoomLevel,
-                          onExposureChanged: _setExposureOffset,
-                        ),
-                      ],
-                    ),
+                          ),
+                          // Statut IA active & Bouton Paramètres (haut-droite) : TOUJOURS VISIBLES
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              MirrorStatusBadge(
+                                cameraReady: controllerAsync.maybeWhen(
+                                  data: (controller) =>
+                                      controller?.value.isInitialized ??
+                                      false,
+                                  orElse: () => false,
+                                ),
+                                mlStreamStarted: _mlStreamStarted,
+                                mlSupported: !PlatformHelper.isWeb,
+                              ),
+                              const SizedBox(height: 8),
+                              _buildQuickSettingsButton(),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Contrôles caméra et badge du bas : TOUJOURS VISIBLES
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (_readinessAnnouncer.isReady(morphology))
+                            const Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 12),
+                                child: MirrorOutfitBadge(),
+                              ),
+                            )
+                          else
+                            const Spacer(),
+                          MirrorCameraControls(
+                            minZoom: _minZoomLevel ?? 1.0,
+                            maxZoom: _maxZoomLevel ?? 1.0,
+                            minExposure: _minExposureOffset ?? 0.0,
+                            maxExposure: _maxExposureOffset ?? 0.0,
+                            canControlZoom: !uiState.zoomUnsupported,
+                            canControlExposure: !uiState.exposureUnsupported,
+                            onZoomChanged: _setZoomLevel,
+                            onExposureChanged: _setExposureOffset,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
+              ),
               if (uiState.showResetCameraBadge)
                 const Center(
                   child: GlassContainer(

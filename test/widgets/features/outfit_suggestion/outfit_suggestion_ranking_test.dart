@@ -205,6 +205,8 @@ void main() {
     );
 
     expect(find.text('Business Smart'), findsWidgets);
+    await tester.tap(find.text('Business Smart').first);
+    await tester.pumpAndSettle();
     // Since we added reasons to OutfitListCard
     expect(find.text('Compatible avec votre planning pro'), findsWidgets);
   });

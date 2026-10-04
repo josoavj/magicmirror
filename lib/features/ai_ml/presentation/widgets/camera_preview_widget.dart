@@ -91,6 +91,41 @@ class _CameraPreviewWidgetState extends ConsumerState<CameraPreviewWidget> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return CameraPreview(_controller!);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+
+        if (screenWidth <= 0 || screenHeight <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        double cameraAspectRatio = _controller!.value.aspectRatio;
+        final isPortrait =
+            MediaQuery.of(context).orientation == Orientation.portrait;
+
+        if (isPortrait && cameraAspectRatio > 1) {
+          cameraAspectRatio = 1 / cameraAspectRatio;
+        } else if (!isPortrait && cameraAspectRatio < 1) {
+          cameraAspectRatio = 1 / cameraAspectRatio;
+        }
+
+        final screenAspectRatio = screenWidth / screenHeight;
+        double scale = screenAspectRatio > cameraAspectRatio
+            ? screenAspectRatio / cameraAspectRatio
+            : cameraAspectRatio / screenAspectRatio;
+        if (scale < 1.0) scale = 1.0;
+
+        return ClipRect(
+          child: Transform.scale(
+            scale: scale,
+            alignment: Alignment.center,
+            child: Center(
+              child: CameraPreview(_controller!),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
