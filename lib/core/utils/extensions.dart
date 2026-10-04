@@ -8,7 +8,6 @@ extension StringExtension on String {
     return emailRegex.hasMatch(this);
   }
 
-  // BUG FIX #12: Supprimer la propriété récursive - super.isEmpty existe déjà
 
   String get capitalize {
     if (isEmpty) return this;
