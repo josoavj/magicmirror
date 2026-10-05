@@ -28,11 +28,12 @@
 
 | Fonctionnalité | Statut | Détails |
 |---|---|---|
-| **Miroir caméra** | 100% | Caméra temps réel, détection morphologie, contrôles de zoom/exposition |
+| **Miroir caméra** | 100% | Caméra temps réel, effet miroir, rendu plein écran centré sans déformation, contrôles permanents (zoom/exposition) |
 | **Agenda / Calendrier** | 100% | Agenda cloud Supabase avec gestion complète (CRUD) |
 | **Météo** | 100% | API OpenWeatherMap + géolocalisation pour recommandations contextuelles |
 | **Morphologie IA** | 100% | Google ML Kit — détection de pose et classification automatique |
 | **Suggestions de tenues** | 100% | Algorithme de ranking hybride (Heuristique + ML + LLM) |
+| **Garde-robe / Dressing** | 100% | Prise en compte des vêtements/accessoires possédés dans les idées de tenues |
 | **Profil utilisateur** | 100% | Synchronisation cloud complète (avatar, préférences, morphologie) |
 | **Suite de Tests** | 100% | Tests unitaires, de state management (Riverpod) et de widgets |
 | **Synthèse vocale** | 100% | Feedback audio intelligent pour les recommandations |
@@ -126,4 +127,4 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 ---
 
-<p align="center">Made by <a href="https://github.com/josoavj">@josoavj</a></p>
+<p align="center">Éditeur et mainteneur : <a href="https://github.com/josoavj">josoavj</a> (Développeur Fullstack — Antananarivo 101, Madagascar)</p>

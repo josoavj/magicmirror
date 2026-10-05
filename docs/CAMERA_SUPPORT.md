@@ -131,6 +131,15 @@ Tableau des résolutions disponibles et leur impact :
 
 ---
 
+### Rendu vidéo plein écran & Effet miroir
+
+Le rendu vidéo du mode miroir (`lib/features/mirror/presentation/widgets/camera_view.dart`) applique un recadrage dynamique plein écran centré sans déformation (`BoxFit.cover`) :
+- Calcul dynamique du ratio selon l'orientation de l'appareil (portrait/paysage).
+- Effet miroir automatique (`isFlipped`) pour la caméra frontale.
+- Contrôles permanents de zoom (1x-3x) et d'exposition positionnés en bas à droite.
+
+---
+
 ## Troubleshooting
 
 ### "Camera not available on this device"
@@ -154,6 +163,18 @@ flutter run
 ```
 
 Si le problème persiste, fermer toutes les apps utilisant la caméra avant de relancer.
+
+### Crash natif Android `NoSuchFieldError` (ML Kit / MediaPipe)
+
+**Cause :** R8/ProGuard supprime les champs JNI de MediaPipe lors du build release ou debug minifié.
+
+**Solution :** Les règles suivantes sont configurées dans `android/app/proguard-rules.pro` :
+```proguard
+-keep class com.google.android.gms.internal.mlkit_vision_mediapipe.** { *; }
+-keepclassmembers class com.google.android.gms.internal.mlkit_vision_mediapipe.** { *; }
+-keep class com.google.mlkit.vision.pose.** { *; }
+-keepclassmembers class com.google.mlkit.vision.pose.** { *; }
+```
 
 ---
 
