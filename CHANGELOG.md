@@ -48,16 +48,30 @@ Toutes les évolutions notables de Magic Mirror sont documentées dans ce fichie
 
 ### Refactor & Performance
 
-- Optimisation majeure du moteur de recommandation de tenues.
-- Stabilisation de la gestion du cycle de vie des dialogues dans l'agenda.
+- **Moteur de Recommandation** : Optimisation majeure du moteur de classement de tenues (filtrage contextuel météo/agenda/morphologie).
+- **Gestion de l'Agenda** : Stabilisation du cycle de vie des dialogues et de la persistance des événements.
 
-### Security
+### Artéfacts Release & Build
 
-- Migration des logs vers le répertoire privé de l'application.
-- Verrouillage strict de la synchronisation cloud par ID utilisateur.
+- **Build Android Production (Version Code 2)** : Génération et signature des artéfacts `magicmirror-v1.0.1.apk` et `magicmirror-v1.0.1.aab` (SHA-256 validés).
+- **Stabilisation Branche UI** : Consolidation du build release Android re-généré depuis la branche UI.
 
-## [1.0.0] - 2026-03-31
+### Sécurité & Confidentialité
 
-- Version initiale avec support Supabase (Auth, Profil, Agenda) et détection morphologique IA.
-- Cette première version couvre les principales fonctionnalités comme le miroir, la suggestion des tenues et aussi, celui du profil utilisateur.
-- **Spécificité** : Utilisation de Google Calendar comme calendrier par défaut.
+- **Stockage des Logs** : Migration des logs de débogage vers les répertoires sandboxés/privés natifs de l'application.
+- **Synchronisation Cloud** : Verrouillage strict de la synchronisation Supabase scopée exclusivement à l'identifiant `user_id` authentifié.
+
+## [1.0.0-beta] - 2026-04-01
+
+### Livraison Initiale & Artéfacts (Version Code 1)
+
+- **Artéfacts Release Initiaux** : Génération des premiers builds Android APK et App Bundle (AAB) `magicmirror-v1.0.0-beta.apk`.
+- **Règles R8/ProGuard** : Intégration des premières règles de shrink pour éviter les échecs de build liés aux modules optionnels ML Kit.
+
+### Fonctionnalités de Base
+
+- **Miroir Caméra & Morphologie IA** : Déploiement initial du miroir en direct avec détection de pose et estimation de silhouette via Google ML Kit.
+- **Authentification & Profil** : Système complet d'inscription/connexion par e-mail et synchronisation cloud Supabase.
+- **Agenda & Météo** : Prise en charge des événements d'agenda cloud (CRUD) et météo OpenWeatherMap.
+- **Moteur de Recommandation V1** : Algorithme de scoring heuristique combinant météo, horaire et type d'événement.
+- **Intégration Calendrier** : Configuration initiale du support Google Calendar comme calendrier par défaut.
