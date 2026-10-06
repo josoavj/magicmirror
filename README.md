@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Dart-%3E%3D3.10.4-blue?style=flat-square" alt="Dart Version">
   <img src="https://img.shields.io/badge/Version-1.1.0-orange?style=flat-square" alt="Version actuelle">
   <img src="https://img.shields.io/badge/Status-Maintenance-yellow?style=flat-square" alt="Statut Maintenance">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="Licence MIT"></a>
   <img src="https://img.shields.io/github/last-commit/josoavj/magicmirror?style=flat-square" alt="Dernier commit">
 </p>
 
@@ -25,17 +25,17 @@
 
 ## Vue d'ensemble des fonctionnalités
 
-| Fonctionnalité | Statut | Détails |
-|---|---|---|
-| **Miroir caméra** | 100% | Caméra temps réel, effet miroir, rendu plein écran centré sans déformation, contrôles permanents (zoom/exposition) |
-| **Agenda / Calendrier** | 100% | Agenda cloud Supabase avec gestion complète (CRUD) |
-| **Météo** | 100% | API OpenWeatherMap + géolocalisation pour recommandations contextuelles |
-| **Morphologie IA** | 100% | Google ML Kit — détection de pose et classification automatique |
-| **Suggestions de tenues** | 100% | Algorithme de ranking hybride (Heuristique + ML + LLM) |
-| **Garde-robe / Dressing** | 100% | Prise en compte des vêtements/accessoires possédés dans les idées de tenues |
-| **Profil utilisateur** | 100% | Synchronisation cloud complète (avatar, préférences, morphologie) |
-| **Suite de Tests** | 100% | Tests unitaires, de state management (Riverpod) et de widgets |
-| **Synthèse vocale** | 100% | Feedback audio intelligent pour les recommandations |
+| Fonctionnalité            | Statut | Détails                                                                                                          |
+|---------------------------|-------|------------------------------------------------------------------------------------------------------------------|
+| **Miroir caméra**         | 100%  | Caméra temps réel, effet miroir, rendu plein écran de la caméra frontale, contrôles permanents (zoom/exposition) |
+| **Agenda (Planning)**     | 100%  | Agenda cloud Supabase avec gestion complète (CRUD)                                                               |
+| **Météo (InRealTime)**    | 100%  | API OpenWeatherMap + géolocalisation pour recommandations contextuelles                                          |
+| **Morphologie IA**        | 100%  | Google ML Kit pour la détection de pose et classification automatique                                            |
+| **Suggestions de tenues** | 80%   | Algorithme de ranking hybride (Heuristique + ML + LLM)                                                           |
+| **Garde-robe (Dressing)** | 100%  | Prise en compte des vêtements et accessoires possédés dans les idées de tenues                                   |
+| **Profil utilisateur**    | 100%  | Synchronisation cloud complète (avatar, préférences, morphologie)                                                |
+| **Suite de Tests**        | 100%  | Tests unitaires, de state management (Riverpod) et de widgets                                                    |
+| **Synthèse vocale**       | 100%  | Feedback audio intelligent pour les recommandations                                                              |
 
 ---
 
