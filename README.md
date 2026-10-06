@@ -126,4 +126,10 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 ---
 
+## Licence
+
+Ce projet est distribué sous la licence **MIT**. Consulter le fichier [LICENSE](LICENSE) pour plus d'informations.
+
+---
+
 <p align="center">Éditeur et mainteneur : <a href="https://github.com/josoavj">josoavj</a> (Développeur Fullstack — Antananarivo 101, Madagascar)</p>
