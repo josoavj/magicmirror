@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/features/outfit_suggestion/presentation/providers/outfit_favorites_provider.dart';
+import 'package:magicmirror/features/user_profile/data/services/user_avatar_cache_service.dart';
+import 'package:magicmirror/features/user_profile/presentation/providers/user_profile_provider.dart';
 import 'package:magicmirror/presentation/widgets/home_tile.dart';
 import 'package:magicmirror/routes/route_names.dart';
 
@@ -10,11 +13,14 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesCount = ref.watch(outfitFavoritesProvider).length;
+    final userProfile = ref.watch(userProfileProvider);
+    final avatarUrl = userProfile.avatarUrl.trim();
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
     final horizontalPadding = isMobile ? 20.0 : 28.0;
     final gridMaxWidth = isMobile ? 340.0 : 420.0;
+    final profileIconSize = isMobile ? 28.0 : 34.0;
 
     return Scaffold(
       body: Stack(
@@ -117,6 +123,11 @@ class HomeScreen extends ConsumerWidget {
                                 icon: Icons.person_outline_rounded,
                                 label: isEnglish ? 'Profile' : 'Profil',
                                 color: Colors.tealAccent,
+                                customIconWidget: _buildProfileAvatar(
+                                  userProfile.userId,
+                                  avatarUrl,
+                                  profileIconSize,
+                                ),
                                 onTap: () => Navigator.pushNamed(
                                   context,
                                   RouteNames.profile,
@@ -162,6 +173,61 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget? _buildProfileAvatar(
+    String userId,
+    String avatarUrl,
+    double iconSize,
+  ) {
+    final hasNetworkAvatar =
+        avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://');
+
+    if (!hasNetworkAvatar) {
+      return null;
+    }
+
+    final defaultIcon = Icon(
+      Icons.person_outline_rounded,
+      color: Colors.tealAccent,
+      size: iconSize,
+    );
+
+    return FutureBuilder<File?>(
+      future: UserAvatarCacheService.syncAndGetAvatarFile(userId, avatarUrl),
+      builder: (context, snapshot) {
+        final file = snapshot.data;
+        if (file != null && file.existsSync()) {
+          return Image.file(
+            file,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            cacheWidth: 200,
+            cacheHeight: 200,
+            errorBuilder: (context, error, stackTrace) => defaultIcon,
+          );
+        }
+
+        return Image.network(
+          avatarUrl,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          cacheWidth: 200,
+          cacheHeight: 200,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) {
+              return child;
+            }
+            return defaultIcon;
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return defaultIcon;
+          },
+        );
+      },
     );
   }
 }
