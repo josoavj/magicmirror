@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'dart:typed_data';
 import 'package:magicmirror/features/user_profile/data/models/user_profile_model.dart';
 import 'package:magicmirror/features/user_profile/data/services/user_profile_sync_service.dart';
+import 'package:magicmirror/features/user_profile/data/services/user_avatar_cache_service.dart';
 import 'package:magicmirror/core/error/index.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
 import 'package:riverpod/riverpod.dart';
@@ -360,6 +361,9 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     ]) {
       await _storageService.remove(key, secure: true);
     }
+    // Nettoyage sécurisé du cache d'images d'avatar lors de la déconnexion
+    await UserAvatarCacheService.clearAllCachedAvatars();
+
     _ref.read(profileLastSyncAtProvider.notifier).state = null;
     _ref.read(profileSyncStatusProvider.notifier).state =
         ProfileSyncStatus.idle;
@@ -461,6 +465,9 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     if (uploadedUrl.isEmpty) {
       return null;
     }
+
+    // Sauvegarde en cache local du nouvel avatar
+    await UserAvatarCacheService.saveAvatarBytes(resolvedUserId, bytes);
 
     state = state.copyWith(userId: resolvedUserId, avatarUrl: uploadedUrl);
     await _saveProfile();
