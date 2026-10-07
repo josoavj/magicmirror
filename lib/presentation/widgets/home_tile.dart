@@ -6,6 +6,7 @@ class HomeTile extends StatelessWidget {
   final Color color;
   final int badgeCount;
   final VoidCallback onTap;
+  final Widget? customIconWidget;
 
   const HomeTile({
     super.key,
@@ -14,6 +15,7 @@ class HomeTile extends StatelessWidget {
     required this.color,
     this.badgeCount = 0,
     required this.onTap,
+    this.customIconWidget,
   });
 
   @override
@@ -46,7 +48,10 @@ class HomeTile extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.28),
                   ),
                 ),
-                child: Icon(icon, color: color, size: iconSize),
+                child: ClipOval(
+                  child: customIconWidget ??
+                      Icon(icon, color: color, size: iconSize),
+                ),
               ),
               if (badgeCount > 0) ...[
                 const SizedBox(height: 6),
