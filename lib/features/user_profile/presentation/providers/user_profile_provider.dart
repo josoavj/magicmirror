@@ -8,7 +8,7 @@ import 'package:magicmirror/features/user_profile/data/services/user_profile_syn
 import 'package:magicmirror/features/user_profile/data/services/user_avatar_cache_service.dart';
 import 'package:magicmirror/core/error/index.dart';
 import 'package:magicmirror/core/constants/app_constants.dart';
-import 'package:riverpod/riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:magicmirror/core/services/storage_service.dart';
 
 enum ProfileSyncStatus { idle, syncing, success, failure }
