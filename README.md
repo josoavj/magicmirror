@@ -120,15 +120,16 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 
 | Plateforme | Statut | Caméra | Météo | Agenda |
 |---|---|---|---|---|
-| **Android / iOS** | Oui | Oui | Oui | Oui |
+| **Android** | Oui | Oui | Oui | Oui |
+| **iOS** | Oui | Oui | Oui | Oui |
 | **macOS** | Oui | Oui | Oui | Oui |
-| **Linux / Windows**| Partiel | Partiel | Oui | Oui |
+| **Linux**| Partiel | Partiel | Oui | Oui |
 
 ---
 
 ## Sécurité & Confidentialité
 
-La sécurité des données utilisateur est au cœur de Magic Mirror. Les versions officielles en release (`1.0.0-beta`, `1.0.1-beta`) sont sécurisées, et la version actuelle/à venir (**`1.1.0-beta+`**) renforce encore la protection (Row Level Security Supabase strict, chiffrement local via `flutter_secure_storage`, obfuscation ProGuard R8 et traitement IA 100% local sur l'appareil).
+La sécurité des données utilisateur est au cœur de Magic Mirror. Les versions officielles en release (`1.0.0-beta`, `1.0.1-beta`) sont sécurisées, et la version à venir (**`1.1.0-beta+`**) renforce encore la protection (Row Level Security Supabase strict, chiffrement local via `flutter_secure_storage`, obfuscation ProGuard R8 et traitement IA 100% local sur l'appareil).
 
 Pour plus de détails ou pour signaler une vulnérabilité, consultez notre [Politique de Sécurité (SECURITY.md)](SECURITY.md).
 
