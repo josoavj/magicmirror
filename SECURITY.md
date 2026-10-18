@@ -2,7 +2,7 @@
 
 ## Versions supportées
 
-Les versions officielles en release (`1.0.0-beta`, `1.0.1-beta`) disposent des protections de base. La version actuelle/à venir (**`1.1.0-beta+`**) renforce considérablement la sécurité globale du projet par rapport aux versions précédentes.
+Les versions officielles en release (`1.0.0-beta`, `1.0.1-beta`) disposent des protections de base. La version à venir (**`1.1.0-beta+`**) renforce considérablement la sécurité globale du projet par rapport aux versions précédentes.
 
 | Version | Statut de sécurité | Supporté |
 | ------- | ------------------ | -------- |
