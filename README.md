@@ -123,7 +123,6 @@ flutter test             # Exécution des 20+ tests unitaires et widgets
 |---|---|---|---|---|
 | **Android** | Oui | Oui | Oui | Oui |
 | **iOS** | Oui | Oui | Oui | Oui |
-| **macOS** | Oui | Oui | Oui | Oui |
 | **Linux**| Partiel | Partiel | Oui | Oui |
 
 ---
